@@ -16,6 +16,7 @@ namespace FuntinoControlCenter.Database
             InitialAdminPassword = null;
             EnsureCatalog(DatabaseManager.MainCatalog, false);
             EnsureCatalog(DatabaseManager.DeviceCatalog, true);
+            InitialAdminPassword = EnsureInitialAdmin();
         }
 
         private static void EnsureCatalog(string catalog, bool deviceDatabase)
@@ -102,7 +103,6 @@ END");
                     catch { transaction.Rollback(); throw; }
                 }
             }
-            if (!deviceDatabase) InitialAdminPassword = EnsureInitialAdmin();
         }
 
         private static string EnsureInitialAdmin()
