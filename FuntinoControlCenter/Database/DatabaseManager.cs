@@ -1,0 +1,107 @@
+using System;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace FuntinoControlCenter.Database
+{
+    internal static class DatabaseManager
+    {
+        public const string MainCatalog = "SharjReportDB0216_New";
+        public const string DeviceCatalog = "DBKart_New";
+
+        public static SqlConnection CreateMainConnection() { return new SqlConnection(BuildConnectionString(MainCatalog)); }
+        public static SqlConnection CreateDeviceConnection() { return new SqlConnection(BuildConnectionString(DeviceCatalog)); }
+        public static SqlConnection CreateConnection(bool deviceDatabase) { return deviceDatabase ? CreateDeviceConnection() : CreateMainConnection(); }
+
+        private static string BuildConnectionString(string catalog)
+        {
+            if (catalog != MainCatalog && catalog != DeviceCatalog) throw new InvalidOperationException("نام پایگاه داده خارج از فهرست مجاز است.");
+            var builder = new SqlConnectionStringBuilder
+            {
+                DataSource = (AppSettings.Current.SqlServer ?? "").Trim(),
+                InitialCatalog = catalog,
+                ConnectTimeout = 8,
+                ApplicationName = "Funtino Control Center",
+                PersistSecurityInfo = false,
+                TrustServerCertificate = true
+            };
+            if (String.IsNullOrWhiteSpace(builder.DataSource)) throw new InvalidOperationException("نام SQL Server را در تنظیمات وارد کنید.");
+            if (AppSettings.Current.IntegratedSecurity) builder.IntegratedSecurity = true;
+            else { builder.UserID = AppSettings.Current.SqlUser ?? ""; builder.Password = AppSettings.Current.SqlPassword ?? ""; }
+            return builder.ConnectionString;
+        }
+
+        public static bool TestConnection(bool deviceDatabase, out string message)
+        {
+            try
+            {
+                using (var connection = deviceDatabase ? CreateDeviceConnection() : CreateMainConnection()) connection.Open();
+                message = deviceDatabase ? "ارتباط با پایگاه دستگاه‌ها برقرار شد." : "ارتباط با پایگاه اصلی برقرار شد.";
+                return true;
+            }
+            catch (Exception ex) { message = SafeMessage(ex); return false; }
+        }
+
+        public static string SafeMessage(Exception ex)
+        {
+            if (ex is SqlException)
+            {
+                var sql = (SqlException)ex;
+                if (sql.Number == 4060 || sql.Number == 18456 || sql.Number == 53 || sql.Number == -1)
+                    return "ارتباط برقرار نشد. نام نمونه SQL و Attach بودن دیتابیس‌های SharjReportDB0216_New و DBKart_New را بررسی کنید. جزئیات: " + ex.Message;
+            }
+            return ex.Message;
+        }
+
+        public static DataTable Query(SqlConnection connection, string sql, params SqlParameter[] parameters)
+        {
+            using (var command = new SqlCommand(sql, connection))
+            {
+                if (parameters != null) command.Parameters.AddRange(parameters);
+                using (var adapter = new SqlDataAdapter(command))
+                {
+                    var table = new DataTable(); adapter.Fill(table); return table;
+                }
+            }
+        }
+
+        public static object Scalar(SqlConnection connection, string sql, params SqlParameter[] parameters)
+        {
+            using (var command = new SqlCommand(sql, connection))
+            {
+                if (parameters != null) command.Parameters.AddRange(parameters);
+                return command.ExecuteScalar();
+            }
+        }
+
+        public static void ChangePassword(int userId, string currentPassword, string newPassword)
+        {
+            if (newPassword == null || newPassword.Length < 8) throw new InvalidOperationException("گذرواژه جدید باید دست‌کم ۸ نویسه داشته باشد.");
+            using (var connection = CreateMainConnection())
+            {
+                connection.Open();
+                byte[] salt, storedHash; int iterations;
+                using (var command = new SqlCommand("SELECT PasswordSalt, PasswordHash, Iterations FROM dbo.AppUsers WHERE UserId=@id AND IsActive=1", connection))
+                {
+                    command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.Read()) throw new InvalidOperationException("کاربر فعال یافت نشد.");
+                        salt = (byte[])reader[0]; storedHash = (byte[])reader[1]; iterations = Convert.ToInt32(reader[2]);
+                    }
+                }
+                if (!FuntinoControlCenter.Security.PasswordHasher.Verify(currentPassword, salt, storedHash, iterations))
+                    throw new InvalidOperationException("گذرواژه فعلی درست نیست.");
+                byte[] newSalt, newHash; Security.PasswordHasher.Create(newPassword, out newSalt, out newHash);
+                using (var command = new SqlCommand("UPDATE dbo.AppUsers SET PasswordSalt=@salt, PasswordHash=@hash, Iterations=@iterations, MustChangePassword=0 WHERE UserId=@id", connection))
+                {
+                    command.Parameters.Add("@salt", SqlDbType.VarBinary, 32).Value = newSalt;
+                    command.Parameters.Add("@hash", SqlDbType.VarBinary, 32).Value = newHash;
+                    command.Parameters.Add("@iterations", SqlDbType.Int).Value = Security.PasswordHasher.Iterations;
+                    command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
+                    if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("ذخیره گذرواژه انجام نشد.");
+                }
+            }
+        }
+    }
+}

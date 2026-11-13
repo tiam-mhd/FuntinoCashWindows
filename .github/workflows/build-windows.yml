@@ -1,0 +1,51 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "FuntinoControlCenter/**"
+      - ".github/workflows/build-windows.yml"
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Windows x86
+    runs-on: windows-2022
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v3
+      - name: Rebuild Release
+        shell: cmd
+        working-directory: FuntinoControlCenter
+        run: msbuild FuntinoControlCenter.sln /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /verbosity:minimal
+      - name: Stage distribution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $project = Join-Path $env:GITHUB_WORKSPACE "FuntinoControlCenter"
+          $release = Join-Path $project "bin\Release"
+          $dist = Join-Path $env:RUNNER_TEMP "FuntinoControlCenter"
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          if (!(Test-Path (Join-Path $release "FuntinoControlCenter.exe"))) {
+            throw "MSBuild completed without producing FuntinoControlCenter.exe"
+          }
+          Copy-Item -Path (Join-Path $release "*") -Destination $dist -Recurse -Force
+          Copy-Item -Path (Join-Path $project "README_FA.md") -Destination $dist -Force
+          New-Item -ItemType Directory -Force -Path (Join-Path $dist "Build") | Out-Null
+          Copy-Item -Path (Join-Path $project "Build\Attach-Databases.sql") -Destination (Join-Path $dist "Build") -Force
+          $archive = Join-Path $env:GITHUB_WORKSPACE "FuntinoControlCenter_Windows_x86.zip"
+          Compress-Archive -Path (Join-Path $dist "*") -DestinationPath $archive -Force
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          name: FuntinoControlCenter_Windows_x86
+          path: FuntinoControlCenter_Windows_x86.zip
+          if-no-files-found: error
+          retention-days: 30
