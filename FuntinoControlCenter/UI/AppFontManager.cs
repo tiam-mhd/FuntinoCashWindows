@@ -4,14 +4,14 @@ using System.IO;
 
 namespace FuntinoControlCenter.UI
 {
-    internal static class AppFontManager
+    public static class AppFontManager
     {
         private static readonly PrivateFontCollection PrivateFonts = new PrivateFontCollection();
         private static readonly object SyncRoot = new object();
         private static bool initialized;
         private static System.Drawing.FontFamily vazirmatnFamily;
 
-        internal static System.Drawing.FontFamily VazirmatnFamily
+        public static System.Drawing.FontFamily VazirmatnFamily
         {
             get
             {
