@@ -278,9 +278,48 @@ namespace FuntinoControlCenter.Forms
             lblExpirationCaption.Visible = lblExpirationValue.Visible = canInformation;
             lblBalanceCaption.Visible = lblBalanceValue.Visible = canBalance;
 
+            UpdateShortcutHint(canRecharge, canInformation, canBalance, canHistory, canRemainder, canDatabaseHistory);
+
             bool hasActions = canInformation || canBalance || canRemainder || canHistory || canRecharge;
             pnlActions.Visible = hasActions;
             if (!hasActions) Close();
+        }
+
+        private void UpdateShortcutHint(bool canRecharge, bool canInformation, bool canBalance, bool canHistory, bool canRemainder, bool canDatabaseHistory)
+        {
+            var shortcuts = new System.Collections.Generic.List<string>();
+            AddShortcutHint(shortcuts, btnRecharge, canRecharge);
+            AddShortcutHint(shortcuts, btnReadInfo, canInformation);
+            AddShortcutHint(shortcuts, btnReadBalance, canBalance);
+            AddShortcutHint(shortcuts, btnReadHistory, canHistory);
+            AddShortcutHint(shortcuts, btnReadRemainder, canRemainder);
+            AddShortcutHint(shortcuts, btnDatabaseHistoryTab, canDatabaseHistory);
+            AddShortcutHint(shortcuts, btnCardHistoryTab, canHistory);
+
+            if (canDatabaseHistory)
+            {
+                shortcuts.Add("کادر جست‌وجو: Ctrl+F");
+                AddShortcutHint(shortcuts, btnSearchHistory, true);
+                AddShortcutHint(shortcuts, btnPreviousHistory, true);
+                AddShortcutHint(shortcuts, btnNextHistory, true);
+            }
+
+            lblAmountHint.Text = String.Join("  |  ", shortcuts.ToArray());
+        }
+
+        private static void AddShortcutHint(System.Collections.Generic.List<string> shortcuts, Control button, bool isAllowed)
+        {
+            if (!isAllowed || button == null || String.IsNullOrWhiteSpace(button.Text)) return;
+
+            // The Designer caption separates the action from its shortcut with three spaces.
+            int separatorIndex = button.Text.LastIndexOf("   ", StringComparison.Ordinal);
+            if (separatorIndex <= 0 || separatorIndex + 3 >= button.Text.Length) return;
+
+            string action = button.Text.Substring(0, separatorIndex).Trim();
+            string keys = button.Text.Substring(separatorIndex + 3).Trim();
+            if (action.Length == 0 || keys.Length == 0) return;
+
+            shortcuts.Add(action + ": " + keys);
         }
 
         private bool HasAnyCardOperationAccess()

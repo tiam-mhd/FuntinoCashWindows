@@ -534,7 +534,7 @@ namespace FuntinoControlCenter.Forms
             this.btnRecharge.Name = "btnRecharge";
             this.btnRecharge.Size = new System.Drawing.Size(214, 57);
             this.btnRecharge.TabIndex = 4;
-            this.btnRecharge.Text = "شارژ کارت   P";
+            this.btnRecharge.Text = "شارژ کارت   P / Enter";
             this.btnRecharge.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnRecharge.UseVisualStyleBackColor = false;
             this.btnRecharge.Click += new System.EventHandler(this.Recharge_Click);
@@ -613,8 +613,7 @@ namespace FuntinoControlCenter.Forms
             this.lblAmountHint.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblAmountHint.Size = new System.Drawing.Size(1122, 25);
             this.lblAmountHint.TabIndex = 2;
-            this.lblAmountHint.Text = "شارژ: P یا Enter  |  اطلاعات: F1  |  موجودی: F2  |  سوابق کارت: F3  |  باقیمانده:" +
-    " F4  |  سوابق سامانه: F5  |  جست‌وجو: Ctrl+F";
+            this.lblAmountHint.Text = "شارژ کارت: P / Enter  |  اطلاعات کارت: F1  |  خواندن موجودی: F2  |  سوابق کارت: F3  |  باقیمانده‌ی شارژ: F4  |  سوابق سامانه: F5  |  نمایش سوابق کارت: F6  |  کادر جست‌وجو: Ctrl+F  |  جست‌وجو: Enter  |  قبلی: Ctrl+←  |  بعدی: Ctrl+→";
             this.lblAmountHint.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             //
             // tlpActionButtons
@@ -793,7 +792,7 @@ namespace FuntinoControlCenter.Forms
             this.btnSearchHistory.Name = "btnSearchHistory";
             this.btnSearchHistory.Size = new System.Drawing.Size(151, 36);
             this.btnSearchHistory.TabIndex = 2;
-            this.btnSearchHistory.Text = "جست‌وجو";
+            this.btnSearchHistory.Text = "جست‌وجو   Enter";
             this.btnSearchHistory.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnSearchHistory.UseVisualStyleBackColor = false;
             this.btnSearchHistory.Click += new System.EventHandler(this.SearchHistory_Click);
@@ -814,7 +813,7 @@ namespace FuntinoControlCenter.Forms
             this.btnPreviousHistory.Name = "btnPreviousHistory";
             this.btnPreviousHistory.Size = new System.Drawing.Size(95, 36);
             this.btnPreviousHistory.TabIndex = 3;
-            this.btnPreviousHistory.Text = "قبلی";
+            this.btnPreviousHistory.Text = "قبلی   Ctrl+←";
             this.btnPreviousHistory.UseVisualStyleBackColor = false;
             this.btnPreviousHistory.Click += new System.EventHandler(this.PreviousHistory_Click);
             //
@@ -834,7 +833,7 @@ namespace FuntinoControlCenter.Forms
             this.btnNextHistory.Name = "btnNextHistory";
             this.btnNextHistory.Size = new System.Drawing.Size(95, 36);
             this.btnNextHistory.TabIndex = 4;
-            this.btnNextHistory.Text = "بعدی";
+            this.btnNextHistory.Text = "بعدی   Ctrl+→";
             this.btnNextHistory.UseVisualStyleBackColor = false;
             this.btnNextHistory.Click += new System.EventHandler(this.NextHistory_Click);
             //
