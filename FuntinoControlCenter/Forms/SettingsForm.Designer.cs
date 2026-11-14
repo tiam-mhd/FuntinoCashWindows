@@ -7,11 +7,11 @@ namespace FuntinoControlCenter.Forms
         private FuntinoControlCenter.UI.RoundedBorderPanel pnlDatabase, pnlHardware;
         private FuntinoControlCenter.UI.RoundedBorderPanel pnlSqlServerInput, pnlSqlUserInput, pnlSqlPasswordInput;
         private FuntinoControlCenter.UI.RoundedBorderPanel pnlReaderPortInput, pnlPosPortInput, pnlReaderBaudInput, pnlPosBaudInput;
-        private System.Windows.Forms.Label lblTitle, lblDbSection, lblServer, lblWindowsAuth, lblSqlUser, lblSqlPassword, lblDatabaseNames, lblHardwareSection, lblReader, lblPos, lblReaderBaud, lblPosBaud, lblDbHint, lblReaderPortState, lblPosPortState;
+        private System.Windows.Forms.Label lblTitle, lblDbSection, lblServer, lblWindowsAuth, lblSqlUser, lblSqlPassword, lblDatabaseNames, lblHardwareSection, lblReader, lblPos, lblReaderBaud, lblPosBaud, lblDbHint, lblReaderPortState, lblPosPortState, lblReaderKeyState;
         private System.Windows.Forms.TextBox txtSqlServer, txtSqlUser, txtSqlPassword;
         private System.Windows.Forms.CheckBox chkWindowsAuth;
         private System.Windows.Forms.ComboBox cmbReaderPort, cmbPosPort, cmbReaderBaud, cmbPosBaud;
-        private FuntinoControlCenter.UI.RoundedButton btnTestMain, btnTestDevice, btnSave, btnClose, btnRescanReader, btnRescanPos;
+        private FuntinoControlCenter.UI.RoundedButton btnTestMain, btnTestDevice, btnSave, btnClose, btnRescanReader, btnRescanPos, btnImportReaderKey;
 
         protected override void Dispose(bool disposing)
         {
@@ -46,6 +46,7 @@ namespace FuntinoControlCenter.Forms
             this.lblDbHint = new System.Windows.Forms.Label();
             this.lblReaderPortState = new System.Windows.Forms.Label();
             this.lblPosPortState = new System.Windows.Forms.Label();
+            this.lblReaderKeyState = new System.Windows.Forms.Label();
             this.txtSqlServer = new System.Windows.Forms.TextBox();
             this.txtSqlUser = new System.Windows.Forms.TextBox();
             this.txtSqlPassword = new System.Windows.Forms.TextBox();
@@ -60,6 +61,7 @@ namespace FuntinoControlCenter.Forms
             this.btnClose = new FuntinoControlCenter.UI.RoundedButton();
             this.btnRescanReader = new FuntinoControlCenter.UI.RoundedButton();
             this.btnRescanPos = new FuntinoControlCenter.UI.RoundedButton();
+            this.btnImportReaderKey = new FuntinoControlCenter.UI.RoundedButton();
             this.pnlHeader.SuspendLayout();
             this.pnlDatabase.SuspendLayout();
             this.pnlHardware.SuspendLayout();
@@ -276,9 +278,11 @@ namespace FuntinoControlCenter.Forms
             this.pnlHardware.Controls.Add(this.pnlPosBaudInput);
             this.pnlHardware.Controls.Add(this.btnRescanPos);
             this.pnlHardware.Controls.Add(this.lblPosPortState);
+            this.pnlHardware.Controls.Add(this.lblReaderKeyState);
+            this.pnlHardware.Controls.Add(this.btnImportReaderKey);
             this.pnlHardware.Location = new System.Drawing.Point(30, 492);
             this.pnlHardware.Name = "pnlHardware";
-            this.pnlHardware.Size = new System.Drawing.Size(1060, 250);
+            this.pnlHardware.Size = new System.Drawing.Size(1060, 305);
             this.pnlHardware.TabIndex = 2;
             this.lblHardwareSection.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 13F, System.Drawing.FontStyle.Bold);
             this.lblHardwareSection.ForeColor = System.Drawing.Color.FromArgb(20, 75, 68);
@@ -443,6 +447,32 @@ namespace FuntinoControlCenter.Forms
             this.lblPosPortState.TabIndex = 12;
             this.lblPosPortState.Text = "پورت‌های در دسترس پایانه‌ی فروش";
             this.lblPosPortState.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.lblReaderKeyState.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8.5F);
+            this.lblReaderKeyState.ForeColor = System.Drawing.Color.FromArgb(94, 112, 105);
+            this.lblReaderKeyState.Location = new System.Drawing.Point(24, 260);
+            this.lblReaderKeyState.Name = "lblReaderKeyState";
+            this.lblReaderKeyState.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.lblReaderKeyState.Size = new System.Drawing.Size(730, 30);
+            this.lblReaderKeyState.TabIndex = 13;
+            this.lblReaderKeyState.Text = "کلید کارت هنوز وارد نشده است.";
+            this.lblReaderKeyState.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.btnImportReaderKey.BackColor = System.Drawing.Color.FromArgb(255, 255, 255);
+            this.btnImportReaderKey.BorderColor = System.Drawing.Color.FromArgb(190, 210, 200);
+            this.btnImportReaderKey.BorderSize = 1;
+            this.btnImportReaderKey.CornerRadius = 12;
+            this.btnImportReaderKey.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnImportReaderKey.FlatAppearance.BorderSize = 0;
+            this.btnImportReaderKey.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8.5F, System.Drawing.FontStyle.Bold);
+            this.btnImportReaderKey.ForeColor = System.Drawing.Color.FromArgb(31, 84, 72);
+            this.btnImportReaderKey.Image = global::FuntinoControlCenter.Properties.Resources.ConnectionSettings;
+            this.btnImportReaderKey.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnImportReaderKey.Location = new System.Drawing.Point(782, 254);
+            this.btnImportReaderKey.Name = "btnImportReaderKey";
+            this.btnImportReaderKey.Size = new System.Drawing.Size(252, 42);
+            this.btnImportReaderKey.TabIndex = 14;
+            this.btnImportReaderKey.Text = "درون‌ریزی کلید کارت PlayCash";
+            this.btnImportReaderKey.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.btnImportReaderKey.UseVisualStyleBackColor = false;
 
             this.btnSave.BackColor = System.Drawing.Color.FromArgb(20, 89, 81);
             this.btnSave.BorderColor = System.Drawing.Color.FromArgb(20, 89, 81);
@@ -454,7 +484,7 @@ namespace FuntinoControlCenter.Forms
             this.btnSave.ForeColor = System.Drawing.Color.White;
             this.btnSave.Image = global::FuntinoControlCenter.Properties.Resources.SaveSettings;
             this.btnSave.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnSave.Location = new System.Drawing.Point(790, 773);
+            this.btnSave.Location = new System.Drawing.Point(790, 823);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(300, 50);
             this.btnSave.TabIndex = 12;
@@ -471,7 +501,7 @@ namespace FuntinoControlCenter.Forms
             this.btnClose.ForeColor = System.Drawing.Color.FromArgb(50, 75, 68);
             this.btnClose.Image = global::FuntinoControlCenter.Properties.Resources.Exit;
             this.btnClose.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnClose.Location = new System.Drawing.Point(30, 773);
+            this.btnClose.Location = new System.Drawing.Point(30, 823);
             this.btnClose.Name = "btnClose";
             this.btnClose.Size = new System.Drawing.Size(300, 50);
             this.btnClose.TabIndex = 13;
@@ -484,7 +514,7 @@ namespace FuntinoControlCenter.Forms
             this.BackColor = System.Drawing.Color.FromArgb(242, 246, 243);
             this.BackgroundImage = global::FuntinoControlCenter.Properties.Resources.SettingsBackground;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.ClientSize = new System.Drawing.Size(1120, 850);
+            this.ClientSize = new System.Drawing.Size(1120, 900);
             this.Controls.Add(this.pnlHeader);
             this.Controls.Add(this.pnlDatabase);
             this.Controls.Add(this.pnlHardware);
@@ -509,6 +539,7 @@ namespace FuntinoControlCenter.Forms
             this.btnTestDevice.Click += new System.EventHandler(this.TestDevice_Click);
             this.btnRescanReader.Click += new System.EventHandler(this.RescanReaderPorts_Click);
             this.btnRescanPos.Click += new System.EventHandler(this.RescanPosPorts_Click);
+            this.btnImportReaderKey.Click += new System.EventHandler(this.ImportReaderKey_Click);
             this.pnlHeader.ResumeLayout(false);
             this.pnlDatabase.ResumeLayout(false);
             this.pnlHardware.ResumeLayout(false);

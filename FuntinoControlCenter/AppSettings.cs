@@ -17,6 +17,22 @@ namespace FuntinoControlCenter
         public string PosPort { get; set; }
         public int ReaderBaud { get; set; }
         public int PosBaud { get; set; }
+        private byte[] readerCardKey;
+        public bool ReaderCardKeyConfigured { get; private set; }
+
+        public byte[] GetReaderCardKey()
+        {
+            return readerCardKey == null ? null : (byte[])readerCardKey.Clone();
+        }
+
+        public void SetReaderCardKey(byte[] value)
+        {
+            if (value == null || value.Length != 6)
+                throw new ArgumentException("کلید کارت باید دقیقاً شش بایت باشد.", "value");
+            if (readerCardKey != null) Array.Clear(readerCardKey, 0, readerCardKey.Length);
+            readerCardKey = (byte[])value.Clone();
+            ReaderCardKeyConfigured = true;
+        }
 
         public static AppSettings Current { get; private set; }
         private static string SettingsPath
@@ -52,6 +68,17 @@ namespace FuntinoControlCenter
                 try { password = Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(encrypted), null, DataProtectionScope.CurrentUser)); }
                 catch { password = ""; }
             }
+            byte[] readerKey = null;
+            string protectedReaderKey = Get(values, "ReaderCardKeyProtected", "");
+            if (!String.IsNullOrEmpty(protectedReaderKey))
+            {
+                try
+                {
+                    readerKey = ProtectedData.Unprotect(Convert.FromBase64String(protectedReaderKey), null, DataProtectionScope.CurrentUser);
+                    if (readerKey.Length != 6) { Array.Clear(readerKey, 0, readerKey.Length); readerKey = null; }
+                }
+                catch { readerKey = null; }
+            }
             var settings = new AppSettings
             {
                 SqlServer = Get(values, "SqlServer", @".\FuntinoSqlServer"),
@@ -60,6 +87,8 @@ namespace FuntinoControlCenter
                 ReaderPort = Get(values, "ReaderPort", "COM11"), PosPort = Get(values, "PosPort", "COM21"),
                 ReaderBaud = ParseInt(Get(values, "ReaderBaud", "9600"), 9600), PosBaud = ParseInt(Get(values, "PosBaud", "9600"), 9600)
             };
+            settings.readerCardKey = readerKey;
+            settings.ReaderCardKeyConfigured = readerKey != null;
             Current = settings;
             return settings;
         }
@@ -70,10 +99,14 @@ namespace FuntinoControlCenter
             string protectedPassword = "";
             if (!String.IsNullOrEmpty(SqlPassword))
                 protectedPassword = Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(SqlPassword), null, DataProtectionScope.CurrentUser));
+            string protectedReaderKey = "";
+            if (ReaderCardKeyConfigured && readerCardKey != null)
+                protectedReaderKey = Convert.ToBase64String(ProtectedData.Protect(readerCardKey, null, DataProtectionScope.CurrentUser));
             var values = new Dictionary<string, string>
             {
                 { "SqlServer", SqlServer ?? "" }, { "IntegratedSecurity", IntegratedSecurity ? "true" : "false" },
                 { "SqlUser", SqlUser ?? "" }, { "SqlPasswordProtected", protectedPassword },
+                { "ReaderCardKeyProtected", protectedReaderKey },
                 { "ReaderPort", ReaderPort ?? "COM11" }, { "PosPort", PosPort ?? "COM21" },
                 { "ReaderBaud", ReaderBaud.ToString() }, { "PosBaud", PosBaud.ToString() }
             };

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using FuntinoControlCenter.Database;
@@ -30,6 +31,43 @@ namespace FuntinoControlCenter.Forms
         private void TestDevice_Click(object sender, EventArgs e) { TestDatabase(true); }
         private void RescanReaderPorts_Click(object sender, EventArgs e) { ScanReaderPorts(true); }
         private void RescanPosPorts_Click(object sender, EventArgs e) { ScanPosPorts(true); }
+
+        private void ImportReaderKey_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                AuthorizationGuard.Require("settings.hardware.update");
+                using (var dialog = new OpenFileDialog())
+                {
+                    dialog.Title = "انتخاب فایل کلید نرم‌افزار PlayCash";
+                    dialog.Filter = "فایل کلید PlayCash (p.bin)|p.bin|همه‌ی فایل‌ها (*.*)|*.*";
+                    dialog.CheckFileExists = true;
+                    dialog.Multiselect = false;
+                    if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+                    byte[] encoded = File.ReadAllBytes(dialog.FileName);
+                    if (encoded.Length != 6)
+                    {
+                        Array.Clear(encoded, 0, encoded.Length);
+                        throw new InvalidOperationException("فایل انتخاب‌شده کلید معتبر PlayCash نیست؛ اندازه‌ی فایل باید شش بایت باشد.");
+                    }
+                    for (int i = 0; i < encoded.Length; i++)
+                    {
+                        encoded[i] = (byte)(encoded[i] ^ 0x12);
+                        encoded[i] = (byte)(encoded[i] ^ 0x38);
+                    }
+                    try
+                    {
+                        AppSettings.Current.SetReaderCardKey(encoded);
+                        AppSettings.Current.Save();
+                    }
+                    finally { Array.Clear(encoded, 0, encoded.Length); }
+                    lblReaderKeyState.Text = "کلید کارت از PlayCash در تنظیمات رمزگذاری‌شده‌ی همین حساب ویندوز ذخیره شد.";
+                    MessageBox.Show(this, lblReaderKeyState.Text, "کلید کارت آماده است", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex) { MessageBox.Show(this, ex.Message, "درون‌ریزی کلید کارت", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+        }
 
         private void SettingsForm_Load(object sender, EventArgs e)
         {
@@ -68,6 +106,10 @@ namespace FuntinoControlCenter.Forms
 
                 if (canViewHardware)
                 {
+                    lblReaderKeyState.Text = AppSettings.Current.ReaderCardKeyConfigured
+                        ? "کلید کارت به‌صورت رمزگذاری‌شده برای همین حساب ویندوز ذخیره شده است."
+                        : "برای خواندن کارت‌های PlayCash، فایل p.bin نرم‌افزار مرجع را یک‌بار درون‌ریزی کنید.";
+                    btnImportReaderKey.Visible = canUpdateHardware;
                     cmbReaderBaud.Text = AppSettings.Current.ReaderBaud.ToString(); cmbPosBaud.Text = AppSettings.Current.PosBaud.ToString();
                     cmbReaderBaud.Enabled = cmbPosBaud.Enabled = canUpdateHardware;
                     btnRescanReader.Visible = btnRescanPos.Visible = canTestDevices;

@@ -47,6 +47,8 @@ namespace FuntinoControlCenter.Database
                         {
                             EnsureAccessControlObjects(connection, transaction);
                             AddVersionIfMissing(connection, transaction, 4, "Funtino role-based access control");
+                            EnsureCardOperationObjects(connection, transaction);
+                            AddVersionIfMissing(connection, transaction, 5, "Funtino card operation audit");
                         }
                         transaction.Commit();
                     }
@@ -237,6 +239,28 @@ WHERE IsAdministrator=1;", connection, transaction))
                 command.Parameters.Add("@roleId", SqlDbType.Int).Value = administratorRoleId;
                 command.ExecuteNonQuery();
             }
+        }
+
+        private static void EnsureCardOperationObjects(SqlConnection connection, SqlTransaction transaction)
+        {
+            Execute(connection, transaction, @"
+IF OBJECT_ID(N'app.CardOperationLog', N'U') IS NULL
+BEGIN
+ CREATE TABLE app.CardOperationLog
+ (
+  CardOperationLogId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_CardOperationLog PRIMARY KEY,
+  ApplicationUserId int NOT NULL,
+  OperationName nvarchar(40) NOT NULL,
+  CardUid varchar(11) NULL,
+  RequestedAmount bigint NULL,
+  OperationStatus nvarchar(40) NOT NULL,
+  Details nvarchar(1000) NULL,
+  StartedAt datetime2(0) NOT NULL CONSTRAINT DF_CardOperationLog_StartedAt DEFAULT(SYSDATETIME()),
+  CompletedAt datetime2(0) NULL
+ );
+ CREATE INDEX IX_CardOperationLog_StartedAt ON app.CardOperationLog(StartedAt DESC);
+ CREATE INDEX IX_CardOperationLog_CardUid ON app.CardOperationLog(CardUid,StartedAt DESC);
+END");
         }
 
         private static int EnsureRole(SqlConnection connection, SqlTransaction transaction, string code, string displayName, string description, bool system, IEnumerable<string> initialPermissions)

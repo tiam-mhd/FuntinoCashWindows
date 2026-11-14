@@ -60,6 +60,7 @@
     <Compile Include="Database\SchemaMigrator.cs" />
     <Compile Include="Database\TableRepository.cs" />
     <Compile Include="Database\UserRepository.cs" />
+    <Compile Include="Database\CardOperationsRepository.cs" />
     <Compile Include="Security\PasswordHasher.cs" />
     <Compile Include="Security\PermissionCatalog.cs" />
     <Compile Include="Security\AuthorizationGuard.cs" />
@@ -69,6 +70,7 @@
     <Compile Include="Services\HardwareService.cs" />
     <Compile Include="Services\ReportExportService.cs" />
     <Compile Include="Services\DeviceDiagnostics.cs" />
+    <Compile Include="Services\CardReaderService.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -127,6 +129,12 @@
     </Compile>
     <Compile Include="Forms\DeviceStatusForm.Designer.cs">
       <DependentUpon>DeviceStatusForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\CardOperationsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\CardOperationsForm.Designer.cs">
+      <DependentUpon>CardOperationsForm.cs</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>

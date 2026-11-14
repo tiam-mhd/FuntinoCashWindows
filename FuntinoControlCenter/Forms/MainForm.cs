@@ -10,6 +10,7 @@ namespace FuntinoControlCenter.Forms
 {
     public partial class MainForm : Form
     {
+        private bool initialCardOperationsShown;
         public MainForm() { InitializeComponent(); }
 
         private void OpenTables_Click(object sender, EventArgs e) { using (var form = new TableBrowserForm()) form.ShowDialog(this); RefreshDashboard(); }
@@ -17,10 +18,10 @@ namespace FuntinoControlCenter.Forms
         private void OpenDevices_Click(object sender, EventArgs e) { using (var form = new DeviceStatusForm()) form.ShowDialog(this); RefreshDashboard(); }
         private void OpenSettings_Click(object sender, EventArgs e) { using (var form = new SettingsForm()) form.ShowDialog(this); RefreshDashboard(); }
         private void OpenPassword_Click(object sender, EventArgs e) { using (var form = new ChangePasswordForm()) form.ShowDialog(this); }
-        private void OpenRecharge_Click(object sender, EventArgs e) { OpenTable("finance.RechargeTransaction"); }
+        private void OpenRecharge_Click(object sender, EventArgs e) { OpenCardOperations(); }
         private void OpenTickets_Click(object sender, EventArgs e) { OpenTable("ticket.TicketTransaction"); }
         private void OpenPos_Click(object sender, EventArgs e) { OpenTable("payments.PointOfSaleTransaction"); }
-        private void OpenCardReader_Click(object sender, EventArgs e) { OpenDevices_Click(sender, e); }
+        private void OpenCardReader_Click(object sender, EventArgs e) { OpenCardOperations(); }
         private void Logout_Click(object sender, EventArgs e) { Close(); }
 
         private void OpenAccess_Click(object sender, EventArgs e)
@@ -59,6 +60,15 @@ namespace FuntinoControlCenter.Forms
             }
         }
 
+        private void MainForm_Shown(object sender, EventArgs e)
+        {
+            if (initialCardOperationsShown) return;
+            initialCardOperationsShown = true;
+            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create"));
+            if (AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") || canRechargeCard)
+                OpenCardOperations();
+        }
+
         private void ApplyPermissions()
         {
             bool canDashboard = AuthorizationGuard.Has("dashboard.view");
@@ -70,8 +80,11 @@ namespace FuntinoControlCenter.Forms
             btnAccess.Visible = AuthorizationGuard.HasAny("users.view", "users.create", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate", "roles.view", "roles.create", "roles.update", "roles.assign_permissions", "roles.delete");
             btnPassword.Visible = AppSession.Current != null;
 
-            pnlCardHero.Visible = canDashboard;
-            lblBalanceTitle.Visible = lblBalanceValue.Visible = lblBalanceHint.Visible = canDashboard;
+            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create"));
+            bool canCardOperations = AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") || canRechargeCard;
+            bool canReadCardBalance = AuthorizationGuard.Has("cards.balance.view");
+            pnlCardHero.Visible = canCardOperations;
+            lblBalanceTitle.Visible = lblBalanceValue.Visible = lblBalanceHint.Visible = canReadCardBalance;
             pnlCardTables.Visible = canDashboard;
             pnlCardMain.Visible = canDashboard;
             pnlCardDevice.Visible = canDashboard;
@@ -79,10 +92,10 @@ namespace FuntinoControlCenter.Forms
             lblSummaryCaption.Visible = canDashboard;
             lblBusinessSummary.Visible = canDashboard;
 
-            btnRecharge.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "view"));
+            btnRecharge.Visible = canRechargeCard;
             btnTickets.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("ticket", "view"));
             btnPos.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("payments", "view"));
-            btnCardReader.Visible = AuthorizationGuard.HasAny("devices.view", "devices.test");
+            btnCardReader.Visible = AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view");
             lblQuickActions.Visible = btnRecharge.Visible || btnTickets.Visible || btnPos.Visible || btnCardReader.Visible;
         }
 
@@ -130,6 +143,18 @@ namespace FuntinoControlCenter.Forms
             string schema = (tableName ?? "").Split('.').FirstOrDefault() ?? "";
             if (!AuthorizationGuard.Has(PermissionCatalog.TableCode(schema, "view"))) return;
             using (var form = new TableBrowserForm(false, tableName)) form.ShowDialog(this);
+            RefreshDashboard();
+        }
+
+        private void OpenCardOperations()
+        {
+            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create"));
+            if (!AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") && !canRechargeCard)
+            {
+                MessageBox.Show(this, "برای عملیات کارت مجوزی ندارید.", "دسترسی محدود", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            using (var form = new CardOperationsForm()) form.ShowDialog(this);
             RefreshDashboard();
         }
     }

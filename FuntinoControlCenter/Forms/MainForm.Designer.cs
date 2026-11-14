@@ -294,7 +294,7 @@ namespace FuntinoControlCenter.Forms
             this.lblBalanceHint.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblBalanceHint.Size = new System.Drawing.Size(690, 38);
             this.lblBalanceHint.TabIndex = 2;
-            this.lblBalanceHint.Text = "خواندن واقعی موجودی کارت هنوز به کارت‌خوان متصل نشده است.";
+            this.lblBalanceHint.Text = "کارت را روی کارت‌خوان بگذارید و برای خواندن، از صفحه‌ی عملیات کارت درخواست بدهید.";
             this.lblBalanceHint.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnRecharge.BackColor = System.Drawing.Color.FromArgb(20, 89, 81);
             this.btnRecharge.BorderColor = System.Drawing.Color.FromArgb(20, 89, 81);
@@ -310,7 +310,7 @@ namespace FuntinoControlCenter.Forms
             this.btnRecharge.Name = "btnRecharge";
             this.btnRecharge.Size = new System.Drawing.Size(335, 54);
             this.btnRecharge.TabIndex = 6;
-            this.btnRecharge.Text = "مدیریت و سوابق شارژ";
+            this.btnRecharge.Text = "شارژ کارت";
             this.btnRecharge.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnRecharge.UseVisualStyleBackColor = false;
             this.btnCardReader.BackColor = System.Drawing.Color.FromArgb(255, 255, 255);
@@ -321,13 +321,13 @@ namespace FuntinoControlCenter.Forms
             this.btnCardReader.FlatAppearance.BorderSize = 0;
             this.btnCardReader.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9.5F, System.Drawing.FontStyle.Bold);
             this.btnCardReader.ForeColor = System.Drawing.Color.FromArgb(31, 84, 72);
-            this.btnCardReader.Image = global::FuntinoControlCenter.Properties.Resources.CardReader;
+            this.btnCardReader.Image = global::FuntinoControlCenter.Properties.Resources.WalletBalance;
             this.btnCardReader.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnCardReader.Location = new System.Drawing.Point(360, 181);
             this.btnCardReader.Name = "btnCardReader";
             this.btnCardReader.Size = new System.Drawing.Size(335, 54);
             this.btnCardReader.TabIndex = 7;
-            this.btnCardReader.Text = "بررسی وضعیت کارت‌خوان";
+            this.btnCardReader.Text = "عملیات کارت";
             this.btnCardReader.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnCardReader.UseVisualStyleBackColor = false;
 
@@ -421,7 +421,7 @@ namespace FuntinoControlCenter.Forms
             this.lblSummaryCaption.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblSummaryCaption.Size = new System.Drawing.Size(1094, 36);
             this.lblSummaryCaption.TabIndex = 7;
-            this.lblSummaryCaption.Text = "مرور سریع فعالیت‌های کارت";
+            this.lblSummaryCaption.Text = "مرور سریع وضعیت سامانه";
             this.lblSummaryCaption.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblBusinessSummary.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9F);
             this.lblBusinessSummary.ForeColor = System.Drawing.Color.FromArgb(76, 99, 91);
@@ -502,6 +502,7 @@ namespace FuntinoControlCenter.Forms
             this.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.RightToLeftLayout = false;
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.btnTables.Click += new System.EventHandler(this.OpenTables_Click);
             this.btnReports.Click += new System.EventHandler(this.OpenReports_Click);
