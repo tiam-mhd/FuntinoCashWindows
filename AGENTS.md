@@ -43,6 +43,13 @@ These rules apply to every current and future change in this repository.
 - Text boxes must use a background coordinated with their containing card or page and have rounded, bordered edges so they remain visually distinct and readable.
 - Keep all WinForms visual construction, layout, fixed styling, captions, and designer-managed event hookups in `.Designer.cs`, in accordance with the WinForms design-file rules above. Keep runtime behavior in `.cs` files.
 
+## Card operations landing and device ports
+
+- After sign-in, the first page is the card operations hub. Give card top-up and card balance the strongest visual priority, with shortcuts to the card-related operations available to the signed-in user.
+- Port settings must show only ports that pass the relevant device test. With one successful port, select it automatically; with several, let the user choose; with none, show a clear Persian message and keep the list empty.
+- A serial port that opens and closes successfully is only known to be available to Windows. Do not describe that result as proof that the card reader responded or that card reading works. Use a device-specific handshake when the hardware supports one, and state the test boundary in Persian.
+- POS port detection must initialize the installed SDK and accept only its documented success response. Missing SDKs or unsuccessful responses must never appear in the successful-port list.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 

@@ -50,7 +50,9 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="UI\AppFontManager.cs" />
-    <Compile Include="UI\RoundedControls.cs" />
+    <Compile Include="UI\RoundedControls.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="AppSession.cs" />
     <Compile Include="AppSettings.cs" />
     <Compile Include="Database\DatabaseManager.cs" />
@@ -151,6 +153,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Authentication\*.webp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\*.webp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="External\*.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <!-- SQL Server locks attached database files; keep them in the source folder and out of build copies. -->
