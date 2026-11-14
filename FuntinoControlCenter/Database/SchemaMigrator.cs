@@ -227,6 +227,41 @@ WHERE EXISTS
                 }
             }
 
+            // Preserve the current recharge role behavior while requiring the newly added
+            // permission that exposes the terms used by the card recharge workflow.
+            using (var command = new SqlCommand(@"
+SELECT DISTINCT recharge.RoleId
+FROM app.ApplicationRolePermission recharge
+JOIN app.ApplicationRolePermission finance ON finance.RoleId=recharge.RoleId
+WHERE recharge.PermissionCode=N'cards.recharge'
+  AND finance.PermissionCode=@financeCreate
+  AND NOT EXISTS
+  (
+   SELECT 1 FROM app.ApplicationRolePermission terms
+   WHERE terms.RoleId=recharge.RoleId AND terms.PermissionCode=@termsView
+  );", connection, transaction))
+            {
+                command.Parameters.Add("@financeCreate", SqlDbType.NVarChar, 100).Value = PermissionCatalog.TableCode("finance", "create");
+                command.Parameters.Add("@termsView", SqlDbType.NVarChar, 100).Value = "operations.recharge_terms.view";
+                var eligibleRoles = new List<int>();
+                using (var reader = command.ExecuteReader())
+                    while (reader.Read()) eligibleRoles.Add(reader.GetInt32(0));
+
+                foreach (int roleId in eligibleRoles)
+                {
+                    if (!EnsureRolePermission(connection, transaction, roleId, "operations.recharge_terms.view")) continue;
+                    using (var grantVersion = new SqlCommand(@"
+UPDATE u SET AuthorizationVersion=AuthorizationVersion+1
+FROM app.ApplicationUser u
+WHERE EXISTS
+ (SELECT 1 FROM app.ApplicationUserRole ur WHERE ur.ApplicationUserId=u.ApplicationUserId AND ur.RoleId=@roleId);", connection, transaction))
+                    {
+                        grantVersion.Parameters.Add("@roleId", SqlDbType.Int).Value = roleId;
+                        grantVersion.ExecuteNonQuery();
+                    }
+                }
+            }
+
             using (var command = new SqlCommand(@"
 INSERT app.ApplicationUserRole(ApplicationUserId,RoleId)
 SELECT u.ApplicationUserId,@roleId FROM app.ApplicationUser u

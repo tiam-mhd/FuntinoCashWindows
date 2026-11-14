@@ -61,6 +61,7 @@
     <Compile Include="Database\TableRepository.cs" />
     <Compile Include="Database\UserRepository.cs" />
     <Compile Include="Database\CardOperationsRepository.cs" />
+    <Compile Include="Database\BusinessManagementRepository.cs" />
     <Compile Include="Security\PasswordHasher.cs" />
     <Compile Include="Security\PermissionCatalog.cs" />
     <Compile Include="Security\AuthorizationGuard.cs" />
@@ -135,6 +136,24 @@
     </Compile>
     <Compile Include="Forms\CardOperationsForm.Designer.cs">
       <DependentUpon>CardOperationsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\OperationsManagementForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\OperationsManagementForm.Designer.cs">
+      <DependentUpon>OperationsManagementForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\BusinessManagementForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\BusinessManagementForm.Designer.cs">
+      <DependentUpon>BusinessManagementForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\BusinessManagementEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\BusinessManagementEditForm.Designer.cs">
+      <DependentUpon>BusinessManagementEditForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\AppMessageService.cs" />
     <Compile Include="Forms\AppMessageDialog.cs">

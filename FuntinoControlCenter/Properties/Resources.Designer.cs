@@ -125,5 +125,22 @@ namespace FuntinoControlCenter.Properties {
         internal static System.Drawing.Bitmap MessageWarning { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageWarning", resourceCulture))); } }
         internal static System.Drawing.Bitmap MessageSuccess { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageSuccess", resourceCulture))); } }
         internal static System.Drawing.Bitmap MessageInfo { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageInfo", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementAttractions { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementAttractions", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementOperations { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementOperations", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementControllerDevices { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementControllerDevices", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementPromotions { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementPromotions", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementPromotionAssignments { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementPromotionAssignments", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementDiscountPolicies { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementDiscountPolicies", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementDiscountRates { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementDiscountRates", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementDeposits { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementDeposits", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementRechargeLimit { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementRechargeLimit", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementHourlyPlans { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementHourlyPlans", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementRechargeSchedule { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementRechargeSchedule", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ManagementTickets { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ManagementTickets", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ActionAdd { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ActionAdd", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ActionEdit { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ActionEdit", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ActionArchive { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ActionArchive", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ActionRefresh { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ActionRefresh", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ActionBack { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ActionBack", resourceCulture))); } }
     }
 }

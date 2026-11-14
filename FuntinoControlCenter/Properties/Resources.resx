@@ -32,4 +32,21 @@
   <data name="MessageWarning" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageWarning.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="MessageSuccess" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageSuccess.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="MessageInfo" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageInfo.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementAttractions" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementAttractions.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementOperations" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementOperations.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementControllerDevices" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementControllerDevices.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementPromotions" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementPromotions.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementPromotionAssignments" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementPromotionAssignments.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementDiscountPolicies" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementDiscountPolicies.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementDiscountRates" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementDiscountRates.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementDeposits" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementDeposits.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementRechargeLimit" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementRechargeLimit.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementHourlyPlans" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementHourlyPlans.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementRechargeSchedule" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementRechargeSchedule.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ManagementTickets" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ManagementTickets.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ActionAdd" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ActionAdd.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ActionEdit" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ActionEdit.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ActionArchive" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ActionArchive.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ActionRefresh" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ActionRefresh.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ActionBack" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ActionBack.png;System.Drawing.Bitmap, System.Drawing</value></data>
 </root>

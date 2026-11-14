@@ -8,7 +8,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblBrand, lblNavCaption, lblUser, lblTitle, lblSubtitle;
         private System.Windows.Forms.Label lblBalanceTitle, lblBalanceValue, lblBalanceHint, lblTableCountValue, lblTableCountCaption;
         private System.Windows.Forms.Label lblMainStatus, lblDeviceStatus, lblPorts, lblBusinessSummary, lblSummaryCaption, lblQuickActions;
-        private FuntinoControlCenter.UI.RoundedButton btnTables, btnReports, btnDevices, btnSettings, btnPassword, btnAccess, btnLogout;
+        private FuntinoControlCenter.UI.RoundedButton btnTables, btnReports, btnDevices, btnSettings, btnOperations, btnPassword, btnAccess, btnLogout;
         private FuntinoControlCenter.UI.RoundedButton btnRecharge, btnTickets, btnPos, btnCardReader;
         private System.Windows.Forms.Timer authorizationTimer;
 
@@ -49,6 +49,7 @@ namespace FuntinoControlCenter.Forms
             this.btnReports = new FuntinoControlCenter.UI.RoundedButton();
             this.btnDevices = new FuntinoControlCenter.UI.RoundedButton();
             this.btnSettings = new FuntinoControlCenter.UI.RoundedButton();
+            this.btnOperations = new FuntinoControlCenter.UI.RoundedButton();
             this.btnPassword = new FuntinoControlCenter.UI.RoundedButton();
             this.btnAccess = new FuntinoControlCenter.UI.RoundedButton();
             this.btnLogout = new FuntinoControlCenter.UI.RoundedButton();
@@ -72,6 +73,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlSidebar.Controls.Add(this.btnReports);
             this.pnlSidebar.Controls.Add(this.btnDevices);
             this.pnlSidebar.Controls.Add(this.btnSettings);
+            this.pnlSidebar.Controls.Add(this.btnOperations);
             this.pnlSidebar.Controls.Add(this.btnPassword);
             this.pnlSidebar.Controls.Add(this.btnAccess);
             this.pnlSidebar.Controls.Add(this.btnLogout);
@@ -168,6 +170,23 @@ namespace FuntinoControlCenter.Forms
             this.btnSettings.Text = "تنظیمات اتصال";
             this.btnSettings.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnSettings.UseVisualStyleBackColor = false;
+            this.btnOperations.BackColor = System.Drawing.Color.FromArgb(18, 48, 50);
+            this.btnOperations.BorderColor = System.Drawing.Color.FromArgb(18, 48, 50);
+            this.btnOperations.BorderSize = 1;
+            this.btnOperations.CornerRadius = 12;
+            this.btnOperations.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnOperations.FlatAppearance.BorderSize = 0;
+            this.btnOperations.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9.5F);
+            this.btnOperations.ForeColor = System.Drawing.Color.FromArgb(231, 241, 237);
+            this.btnOperations.Image = global::FuntinoControlCenter.Properties.Resources.ManagementOperations;
+            this.btnOperations.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnOperations.Location = new System.Drawing.Point(17, 399);
+            this.btnOperations.Name = "btnOperations";
+            this.btnOperations.Size = new System.Drawing.Size(226, 50);
+            this.btnOperations.TabIndex = 4;
+            this.btnOperations.Text = "مدیریت عملیات";
+            this.btnOperations.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.btnOperations.UseVisualStyleBackColor = false;
             this.btnPassword.BackColor = System.Drawing.Color.FromArgb(18, 48, 50);
             this.btnPassword.BorderColor = System.Drawing.Color.FromArgb(18, 48, 50);
             this.btnPassword.BorderSize = 1;
@@ -178,7 +197,7 @@ namespace FuntinoControlCenter.Forms
             this.btnPassword.ForeColor = System.Drawing.Color.FromArgb(231, 241, 237);
             this.btnPassword.Image = global::FuntinoControlCenter.Properties.Resources.IconPasswordSave;
             this.btnPassword.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnPassword.Location = new System.Drawing.Point(17, 399);
+            this.btnPassword.Location = new System.Drawing.Point(17, 458);
             this.btnPassword.Name = "btnPassword";
             this.btnPassword.Size = new System.Drawing.Size(226, 50);
             this.btnPassword.TabIndex = 4;
@@ -195,7 +214,7 @@ namespace FuntinoControlCenter.Forms
             this.btnAccess.ForeColor = System.Drawing.Color.FromArgb(231, 241, 237);
             this.btnAccess.Image = global::FuntinoControlCenter.Properties.Resources.ConnectionSettings;
             this.btnAccess.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnAccess.Location = new System.Drawing.Point(17, 458);
+            this.btnAccess.Location = new System.Drawing.Point(17, 517);
             this.btnAccess.Name = "btnAccess";
             this.btnAccess.Size = new System.Drawing.Size(226, 50);
             this.btnAccess.TabIndex = 5;
@@ -508,6 +527,7 @@ namespace FuntinoControlCenter.Forms
             this.btnReports.Click += new System.EventHandler(this.OpenReports_Click);
             this.btnDevices.Click += new System.EventHandler(this.OpenDevices_Click);
             this.btnSettings.Click += new System.EventHandler(this.OpenSettings_Click);
+            this.btnOperations.Click += new System.EventHandler(this.OpenOperations_Click);
             this.btnPassword.Click += new System.EventHandler(this.OpenPassword_Click);
             this.btnAccess.Click += new System.EventHandler(this.OpenAccess_Click);
             this.btnLogout.Click += new System.EventHandler(this.Logout_Click);

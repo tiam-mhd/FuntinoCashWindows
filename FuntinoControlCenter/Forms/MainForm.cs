@@ -18,6 +18,7 @@ namespace FuntinoControlCenter.Forms
         private void OpenReports_Click(object sender, EventArgs e) { using (var form = new ReportsForm()) form.ShowDialog(this); }
         private void OpenDevices_Click(object sender, EventArgs e) { using (var form = new DeviceStatusForm()) form.ShowDialog(this); RefreshDashboard(); }
         private void OpenSettings_Click(object sender, EventArgs e) { using (var form = new SettingsForm()) form.ShowDialog(this); RefreshDashboard(); }
+        private void OpenOperations_Click(object sender, EventArgs e) { using (var form = new OperationsManagementForm()) form.ShowDialog(this); ApplyPermissions(); RefreshDashboard(); }
         private void OpenPassword_Click(object sender, EventArgs e) { using (var form = new ChangePasswordForm()) form.ShowDialog(this); }
         private void OpenRecharge_Click(object sender, EventArgs e) { OpenCardOperations(); }
         private void OpenTickets_Click(object sender, EventArgs e) { OpenTable("ticket.TicketTransaction"); }
@@ -65,7 +66,7 @@ namespace FuntinoControlCenter.Forms
         {
             if (initialCardOperationsShown) return;
             initialCardOperationsShown = true;
-            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create"));
+            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view");
             if (AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") || canRechargeCard)
                 OpenCardOperations();
         }
@@ -78,10 +79,11 @@ namespace FuntinoControlCenter.Forms
             btnReports.Visible = AuthorizationGuard.Has("reports.view") && AuthorizationGuard.HasAny(tableViews);
             btnDevices.Visible = AuthorizationGuard.HasAny("devices.view", "devices.test", "devices.events.view");
             btnSettings.Visible = AuthorizationGuard.HasAny("settings.database.view", "settings.database.update", "settings.database.test", "settings.hardware.view", "settings.hardware.update");
+            btnOperations.Visible = HasBusinessManagementAccess();
             btnAccess.Visible = AuthorizationGuard.HasAny("users.view", "users.create", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate", "roles.view", "roles.create", "roles.update", "roles.assign_permissions", "roles.delete");
             btnPassword.Visible = AppSession.Current != null;
 
-            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create"));
+            bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view");
             bool canCardOperations = AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") || canRechargeCard;
             bool canReadCardBalance = AuthorizationGuard.Has("cards.balance.view");
             pnlCardHero.Visible = canCardOperations;
@@ -98,6 +100,21 @@ namespace FuntinoControlCenter.Forms
             btnPos.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("payments", "view"));
             btnCardReader.Visible = AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view");
             lblQuickActions.Visible = btnRecharge.Visible || btnTickets.Visible || btnPos.Visible || btnCardReader.Visible;
+        }
+
+        private static bool HasBusinessManagementAccess()
+        {
+            return BusinessManagementRepository.HasAccess(BusinessManagementArea.Attractions, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.ControllerDevices, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.Promotions, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.DevicePromotions, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.DiscountPolicies, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.DiscountRates, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.Deposits, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.RechargeLimit, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.HourlyPlans, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.Schedules, "view") ||
+                BusinessManagementRepository.HasAccess(BusinessManagementArea.Tickets, "view");
         }
 
         private void RefreshDashboard()
