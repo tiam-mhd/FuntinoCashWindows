@@ -58,7 +58,11 @@ namespace FuntinoControlCenter.Forms
             string columnName = usersGrid.Columns[e.ColumnIndex].Name;
             if ((columnName == "IsActive" || columnName == "MustChangePassword") && e.Value != null && e.Value != DBNull.Value)
             {
-                e.Value = Convert.ToBoolean(e.Value) ? "بله" : "خیر";
+                bool value = Convert.ToBoolean(e.Value);
+                if (usersGrid.Columns[e.ColumnIndex] is DataGridViewCheckBoxColumn)
+                    e.Value = value;
+                else
+                    e.Value = value ? "بله" : "خیر";
                 e.FormattingApplied = true;
             }
         }
