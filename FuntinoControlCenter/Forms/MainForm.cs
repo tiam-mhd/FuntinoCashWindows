@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using FuntinoControlCenter.Database;
@@ -19,6 +20,7 @@ namespace FuntinoControlCenter.Forms
         private void OpenRecharge_Click(object sender, EventArgs e) { OpenTable("finance.RechargeTransaction"); }
         private void OpenTickets_Click(object sender, EventArgs e) { OpenTable("ticket.TicketTransaction"); }
         private void OpenPos_Click(object sender, EventArgs e) { OpenTable("payments.PointOfSaleTransaction"); }
+        private void OpenCardReader_Click(object sender, EventArgs e) { OpenDevices_Click(sender, e); }
         private void Logout_Click(object sender, EventArgs e) { Close(); }
 
         private void OpenAccess_Click(object sender, EventArgs e)
@@ -68,6 +70,8 @@ namespace FuntinoControlCenter.Forms
             btnAccess.Visible = AuthorizationGuard.HasAny("users.view", "users.create", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate", "roles.view", "roles.create", "roles.update", "roles.assign_permissions", "roles.delete");
             btnPassword.Visible = AppSession.Current != null;
 
+            pnlCardHero.Visible = canDashboard;
+            lblBalanceTitle.Visible = lblBalanceValue.Visible = lblBalanceHint.Visible = canDashboard;
             pnlCardTables.Visible = canDashboard;
             pnlCardMain.Visible = canDashboard;
             pnlCardDevice.Visible = canDashboard;
@@ -78,7 +82,8 @@ namespace FuntinoControlCenter.Forms
             btnRecharge.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "view"));
             btnTickets.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("ticket", "view"));
             btnPos.Visible = AuthorizationGuard.Has(PermissionCatalog.TableCode("payments", "view"));
-            lblQuickActions.Visible = btnRecharge.Visible || btnTickets.Visible || btnPos.Visible;
+            btnCardReader.Visible = AuthorizationGuard.HasAny("devices.view", "devices.test");
+            lblQuickActions.Visible = btnRecharge.Visible || btnTickets.Visible || btnPos.Visible || btnCardReader.Visible;
         }
 
         private void RefreshDashboard()
@@ -86,18 +91,38 @@ namespace FuntinoControlCenter.Forms
             if (!AuthorizationGuard.Has("dashboard.view")) return;
             try
             {
-                lblTableCountValue.Text = DeviceDiagnostics.CountBusinessTables().ToString("N0");
-                lblTableCountCaption.Text = "جدول‌های کسب‌وکار در " + DatabaseManager.MainCatalog;
-                lblMainStatus.Text = "پایگاه اصلی آماده و قابل دسترسی است";
-                lblDeviceStatus.Text = "پایگاه دستگاه‌ها: " + DatabaseManager.DeviceCatalog;
-                lblBusinessSummary.Text = DeviceDiagnostics.GetMainSummary();
-                lblPorts.Text = "کارت‌خوان: " + AppSettings.Current.ReaderPort + "   |   POS: " + AppSettings.Current.PosPort;
+                bool canViewRecharge = AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "view"));
+                lblTableCountValue.Text = canViewRecharge ? DeviceDiagnostics.CountRows("finance.RechargeTransaction").ToString("N0") : "—";
+                lblTableCountCaption.Text = canViewRecharge ? "تراکنش شارژ ثبت‌شده" : "دسترسی مشاهده‌ی سوابق شارژ ندارید";
+                lblMainStatus.Text = "پایگاه اصلی آماده است";
+                lblDeviceStatus.Text = "پایگاه دستگاه‌ها آماده است";
+                lblPorts.Text = "درگاه انتخاب‌شده ـ کارت‌خوان: " + DisplayPort(AppSettings.Current.ReaderPort) + "   |   پایانه: " + DisplayPort(AppSettings.Current.PosPort);
+
+                var summaries = new List<string>();
+                AddSummaryIfPermitted(summaries, "finance", "finance.RechargeTransaction", "سوابق شارژ");
+                AddSummaryIfPermitted(summaries, "ticket", "ticket.TicketTransaction", "سوابق بلیت");
+                AddSummaryIfPermitted(summaries, "payments", "payments.PointOfSaleTransaction", "تراکنش‌های پایانه");
+                lblBusinessSummary.Text = summaries.Count == 0
+                    ? "از بخش‌های مجاز در فهرست کناری برای مشاهده‌ی سوابق استفاده کنید."
+                    : String.Join("     •     ", summaries);
             }
             catch (Exception ex)
             {
                 if (AppSession.Current == null) { Close(); return; }
                 lblMainStatus.Text = "اتصال پایگاه بررسی نشد"; lblBusinessSummary.Text = DatabaseManager.SafeMessage(ex);
             }
+        }
+
+        private static string DisplayPort(string port)
+        {
+            return String.IsNullOrWhiteSpace(port) ? "انتخاب نشده" : port;
+        }
+
+        private static void AddSummaryIfPermitted(ICollection<string> summaries, string schema, string table, string caption)
+        {
+            if (!AuthorizationGuard.Has(PermissionCatalog.TableCode(schema, "view"))) return;
+            try { summaries.Add(caption + ": " + DeviceDiagnostics.CountRows(table).ToString("N0")); }
+            catch { summaries.Add(caption + ": در دسترس نیست"); }
         }
 
         private void OpenTable(string tableName)

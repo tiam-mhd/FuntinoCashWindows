@@ -106,5 +106,20 @@ namespace FuntinoControlCenter.Properties {
         internal static System.Drawing.Bitmap IconPasswordSave { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconPasswordSave", resourceCulture))); } }
         internal static System.Drawing.Bitmap IconBack { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconBack", resourceCulture))); } }
         internal static System.Drawing.Bitmap IconCopy { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconCopy", resourceCulture))); } }
+
+        internal static System.Drawing.Bitmap CardOperationsBackground { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("CardOperationsBackground", resourceCulture))); } }
+        internal static System.Drawing.Bitmap SettingsBackground { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("SettingsBackground", resourceCulture))); } }
+        internal static System.Drawing.Bitmap CardScan { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("CardScan", resourceCulture))); } }
+        internal static System.Drawing.Bitmap WalletBalance { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("WalletBalance", resourceCulture))); } }
+        internal static System.Drawing.Bitmap CardRecharge { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("CardRecharge", resourceCulture))); } }
+        internal static System.Drawing.Bitmap CardHistory { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("CardHistory", resourceCulture))); } }
+        internal static System.Drawing.Bitmap Ticket { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("Ticket", resourceCulture))); } }
+        internal static System.Drawing.Bitmap PointOfSale { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("PointOfSale", resourceCulture))); } }
+        internal static System.Drawing.Bitmap CardReader { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("CardReader", resourceCulture))); } }
+        internal static System.Drawing.Bitmap ConnectionSettings { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("ConnectionSettings", resourceCulture))); } }
+        internal static System.Drawing.Bitmap SaveSettings { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("SaveSettings", resourceCulture))); } }
+        internal static System.Drawing.Bitmap RescanPorts { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("RescanPorts", resourceCulture))); } }
+        internal static System.Drawing.Bitmap Reports { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("Reports", resourceCulture))); } }
+        internal static System.Drawing.Bitmap Exit { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("Exit", resourceCulture))); } }
     }
 }

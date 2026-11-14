@@ -14,4 +14,18 @@
   <data name="IconPasswordSave" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconPasswordSave.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="IconBack" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconBack.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="IconCopy" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconCopy.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="CardOperationsBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\CardOperationsBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="SettingsBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\SettingsBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="CardScan" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\CardScan.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="WalletBalance" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\WalletBalance.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="CardRecharge" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\CardRecharge.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="CardHistory" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\CardHistory.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Ticket" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Ticket.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="PointOfSale" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\PointOfSale.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="CardReader" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\CardReader.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ConnectionSettings" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ConnectionSettings.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="SaveSettings" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\SaveSettings.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="RescanPorts" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\RescanPorts.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Reports" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Reports.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Exit" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Exit.png;System.Drawing.Bitmap, System.Drawing</value></data>
 </root>
