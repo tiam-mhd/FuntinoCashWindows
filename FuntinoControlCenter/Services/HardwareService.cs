@@ -65,12 +65,12 @@ namespace FuntinoControlCenter.Services
                 using (var connection = Database.DatabaseManager.CreateDeviceConnection())
                 {
                     connection.Open();
-                    using (var command = new System.Data.SqlClient.SqlCommand("INSERT dbo.AppDeviceEvents(EventType,PortName,IsSuccess,Details) VALUES(@e,@p,@s,@d)", connection))
+                    using (var command = new System.Data.SqlClient.SqlCommand("INSERT app.DeviceDiagnosticEvent(EventType,PortName,IsSuccess,Details) VALUES(@eventType,@portName,@isSuccess,@details)", connection))
                     {
-                        command.Parameters.Add("@e", System.Data.SqlDbType.NVarChar, 80).Value = eventType;
-                        command.Parameters.Add("@p", System.Data.SqlDbType.NVarChar, 20).Value = (object)port ?? DBNull.Value;
-                        command.Parameters.Add("@s", System.Data.SqlDbType.Bit).Value = success;
-                        command.Parameters.Add("@d", System.Data.SqlDbType.NVarChar, 500).Value = details.Length > 500 ? details.Substring(0, 500) : details;
+                        command.Parameters.Add("@eventType", System.Data.SqlDbType.NVarChar, 80).Value = eventType;
+                        command.Parameters.Add("@portName", System.Data.SqlDbType.NVarChar, 20).Value = (object)port ?? DBNull.Value;
+                        command.Parameters.Add("@isSuccess", System.Data.SqlDbType.Bit).Value = success;
+                        command.Parameters.Add("@details", System.Data.SqlDbType.NVarChar, 500).Value = details.Length > 500 ? details.Substring(0, 500) : details;
                         command.ExecuteNonQuery();
                     }
                 }

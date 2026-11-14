@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using FuntinoControlCenter.Database;
 
 namespace FuntinoControlCenter.Services
@@ -11,14 +12,14 @@ namespace FuntinoControlCenter.Services
         {
             using (var connection = DatabaseManager.CreateMainConnection())
             {
-                connection.Open(); return Convert.ToInt32(DatabaseManager.Scalar(connection, "SELECT COUNT(1) FROM sys.tables WHERE is_ms_shipped=0 AND name NOT LIKE N'App%'"));
+                connection.Open(); return Convert.ToInt32(DatabaseManager.Scalar(connection, "SELECT COUNT(1) FROM sys.tables t INNER JOIN sys.schemas s ON s.schema_id=t.schema_id WHERE t.is_ms_shipped=0 AND s.name<>N'app'"));
             }
         }
 
         public static long CountRows(string fullName)
         {
             var parts = fullName.Split('.');
-            if (parts.Length != 2 || parts[0] != "dbo") return 0;
+            if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0 || String.Equals(parts[0], "app", StringComparison.OrdinalIgnoreCase)) return 0;
             using (var connection = DatabaseManager.CreateMainConnection())
             {
                 connection.Open();
@@ -31,9 +32,9 @@ namespace FuntinoControlCenter.Services
             try
             {
                 var tables = TableRepository.GetTableNames();
-                string[] focus = { "dbo.SharjTble", "dbo.PosTable", "dbo.CreditSharj", "dbo.Ticket", "dbo.Devices" };
+                string[] focus = { "finance.RechargeTransaction", "payments.PointOfSaleTransaction", "finance.CreditRechargeTransaction", "ticket.TicketTransaction", "reference.AttractionDevice" };
                 var items = new System.Collections.Generic.List<string>();
-                foreach (string table in focus) if (tables.Contains(table, StringComparer.OrdinalIgnoreCase)) items.Add(table.Substring(4) + ": " + CountRows(table).ToString("N0"));
+                foreach (string table in focus) if (tables.Contains(table, StringComparer.OrdinalIgnoreCase)) items.Add(table.Substring(table.IndexOf('.') + 1) + ": " + CountRows(table).ToString("N0"));
                 return items.Count == 0 ? "دیتابیس متصل است؛ برای مشاهده‌ی داده‌ها از بخش جداول استفاده کنید." : String.Join("     •     ", items);
             }
             catch (Exception ex) { return DatabaseManager.SafeMessage(ex); }

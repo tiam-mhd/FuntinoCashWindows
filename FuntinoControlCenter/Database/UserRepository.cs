@@ -12,24 +12,24 @@ namespace FuntinoControlCenter.Database
             using (var connection = DatabaseManager.CreateMainConnection())
             {
                 connection.Open();
-                int id, iterations; bool admin, mustChange; byte[] salt, hash;
-                using (var command = new SqlCommand("SELECT UserId,PasswordSalt,PasswordHash,Iterations,IsAdmin,MustChangePassword FROM dbo.AppUsers WHERE Username=@u AND IsActive=1", connection))
+                int applicationUserId, iterations; bool isAdministrator, mustChange; byte[] salt, hash;
+                using (var command = new SqlCommand("SELECT ApplicationUserId,PasswordSalt,PasswordHash,PasswordHashIterations,IsAdministrator,MustChangePassword FROM app.ApplicationUser WHERE UserName=@userName AND IsActive=1", connection))
                 {
-                    command.Parameters.Add("@u", SqlDbType.NVarChar, 64).Value = (username ?? "").Trim();
+                    command.Parameters.Add("@userName", SqlDbType.NVarChar, 64).Value = (username ?? "").Trim();
                     using (var reader = command.ExecuteReader())
                     {
                         if (!reader.Read()) return null;
-                        id = reader.GetInt32(0); salt = (byte[])reader[1]; hash = (byte[])reader[2]; iterations = reader.GetInt32(3);
-                        admin = reader.GetBoolean(4); mustChange = reader.GetBoolean(5);
+                        applicationUserId = reader.GetInt32(0); salt = (byte[])reader[1]; hash = (byte[])reader[2]; iterations = reader.GetInt32(3);
+                        isAdministrator = reader.GetBoolean(4); mustChange = reader.GetBoolean(5);
                     }
                 }
                 if (!PasswordHasher.Verify(password, salt, hash, iterations)) return null;
-                using (var command = new SqlCommand("UPDATE dbo.AppUsers SET LastLoginAt=SYSDATETIME() WHERE UserId=@id", connection))
+                using (var command = new SqlCommand("UPDATE app.ApplicationUser SET LastLoginAt=SYSDATETIME() WHERE ApplicationUserId=@applicationUserId", connection))
                 {
-                    command.Parameters.Add("@id", SqlDbType.Int).Value = id; command.ExecuteNonQuery();
+                    command.Parameters.Add("@applicationUserId", SqlDbType.Int).Value = applicationUserId; command.ExecuteNonQuery();
                 }
-                var session = new AppSession(id, username.Trim(), admin, mustChange);
-                Services.AuditService.Write("login", "AppUsers", id.ToString(), "ورود موفق");
+                var session = new AppSession(applicationUserId, username.Trim(), isAdministrator, mustChange);
+                Services.AuditService.Write("login", "ApplicationUser", applicationUserId.ToString(), "ورود موفق");
                 return session;
             }
         }
@@ -39,7 +39,7 @@ namespace FuntinoControlCenter.Database
             using (var connection = DatabaseManager.CreateMainConnection())
             {
                 connection.Open();
-                return DatabaseManager.Query(connection, "SELECT UserId,Username,IsAdmin,IsActive,MustChangePassword,CreatedAt,LastLoginAt FROM dbo.AppUsers ORDER BY Username");
+                return DatabaseManager.Query(connection, "SELECT ApplicationUserId,UserName,IsAdministrator,IsActive,MustChangePassword,CreatedAt,LastLoginAt FROM app.ApplicationUser ORDER BY UserName");
             }
         }
     }

@@ -2,6 +2,7 @@ using System;
 using System.IO.Ports;
 using System.Windows.Forms;
 using FuntinoControlCenter.Database;
+using FuntinoControlCenter.Services;
 
 namespace FuntinoControlCenter.Forms
 {
@@ -57,7 +58,7 @@ namespace FuntinoControlCenter.Forms
 
         private void BtnSave_Click(object sender, EventArgs e)
         {
-            try { ReadControls(); AppSettings.Current.Save(); DialogResult = DialogResult.OK; MessageBox.Show("تنظیمات ذخیره شد. برای اجرای مهاجرت‌ها، هر دو دیتابیس _New باید Attach باشند.", "ذخیره تنظیمات", MessageBoxButtons.OK, MessageBoxIcon.Information); Close(); }
+            try { ReadControls(); AppSettings.Current.Save(); DialogResult = DialogResult.OK; MessageBox.Show("تنظیمات ذخیره شد. برای اجرای مهاجرت یک‌باره، پایگاه‌های Funtino باید در SQL Server وجود داشته باشند.", "ذخیره تنظیمات", MessageBoxButtons.OK, MessageBoxIcon.Information); Close(); }
             catch (Exception ex) { MessageBox.Show(ex.Message, "ذخیره نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         }
     }

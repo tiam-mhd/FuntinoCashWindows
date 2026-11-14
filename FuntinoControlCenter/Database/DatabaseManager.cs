@@ -6,8 +6,8 @@ namespace FuntinoControlCenter.Database
 {
     internal static class DatabaseManager
     {
-        public const string MainCatalog = "SharjReportDB0216_New";
-        public const string DeviceCatalog = "DBKart_New";
+        public const string MainCatalog = "FuntinoParkOperations";
+        public const string DeviceCatalog = "FuntinoDeviceOperations";
 
         public static SqlConnection CreateMainConnection() { return new SqlConnection(BuildConnectionString(MainCatalog)); }
         public static SqlConnection CreateDeviceConnection() { return new SqlConnection(BuildConnectionString(DeviceCatalog)); }
@@ -18,7 +18,7 @@ namespace FuntinoControlCenter.Database
             if (catalog != MainCatalog && catalog != DeviceCatalog) throw new InvalidOperationException("نام پایگاه داده خارج از فهرست مجاز است.");
             var builder = new SqlConnectionStringBuilder
             {
-                DataSource = (AppSettings.Current.SqlServer ?? "").Trim(),
+                DataSource = String.IsNullOrWhiteSpace(AppSettings.Current.SqlServer) ? @".\FuntinoSqlServer" : AppSettings.Current.SqlServer.Trim(),
                 InitialCatalog = catalog,
                 ConnectTimeout = 8,
                 ApplicationName = "Funtino Control Center",
@@ -48,7 +48,7 @@ namespace FuntinoControlCenter.Database
             {
                 var sql = (SqlException)ex;
                 if (sql.Number == 4060 || sql.Number == 18456 || sql.Number == 53 || sql.Number == -1)
-                    return "ارتباط برقرار نشد. نام نمونه SQL و Attach بودن دیتابیس‌های SharjReportDB0216_New و DBKart_New را بررسی کنید. جزئیات: " + ex.Message;
+                    return "ارتباط برقرار نشد. اجرای سرویس FuntinoSqlServer و وجود پایگاه‌های FuntinoParkOperations و FuntinoDeviceOperations را بررسی کنید. جزئیات: " + ex.Message;
             }
             return ex.Message;
         }
@@ -81,7 +81,7 @@ namespace FuntinoControlCenter.Database
             {
                 connection.Open();
                 byte[] salt, storedHash; int iterations;
-                using (var command = new SqlCommand("SELECT PasswordSalt, PasswordHash, Iterations FROM dbo.AppUsers WHERE UserId=@id AND IsActive=1", connection))
+                using (var command = new SqlCommand("SELECT PasswordSalt, PasswordHash, PasswordHashIterations FROM app.ApplicationUser WHERE ApplicationUserId=@id AND IsActive=1", connection))
                 {
                     command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
                     using (var reader = command.ExecuteReader())
@@ -93,7 +93,7 @@ namespace FuntinoControlCenter.Database
                 if (!FuntinoControlCenter.Security.PasswordHasher.Verify(currentPassword, salt, storedHash, iterations))
                     throw new InvalidOperationException("گذرواژه فعلی درست نیست.");
                 byte[] newSalt, newHash; Security.PasswordHasher.Create(newPassword, out newSalt, out newHash);
-                using (var command = new SqlCommand("UPDATE dbo.AppUsers SET PasswordSalt=@salt, PasswordHash=@hash, Iterations=@iterations, MustChangePassword=0 WHERE UserId=@id", connection))
+                using (var command = new SqlCommand("UPDATE app.ApplicationUser SET PasswordSalt=@salt, PasswordHash=@hash, PasswordHashIterations=@iterations, MustChangePassword=0 WHERE ApplicationUserId=@id", connection))
                 {
                     command.Parameters.Add("@salt", SqlDbType.VarBinary, 32).Value = newSalt;
                     command.Parameters.Add("@hash", SqlDbType.VarBinary, 32).Value = newHash;

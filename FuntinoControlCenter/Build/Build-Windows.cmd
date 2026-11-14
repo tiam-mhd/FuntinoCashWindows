@@ -4,7 +4,7 @@ set "PROJECT_DIR=%~dp0.."
 pushd "%PROJECT_DIR%"
 where msbuild.exe >nul 2>&1
 if errorlevel 1 (
-  echo MSBuild.exe was not found. Install Visual Studio Build Tools with .NET Framework 4.8 Developer Pack.
+  echo MSBuild.exe was not found. Install Visual Studio Build Tools with the .NET Framework 4.6.1 Developer Pack.
   popd
   exit /b 2
 )

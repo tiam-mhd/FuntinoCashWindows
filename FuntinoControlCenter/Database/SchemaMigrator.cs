@@ -28,80 +28,75 @@ namespace FuntinoControlCenter.Database
                 {
                     try
                     {
-                        Execute(connection, transaction, @"IF OBJECT_ID(N'dbo.AppSchemaVersion', N'U') IS NULL
+                        // The installed catalog is a private copy of the immutable reference database.
+                        // Its data and legacy objects are migrated once, atomically, before app objects are added.
+                        LegacySchemaMigrator.Apply(connection, transaction, deviceDatabase);
+                        EnsureApplicationObjects(connection, transaction, deviceDatabase);
+                        AddVersionIfMissing(connection, transaction, 2, "Funtino application identity and audit schema");
+                        if (deviceDatabase)
+                            AddVersionIfMissing(connection, transaction, 3, "Funtino device diagnostics schema");
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
+        private static void EnsureApplicationObjects(SqlConnection connection, SqlTransaction transaction, bool deviceDatabase)
+        {
+            Execute(connection, transaction, @"
+IF OBJECT_ID(N'app.ApplicationUser', N'U') IS NULL
 BEGIN
- CREATE TABLE dbo.AppSchemaVersion (VersionNumber int NOT NULL CONSTRAINT PK_AppSchemaVersion PRIMARY KEY, AppliedAt datetime2(0) NOT NULL CONSTRAINT DF_AppSchemaVersion_AppliedAt DEFAULT(SYSDATETIME()), Description nvarchar(240) NOT NULL);
-END");
-                        Execute(connection, transaction, @"IF OBJECT_ID(N'dbo.AppSchemaVersion', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.AppSchemaVersion', N'Description') IS NULL ALTER TABLE dbo.AppSchemaVersion ADD Description nvarchar(240) NOT NULL CONSTRAINT DF_AppSchemaVersion_Description DEFAULT(N'upgrade');");
-                        if (!deviceDatabase)
-                        {
-                            Execute(connection, transaction, @"IF OBJECT_ID(N'dbo.AppUsers', N'U') IS NULL
-BEGIN
- CREATE TABLE dbo.AppUsers (
-  UserId int IDENTITY(1,1) NOT NULL CONSTRAINT PK_AppUsers PRIMARY KEY,
-  Username nvarchar(64) NOT NULL,
+ CREATE TABLE app.ApplicationUser
+ (
+  ApplicationUserId int IDENTITY(1,1) NOT NULL CONSTRAINT PK_ApplicationUser PRIMARY KEY,
+  UserName nvarchar(64) NOT NULL,
   PasswordSalt varbinary(32) NOT NULL,
   PasswordHash varbinary(32) NOT NULL,
-  Iterations int NOT NULL,
-  IsAdmin bit NOT NULL CONSTRAINT DF_AppUsers_IsAdmin DEFAULT(0),
-  IsActive bit NOT NULL CONSTRAINT DF_AppUsers_IsActive DEFAULT(1),
-  MustChangePassword bit NOT NULL CONSTRAINT DF_AppUsers_MustChangePassword DEFAULT(0),
-  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_AppUsers_CreatedAt DEFAULT(SYSDATETIME()),
+  PasswordHashIterations int NOT NULL,
+  IsAdministrator bit NOT NULL CONSTRAINT DF_ApplicationUser_IsAdministrator DEFAULT(0),
+  IsActive bit NOT NULL CONSTRAINT DF_ApplicationUser_IsActive DEFAULT(1),
+  MustChangePassword bit NOT NULL CONSTRAINT DF_ApplicationUser_MustChangePassword DEFAULT(0),
+  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_ApplicationUser_CreatedAt DEFAULT(SYSDATETIME()),
   LastLoginAt datetime2(0) NULL,
-  CONSTRAINT UQ_AppUsers_Username UNIQUE(Username)
+  CONSTRAINT UQ_ApplicationUser_UserName UNIQUE(UserName)
  );
-END
-IF OBJECT_ID(N'dbo.AppAuditLog', N'U') IS NULL
+END;
+IF OBJECT_ID(N'app.AuditEvent', N'U') IS NULL
 BEGIN
- CREATE TABLE dbo.AppAuditLog (
-  LogId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_AppAuditLog PRIMARY KEY,
-  UserId int NULL,
-  Action nvarchar(80) NOT NULL,
+ CREATE TABLE app.AuditEvent
+ (
+  AuditEventId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_AuditEvent PRIMARY KEY,
+  ApplicationUserId int NULL,
+  ActionName nvarchar(80) NOT NULL,
   EntityName nvarchar(128) NULL,
   EntityKey nvarchar(256) NULL,
   Details nvarchar(1000) NULL,
-  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_AppAuditLog_CreatedAt DEFAULT(SYSDATETIME())
+  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_AuditEvent_CreatedAt DEFAULT(SYSDATETIME())
  );
- CREATE INDEX IX_AppAuditLog_CreatedAt ON dbo.AppAuditLog(CreatedAt DESC);
-END
-IF COL_LENGTH(N'dbo.AppUsers', N'MustChangePassword') IS NULL ALTER TABLE dbo.AppUsers ADD MustChangePassword bit NOT NULL CONSTRAINT DF_AppUsers_MustChangePassword_v2 DEFAULT(0);
-IF COL_LENGTH(N'dbo.AppUsers', N'LastLoginAt') IS NULL ALTER TABLE dbo.AppUsers ADD LastLoginAt datetime2(0) NULL;");
-                        }
-                        else
-                        {
-                            Execute(connection, transaction, @"IF OBJECT_ID(N'dbo.AppDeviceEvents', N'U') IS NULL
+ CREATE INDEX IX_AuditEvent_CreatedAt ON app.AuditEvent(CreatedAt DESC);
+END;");
+
+            if (deviceDatabase)
+            {
+                Execute(connection, transaction, @"
+IF OBJECT_ID(N'app.DeviceDiagnosticEvent', N'U') IS NULL
 BEGIN
- CREATE TABLE dbo.AppDeviceEvents (
-  EventId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_AppDeviceEvents PRIMARY KEY,
+ CREATE TABLE app.DeviceDiagnosticEvent
+ (
+  DeviceDiagnosticEventId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_DeviceDiagnosticEvent PRIMARY KEY,
   EventType nvarchar(80) NOT NULL,
   PortName nvarchar(20) NULL,
   IsSuccess bit NOT NULL,
   Details nvarchar(500) NULL,
-  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_AppDeviceEvents_CreatedAt DEFAULT(SYSDATETIME())
+  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_DeviceDiagnosticEvent_CreatedAt DEFAULT(SYSDATETIME())
  );
- CREATE INDEX IX_AppDeviceEvents_CreatedAt ON dbo.AppDeviceEvents(CreatedAt DESC);
-END
-IF OBJECT_ID(N'dbo.AppAuditLog', N'U') IS NULL
-BEGIN
- CREATE TABLE dbo.AppAuditLog (
-  LogId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_AppAuditLog PRIMARY KEY,
-  UserId int NULL,
-  Action nvarchar(80) NOT NULL,
-  EntityName nvarchar(128) NULL,
-  EntityKey nvarchar(256) NULL,
-  Details nvarchar(1000) NULL,
-  CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_AppAuditLog_CreatedAt DEFAULT(SYSDATETIME())
- );
- CREATE INDEX IX_AppAuditLog_CreatedAt ON dbo.AppAuditLog(CreatedAt DESC);
+ CREATE INDEX IX_DeviceDiagnosticEvent_CreatedAt ON app.DeviceDiagnosticEvent(CreatedAt DESC);
 END");
-                        }
-                        AddVersionIfMissing(connection, transaction, 1, "application metadata and schema tracker");
-                        AddVersionIfMissing(connection, transaction, 2, deviceDatabase ? "device audit log" : "hashed application accounts and audit log");
-                        AddVersionIfMissing(connection, transaction, 3, deviceDatabase ? "device diagnostics journal" : "application account compatibility columns");
-                        transaction.Commit();
-                    }
-                    catch { transaction.Rollback(); throw; }
-                }
             }
         }
 
@@ -111,9 +106,17 @@ END");
             using (var connection = DatabaseManager.CreateMainConnection())
             {
                 connection.Open();
-                using (var command = new SqlCommand("IF EXISTS (SELECT 1 FROM dbo.AppUsers WHERE Username=N'Admin') SELECT CAST(0 AS int); ELSE BEGIN INSERT dbo.AppUsers(Username,PasswordSalt,PasswordHash,Iterations,IsAdmin,IsActive,MustChangePassword) VALUES(N'Admin',@salt,@hash,@iterations,1,1,1); SELECT CAST(1 AS int); END", connection))
+                using (var command = new SqlCommand(@"
+IF EXISTS (SELECT 1 FROM app.ApplicationUser WHERE UserName=N'Admin') SELECT CAST(0 AS int);
+ELSE
+BEGIN
+ INSERT app.ApplicationUser(UserName,PasswordSalt,PasswordHash,PasswordHashIterations,IsAdministrator,IsActive,MustChangePassword)
+ VALUES(N'Admin',@salt,@hash,@iterations,1,1,1);
+ SELECT CAST(1 AS int);
+END", connection))
                 {
-                    byte[] salt, hash; PasswordHasher.Create(password, out salt, out hash);
+                    byte[] salt, hash;
+                    PasswordHasher.Create(password, out salt, out hash);
                     command.Parameters.Add("@salt", SqlDbType.VarBinary, 32).Value = salt;
                     command.Parameters.Add("@hash", SqlDbType.VarBinary, 32).Value = hash;
                     command.Parameters.Add("@iterations", SqlDbType.Int).Value = PasswordHasher.Iterations;
@@ -146,17 +149,24 @@ END");
 
         private static void AddVersionIfMissing(SqlConnection connection, SqlTransaction transaction, int version, string description)
         {
-            using (var command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM dbo.AppSchemaVersion WHERE VersionNumber=@v) INSERT dbo.AppSchemaVersion(VersionNumber,Description) VALUES(@v,@d)", connection, transaction))
+            using (var command = new SqlCommand(
+                "IF NOT EXISTS(SELECT 1 FROM app.SchemaMigrationHistory WHERE MigrationVersion=@version) " +
+                "INSERT app.SchemaMigrationHistory(MigrationVersion,Description) VALUES(@version,@description)",
+                connection, transaction))
             {
-                command.Parameters.Add("@v", SqlDbType.Int).Value = version;
-                command.Parameters.Add("@d", SqlDbType.NVarChar, 240).Value = description;
+                command.Parameters.Add("@version", SqlDbType.Int).Value = version;
+                command.Parameters.Add("@description", SqlDbType.NVarChar, 240).Value = description;
                 command.ExecuteNonQuery();
             }
         }
 
         private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql)
         {
-            using (var command = new SqlCommand(sql, connection, transaction)) command.ExecuteNonQuery();
+            using (var command = new SqlCommand(sql, connection, transaction))
+            {
+                command.CommandTimeout = 180;
+                command.ExecuteNonQuery();
+            }
         }
     }
 }

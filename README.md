@@ -1,16 +1,12 @@
-# فانتینو | مرکز کنترل ویندوز
+# Funtino Control Center
 
-سورس برنامه‌ی Windows Forms و فرایند بیلد ویندوز در این مخزن قرار دارد.
+Windows Forms source and the offline Windows installer build process for Funtino Control Center.
 
-## ساخت
+- Product version is defined once in [`Version.props`](FuntinoControlCenter/Build/Version.props).
+- Build the application ZIP with Visual Studio / MSBuild and `FuntinoControlCenter/Build/Build-Windows.cmd`.
+- Build six versioned offline installer variants after preparing the Microsoft prerequisite media described in [`Prerequisites.md`](FuntinoControlCenter/Build/Prerequisites.md), then run `FuntinoControlCenter/Build/Build-Installer.ps1`.
+- Persian installation and compatibility notes: [`README_FA.md`](FuntinoControlCenter/README_FA.md).
 
-- پروژه با .NET Framework 4.8 و هدف x86 ساخته می‌شود.
-- هر push به شاخه‌ی `main`، بیلد Release ویندوز را اجرا می‌کند.
-- ZIP بیلد را از بخش **Actions → Windows build → Artifacts** دریافت کنید.
-- برای ساخت محلی، Visual Studio یا Build Tools همراه .NET Framework 4.8 Developer Pack را نصب کنید و `FuntinoControlCenter/Build/Build-Windows.cmd` را اجرا کنید.
+Each installer creates an instance named `FuntinoSqlServer` and seeds `FuntinoParkOperations` and `FuntinoDeviceOperations` from private copies of the local reference MDF/LDF files. On the first application launch, one transaction renames the legacy tables, columns, procedures, and functions while preserving the row data; the application records this migration and skips it on later launches. The reference files themselves are not changed. Outputs are split into Windows 7 x86 and x64, Windows 8 x64, Windows 8.1 x64, Windows 10 x64, and Windows 11 x64 packages. Their database engines are SQL Server 2014 Express SP3 for Windows 7, SQL Server 2017 Express for Windows 8/8.1, and SQL Server 2019 Express for Windows 10/11. Windows 8 and newer x86 systems are not supported.
 
-## دیتابیس‌ها
-
-برنامه در اجرای عادی فقط به دو کاتالوگ `SharjReportDB0216_New` و `DBKart_New` وصل می‌شود. فایل‌های تحویلی با نام `_New` هستند و باید با همین نام‌ها در SQL Server Attach شوند. دیتابیس‌های مرجع در اجرای عادی استفاده نمی‌شوند.
-
-برای راه‌اندازی کامل، ZIP تحویلی را استخراج کنید، `README_FA.md` را بخوانید و فایل‌های پوشه‌ی `Databases` را Attach کنید. نام SQL Server را در صفحه‌ی تنظیمات برنامه وارد کنید.
+Each package contains only its target's runtime prerequisites plus the two database seed pairs needed by the application. The large Windows 8.1 KB2919355 update is included only in the Windows 8.1 installer; Windows 7 update packages are split by architecture. See [`Prerequisites.md`](FuntinoControlCenter/Build/Prerequisites.md) for the package matrix, local database inputs, exact media, and download sources.

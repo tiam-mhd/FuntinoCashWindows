@@ -48,7 +48,7 @@ namespace FuntinoControlCenter.Forms
             {
                 using (var connection = DatabaseManager.CreateDeviceConnection())
                 {
-                    connection.Open(); grid.DataSource = DatabaseManager.Query(connection, "SELECT TOP 100 EventId,EventType,PortName,IsSuccess,Details,CreatedAt FROM dbo.AppDeviceEvents ORDER BY EventId DESC");
+                    connection.Open(); grid.DataSource = DatabaseManager.Query(connection, "SELECT TOP 100 DeviceDiagnosticEventId,EventType,PortName,IsSuccess,Details,CreatedAt FROM app.DeviceDiagnosticEvent ORDER BY DeviceDiagnosticEventId DESC");
                 }
             }
             catch (Exception ex) { lblDbStatus.Text = DatabaseManager.SafeMessage(ex); }

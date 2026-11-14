@@ -13,8 +13,8 @@ namespace FuntinoControlCenter.Forms
             try
             {
                 if (AppSession.Current == null) throw new InvalidOperationException("نشست کاربر معتبر نیست.");
-                DatabaseManager.ChangePassword(AppSession.Current.UserId, txtCurrentPassword.Text, txtNewPassword.Text);
-                Services.AuditService.Write("password-change", "AppUsers", AppSession.Current.UserId.ToString(), "تغییر گذرواژه");
+                DatabaseManager.ChangePassword(AppSession.Current.ApplicationUserId, txtCurrentPassword.Text, txtNewPassword.Text);
+                Services.AuditService.Write("password-change", "ApplicationUser", AppSession.Current.ApplicationUserId.ToString(), "تغییر گذرواژه");
                 DialogResult = DialogResult.OK; Close();
             }
             catch (Exception ex) { MessageBox.Show(ex.Message, "ذخیره گذرواژه ناموفق", MessageBoxButtons.OK, MessageBoxIcon.Error); }

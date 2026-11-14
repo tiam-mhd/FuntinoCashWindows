@@ -8,6 +8,8 @@ controlcenter.settings
 # Local workspace snapshots and attached SQL Server database files stay out of Git.
 FuntinoControlCenter/LocalOnly/
 FuntinoControlCenter/Databases/
+FuntinoControlCenter/Build/Prerequisites/
+FuntinoControlCenter/Build/Output/
 
 # Empty leftover workspace folder; the project's Build directory is under FuntinoControlCenter.
 /Build/

@@ -33,7 +33,7 @@ namespace FuntinoControlCenter.Database
             using (var connection = DatabaseManager.CreateConnection(deviceDatabase))
             {
                 connection.Open();
-                var dt = DatabaseManager.Query(connection, "SELECT s.name + N'.' + t.name AS FullName FROM sys.tables t INNER JOIN sys.schemas s ON s.schema_id=t.schema_id WHERE t.is_ms_shipped=0 AND t.name NOT LIKE N'App%' ORDER BY s.name,t.name");
+                var dt = DatabaseManager.Query(connection, "SELECT s.name + N'.' + t.name AS FullName FROM sys.tables t INNER JOIN sys.schemas s ON s.schema_id=t.schema_id WHERE t.is_ms_shipped=0 AND s.name<>N'app' ORDER BY s.name,t.name");
                 var result = new List<string>(); foreach (DataRow row in dt.Rows) result.Add(Convert.ToString(row[0])); return result;
             }
         }
@@ -229,13 +229,13 @@ WHERE s.name=@s AND t.name=@t ORDER BY c.column_id";
         private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, string action, string entity, string key, string details)
         {
             var session = AppSession.Current;
-            using (var command = new SqlCommand("INSERT dbo.AppAuditLog(UserId,Action,EntityName,EntityKey,Details) VALUES(@u,@a,@e,@k,@d)", connection, transaction))
+            using (var command = new SqlCommand("INSERT app.AuditEvent(ApplicationUserId,ActionName,EntityName,EntityKey,Details) VALUES(@applicationUserId,@actionName,@entityName,@entityKey,@details)", connection, transaction))
             {
-                command.Parameters.Add("@u", SqlDbType.Int).Value = session == null ? (object)DBNull.Value : session.UserId;
-                command.Parameters.Add("@a", SqlDbType.NVarChar, 80).Value = action;
-                command.Parameters.Add("@e", SqlDbType.NVarChar, 128).Value = entity;
-                command.Parameters.Add("@k", SqlDbType.NVarChar, 256).Value = key;
-                command.Parameters.Add("@d", SqlDbType.NVarChar, 1000).Value = details;
+                command.Parameters.Add("@applicationUserId", SqlDbType.Int).Value = session == null ? (object)DBNull.Value : session.ApplicationUserId;
+                command.Parameters.Add("@actionName", SqlDbType.NVarChar, 80).Value = action;
+                command.Parameters.Add("@entityName", SqlDbType.NVarChar, 128).Value = entity;
+                command.Parameters.Add("@entityKey", SqlDbType.NVarChar, 256).Value = key;
+                command.Parameters.Add("@details", SqlDbType.NVarChar, 1000).Value = details;
                 command.ExecuteNonQuery();
             }
         }

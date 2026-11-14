@@ -19,16 +19,25 @@ namespace FuntinoControlCenter
         public int PosBaud { get; set; }
 
         public static AppSettings Current { get; private set; }
-        private static string SettingsPath { get { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FileName); } }
+        private static string SettingsPath
+        {
+            get
+            {
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                return Path.Combine(localAppData, "Funtino", "ControlCenter", FileName);
+            }
+        }
+        private static string LegacySettingsPath { get { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FileName); } }
 
         static AppSettings() { Current = Load(); }
 
         public static AppSettings Load()
         {
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (File.Exists(SettingsPath))
+            string settingsPath = File.Exists(SettingsPath) ? SettingsPath : LegacySettingsPath;
+            if (File.Exists(settingsPath))
             {
-                foreach (string line in File.ReadAllLines(SettingsPath, Encoding.UTF8))
+                foreach (string line in File.ReadAllLines(settingsPath, Encoding.UTF8))
                 {
                     int p = line.IndexOf('=');
                     if (p <= 0) continue;
@@ -45,7 +54,7 @@ namespace FuntinoControlCenter
             }
             var settings = new AppSettings
             {
-                SqlServer = Get(values, "SqlServer", ""),
+                SqlServer = Get(values, "SqlServer", @".\FuntinoSqlServer"),
                 IntegratedSecurity = String.Equals(Get(values, "IntegratedSecurity", "true"), "true", StringComparison.OrdinalIgnoreCase),
                 SqlUser = Get(values, "SqlUser", ""), SqlPassword = password,
                 ReaderPort = Get(values, "ReaderPort", "COM11"), PosPort = Get(values, "PosPort", "COM21"),
@@ -57,6 +66,7 @@ namespace FuntinoControlCenter
 
         public void Save()
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
             string protectedPassword = "";
             if (!String.IsNullOrEmpty(SqlPassword))
                 protectedPassword = Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(SqlPassword), null, DataProtectionScope.CurrentUser));

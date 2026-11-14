@@ -44,7 +44,7 @@ namespace FuntinoControlCenter.Forms
         private int pageCount = 1;
         private void TableBrowserForm_Load(object sender, EventArgs e)
         {
-            bool admin = AppSession.Current != null && AppSession.Current.IsAdmin;
+            bool admin = AppSession.Current != null && AppSession.Current.IsAdministrator;
             btnAdd.Enabled = btnSave.Enabled = btnDelete.Enabled = admin;
             try
             {
@@ -120,7 +120,7 @@ namespace FuntinoControlCenter.Forms
             foreach (DataGridViewColumn gridColumn in grid.Columns)
             {
                 TableColumn column = columns.FirstOrDefault(c => String.Equals(c.Name, gridColumn.DataPropertyName, StringComparison.OrdinalIgnoreCase));
-                gridColumn.ReadOnly = column == null || column.Identity || column.Computed || column.PrimaryKey || column.IsBinary || column.TypeName == "timestamp" || column.TypeName == "rowversion" || (!hasKey && !AppSession.Current.IsAdmin);
+                gridColumn.ReadOnly = column == null || column.Identity || column.Computed || column.PrimaryKey || column.IsBinary || column.TypeName == "timestamp" || column.TypeName == "rowversion" || (!hasKey && !AppSession.Current.IsAdministrator);
                 gridColumn.MinimumWidth = 90;
                 gridColumn.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
@@ -129,7 +129,7 @@ namespace FuntinoControlCenter.Forms
 
         private void AddRow(object sender, EventArgs e)
         {
-            if (currentData == null || AppSession.Current == null || !AppSession.Current.IsAdmin) return;
+            if (currentData == null || AppSession.Current == null || !AppSession.Current.IsAdministrator) return;
             DataRow row = currentData.NewRow(); currentData.Rows.Add(row);
             var firstEditable = grid.Rows[grid.Rows.Count - 1].Cells.Cast<DataGridViewCell>().FirstOrDefault(c => !c.ReadOnly);
             if (firstEditable != null) { grid.CurrentCell = firstEditable; grid.BeginEdit(true); }
@@ -137,7 +137,7 @@ namespace FuntinoControlCenter.Forms
 
         private void SaveRows(object sender, EventArgs e)
         {
-            if (currentData == null || AppSession.Current == null || !AppSession.Current.IsAdmin) return;
+            if (currentData == null || AppSession.Current == null || !AppSession.Current.IsAdministrator) return;
             try
             {
                 grid.EndEdit(); var changed = currentData.GetChanges();
@@ -151,7 +151,7 @@ namespace FuntinoControlCenter.Forms
 
         private void DeleteRow(object sender, EventArgs e)
         {
-            if (grid.CurrentRow == null || currentData == null || AppSession.Current == null || !AppSession.Current.IsAdmin) return;
+            if (grid.CurrentRow == null || currentData == null || AppSession.Current == null || !AppSession.Current.IsAdministrator) return;
             grid.EndEdit();
             string warning = currentData.GetChanges() == null ? "ردیف انتخاب‌شده حذف شود؟ این عملیات پس از ذخیره قابل بازگشت نیست." : "ردیف انتخاب‌شده حذف شود؟ سایر تغییرات بازشده نیز در همان تراکنش ذخیره خواهند شد.";
             if (MessageBox.Show(warning, "تأیید حذف", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;

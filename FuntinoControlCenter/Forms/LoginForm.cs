@@ -16,7 +16,7 @@ namespace FuntinoControlCenter.Forms
             try
             {
                 SchemaMigrator.EnsureAll(); ready = true;
-                lblStatus.Text = "پایگاه‌های _New آماده‌اند. ورود اولیه: Admin";
+                lblStatus.Text = "پایگاه‌های Funtino آماده‌اند. ورود اولیه: Admin";
                 lblStatus.ForeColor = System.Drawing.Color.FromArgb(95, 196, 153);
                 btnLogin.Enabled = true; txtPassword.Focus();
                 if (!String.IsNullOrEmpty(SchemaMigrator.InitialAdminPassword))
@@ -25,7 +25,7 @@ namespace FuntinoControlCenter.Forms
             catch (Exception ex)
             {
                 ready = false; btnLogin.Enabled = false;
-                lblStatus.Text = "پایگاه آماده نیست. از تنظیمات، SQL Server را بررسی کنید و هر دو دیتابیس _New را Attach کنید.";
+                lblStatus.Text = "پایگاه آماده نیست. اجرای سرویس SQL و وجود هر دو پایگاه Funtino را بررسی کنید.";
                 lblStatus.ForeColor = System.Drawing.Color.FromArgb(230, 114, 104);
                 MessageBox.Show(DatabaseManager.SafeMessage(ex), "راه‌اندازی پایگاه داده", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
