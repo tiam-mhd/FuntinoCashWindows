@@ -31,6 +31,16 @@ These rules apply to every current and future change in this repository.
 - Every form must remain a `partial` class with its matching `.cs` and `.Designer.cs` included in the project and associated with `DependentUpon`, so Visual Studio can open and edit it in the Windows Forms Designer.
 - When adding or changing a form control, update the `.Designer.cs`; do not replace designer-owned controls with runtime-created equivalents.
 
+## Professional UI/UX redesign
+
+- When the user asks for a "بازطراحی فوق‌حرفه‌ای" (professional redesign) or equivalent, apply this complete redesign standard to every requested screen. The standard may be extended by later user instructions.
+- Arrange each screen as a coherent, polished experience with a consistent visual system, clear hierarchy, balanced spacing, and colors suited to the product and task.
+- Translate every user-facing English or technical phrase into simple, natural Persian that an everyday user can understand. Preserve technical identifiers only where users need to recognize them.
+- Use Vazirmatn for interface text. Bundle the font when the target system may not have it installed.
+- Give each requested page an attractive, page-appropriate background generated with the image-generation skill. Generate and integrate custom WebP icons for every operation on the requested screens.
+- Route each create, read, update, or delete operation to a dedicated page or form. If a requested screen contains a table, implement real search, filters, pagination, and useful table states along with a polished, usable table design; do not add decorative or nonfunctional controls.
+- Keep all WinForms visual construction, layout, fixed styling, captions, and designer-managed event hookups in `.Designer.cs`, in accordance with the WinForms design-file rules above. Keep runtime behavior in `.cs` files.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
