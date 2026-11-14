@@ -778,7 +778,11 @@ namespace FuntinoControlCenter.Forms
             this.btnReadInfo.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnReadHistory.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnReadRemainder.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.btnRecharge.Margin = this.btnReadBalance.Margin = this.btnReadInfo.Margin = this.btnReadHistory.Margin = this.btnReadRemainder.Margin = new System.Windows.Forms.Padding(5, 2, 5, 2);
+            this.btnRecharge.Margin = new System.Windows.Forms.Padding(5, 2, 5, 2);
+            this.btnReadBalance.Margin = new System.Windows.Forms.Padding(5, 2, 5, 2);
+            this.btnReadInfo.Margin = new System.Windows.Forms.Padding(5, 2, 5, 2);
+            this.btnReadHistory.Margin = new System.Windows.Forms.Padding(5, 2, 5, 2);
+            this.btnReadRemainder.Margin = new System.Windows.Forms.Padding(5, 2, 5, 2);
             this.btnRecharge.Text = "شارژ کارت   P";
             this.btnReadBalance.Text = "خواندن موجودی   F2";
             this.btnReadInfo.Text = "اطلاعات کارت   F1";
@@ -853,7 +857,9 @@ namespace FuntinoControlCenter.Forms
             this.btnSearchHistory.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnPreviousHistory.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnNextHistory.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.btnSearchHistory.Margin = this.btnPreviousHistory.Margin = this.btnNextHistory.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.btnSearchHistory.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.btnPreviousHistory.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.btnNextHistory.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.lblHistoryPages.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lblHistoryPages.Margin = new System.Windows.Forms.Padding(3, 0, 6, 0);
             this.gridRechargeHistory.Dock = System.Windows.Forms.DockStyle.Fill;
