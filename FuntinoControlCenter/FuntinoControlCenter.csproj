@@ -44,7 +44,8 @@
     <EmbeddedResource Include="Properties\Resources.resx"><Generator>ResXFileCodeGenerator</Generator><LastGenOutput>Resources.Designer.cs</LastGenOutput></EmbeddedResource>
     <None Include="app.manifest" /><None Include="App.config" /><None Include="README_FA.md" /><None Include="Build\Build-Windows.cmd" /><None Include="Build\Attach-Databases.sql" />
     <Content Include="Assets\LoginBackground.jpg"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content><Content Include="Assets\ReportBackground.jpg"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="Databases\*.mdf"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content><Content Include="Databases\*.ldf"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <!-- SQL Server locks attached database files; keep them in the source folder and out of build copies. -->
+    <None Include="Databases\*.mdf" /><None Include="Databases\*.ldf" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
