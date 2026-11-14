@@ -5,6 +5,9 @@
 *.suo
 controlcenter.settings
 
+# GitNexus local code graph and analyzer cache.
+.gitnexus/
+
 # Local workspace snapshots and attached SQL Server database files stay out of Git.
 FuntinoControlCenter/LocalOnly/
 FuntinoControlCenter/Databases/
