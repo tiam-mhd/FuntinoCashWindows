@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
 using FuntinoControlCenter.Services;
 using FuntinoControlCenter.Security;
@@ -39,8 +40,8 @@ namespace FuntinoControlCenter.Forms
                 AuthorizationGuard.Require("settings.hardware.update");
                 using (var dialog = new OpenFileDialog())
                 {
-                    dialog.Title = "انتخاب فایل کلید نرم‌افزار PlayCash";
-                    dialog.Filter = "فایل کلید PlayCash (p.bin)|p.bin|همه‌ی فایل‌ها (*.*)|*.*";
+                    dialog.Title = "انتخاب فایل کلید کارت";
+                    dialog.Filter = "فایل کلید کارت (*.bin)|*.bin|همه‌ی فایل‌ها (*.*)|*.*";
                     dialog.CheckFileExists = true;
                     dialog.Multiselect = false;
                     if (dialog.ShowDialog(this) != DialogResult.OK) return;
@@ -49,7 +50,7 @@ namespace FuntinoControlCenter.Forms
                     if (encoded.Length != 6)
                     {
                         Array.Clear(encoded, 0, encoded.Length);
-                        throw new InvalidOperationException("فایل انتخاب‌شده کلید معتبر PlayCash نیست؛ اندازه‌ی فایل باید شش بایت باشد.");
+                        throw new InvalidOperationException("فایل کلید کارت معتبر نیست؛ اندازه‌ی فایل باید شش بایت باشد.");
                     }
                     for (int i = 0; i < encoded.Length; i++)
                     {
@@ -62,7 +63,7 @@ namespace FuntinoControlCenter.Forms
                         AppSettings.Current.Save();
                     }
                     finally { Array.Clear(encoded, 0, encoded.Length); }
-                    lblReaderKeyState.Text = "کلید کارت از PlayCash در تنظیمات رمزگذاری‌شده‌ی همین حساب ویندوز ذخیره شد.";
+                    lblReaderKeyState.Text = "کلید امنیتی کارت برای همین حساب ویندوز به‌صورت رمزگذاری‌شده ذخیره شد.";
                     MessageBox.Show(this, lblReaderKeyState.Text, "کلید کارت آماده است", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -108,7 +109,7 @@ namespace FuntinoControlCenter.Forms
                 {
                     lblReaderKeyState.Text = AppSettings.Current.ReaderCardKeyConfigured
                         ? "کلید کارت به‌صورت رمزگذاری‌شده برای همین حساب ویندوز ذخیره شده است."
-                        : "برای خواندن کارت‌های PlayCash، فایل p.bin نرم‌افزار مرجع را یک‌بار درون‌ریزی کنید.";
+                        : "برای خواندن کارت‌ها، فایل کلید کارت را یک‌بار درون‌ریزی کنید.";
                     btnImportReaderKey.Visible = canUpdateHardware;
                     cmbReaderBaud.Text = AppSettings.Current.ReaderBaud.ToString(); cmbPosBaud.Text = AppSettings.Current.PosBaud.ToString();
                     cmbReaderBaud.Enabled = cmbPosBaud.Enabled = canUpdateHardware;
@@ -118,7 +119,7 @@ namespace FuntinoControlCenter.Forms
                     cmbReaderPort.Visible = cmbPosPort.Visible = canTestDevices;
                     if (canTestDevices)
                     {
-                        ScanReaderPorts(false);
+                        lblReaderPortState.Text = "برای شناسایی کارت‌خوان، کارت را روی دستگاه بگذارید و «پویش کارت‌خوان» را انتخاب کنید.";
                         ScanPosPorts(false);
                     }
                     else
@@ -178,9 +179,12 @@ namespace FuntinoControlCenter.Forms
             if (!Int32.TryParse(cmbPosBaud.Text, out posBaud) || posBaud < 1200) throw new InvalidOperationException("سرعت پایانه POS معتبر نیست.");
             string readerPort = Convert.ToString(cmbReaderPort.SelectedItem);
             string posPort = Convert.ToString(cmbPosPort.SelectedItem);
+            if (cmbReaderPort.Items.Count > 1 && String.IsNullOrWhiteSpace(readerPort))
+                throw new InvalidOperationException("چند کارت‌خوان پاسخ داده‌اند؛ یکی از درگاه‌های تأییدشده را انتخاب کنید.");
             if (!String.IsNullOrWhiteSpace(readerPort) && !cmbReaderPort.Items.Contains(readerPort)) throw new InvalidOperationException("درگاه کارت‌خوان باید از فهرست درگاه‌های تأییدشده انتخاب شود.");
             if (!String.IsNullOrWhiteSpace(posPort) && !cmbPosPort.Items.Contains(posPort)) throw new InvalidOperationException("درگاه پایانه‌ی فروش باید از فهرست درگاه‌های تأییدشده انتخاب شود.");
-            AppSettings.Current.ReaderPort = readerPort ?? String.Empty; AppSettings.Current.PosPort = posPort ?? String.Empty;
+            if (!String.IsNullOrWhiteSpace(readerPort)) AppSettings.Current.ReaderPort = readerPort;
+            AppSettings.Current.PosPort = posPort ?? String.Empty;
             AppSettings.Current.ReaderBaud = readerBaud; AppSettings.Current.PosBaud = posBaud;
         }
 
@@ -196,21 +200,17 @@ namespace FuntinoControlCenter.Forms
                 string message;
                 var ports = HardwareService.DetectReaderPorts(ReadBaud(cmbReaderBaud, AppSettings.Current.ReaderBaud), out message);
                 BindSuccessfulPorts(cmbReaderPort, ports, preferred);
-                if (ports.Count == 1 && canUpdateHardware && !String.Equals(AppSettings.Current.ReaderPort, ports[0], StringComparison.OrdinalIgnoreCase))
-                {
-                    AppSettings.Current.ReaderPort = ports[0];
-                    AppSettings.Current.Save();
-                }
                 lblReaderPortState.Text = BuildPortStatus(message, ports.Count, cmbReaderPort.SelectedItem != null);
                 cmbReaderPort.Enabled = canUpdateHardware && ports.Count > 0;
                 btnRescanReader.Enabled = true;
                 if (showCompletion && ports.Count == 0)
                     MessageBox.Show(this, message, "کارت‌خوان پیدا نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 cmbReaderPort.Items.Clear();
-                lblReaderPortState.Text = "بررسی کارت‌خوان انجام نشد: " + DatabaseManager.SafeMessage(ex);
+                cmbReaderPort.Enabled = false;
+                lblReaderPortState.Text = "پویش کارت‌خوان کامل نشد. کارت را روی دستگاه بگذارید و اتصال، درگاه و سرعت ارتباط را بررسی کنید.";
                 if (showCompletion) MessageBox.Show(this, lblReaderPortState.Text, "بررسی کارت‌خوان", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
 using FuntinoControlCenter.Security;
 using FuntinoControlCenter.Services;
@@ -67,7 +68,7 @@ namespace FuntinoControlCenter.Forms
                 ApplyPermissions();
                 AuthorizationMonitor.Attach(this, HasAnyCardOperationAccess);
                 authorizationTimer.Start();
-                SetStatus("کارت‌خوان پس از انتخاب یکی از عملیات‌ها، فقط همان یک‌بار درخواست کارت می‌فرستد.");
+                SetStatus(CardReaderService.GetConfiguredPortStatus());
                 ShowCardHistoryPanel();
             }
             catch (Exception ex)
@@ -161,7 +162,7 @@ namespace FuntinoControlCenter.Forms
             long amount;
             if (!TryParseAmount(txtAmount.Text, out amount) || amount <= 0 || amount > 4000000 || amount % 100 != 0)
             {
-                MessageBox.Show(this, "مبلغ باید مضربی از ۱۰۰ تومان و حداکثر ۴٬۰۰۰٬۰۰۰ تومان باشد.", "مبلغ شارژ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "مبلغ شارژ باید مضربی از ۱۰۰ تومان و حداکثر ۴٬۰۰۰٬۰۰۰ تومان باشد.", "بررسی مبلغ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtAmount.Focus();
                 return;
             }
@@ -271,7 +272,7 @@ namespace FuntinoControlCenter.Forms
             catch (Exception ex)
             {
                 SetBusy(false);
-                SetStatus(DisplayError(ex));
+                ShowOperationFailure(ex);
             }
         }
 
@@ -307,7 +308,7 @@ namespace FuntinoControlCenter.Forms
             catch (Exception ex)
             {
                 SetBusy(false);
-                SetStatus(DisplayError(ex));
+                ShowOperationFailure(ex);
             }
         }
 
@@ -335,7 +336,7 @@ namespace FuntinoControlCenter.Forms
             SetBusy(false);
             if (e.Error != null)
             {
-                SetStatus(DisplayError(e.Error));
+                ShowOperationFailure(e.Error);
                 return;
             }
             if (e.Cancelled) return;
@@ -376,7 +377,7 @@ namespace FuntinoControlCenter.Forms
             }
             catch (Exception ex)
             {
-                SetStatus(DisplayError(ex));
+                ShowOperationFailure(ex);
             }
         }
 
@@ -436,9 +437,13 @@ namespace FuntinoControlCenter.Forms
 
             string message = result.HistoryRecorded ? "شارژ کارت و ثبت سابقه در سامانه انجام شد." : "شارژ کارت انجام شد، اما سابقه در سامانه ثبت نشد.";
             if (!String.IsNullOrWhiteSpace(result.Warning) || !result.HistoryRecorded)
+            {
                 message += Environment.NewLine + "شارژ روی کارت تأیید شده است؛ برای جلوگیری از شارژ دوباره، عملیات را تکرار نکنید.";
+            }
             if (!String.IsNullOrWhiteSpace(result.Warning)) message += Environment.NewLine + result.Warning;
             SetStatus(message);
+            if (!String.IsNullOrWhiteSpace(result.Warning) || !result.HistoryRecorded)
+                AppMessageService.ShowWarning(this, message, "شارژ کارت انجام شد؛ سوابق نیاز به بررسی دارد");
         }
 
         private void ShowDatabaseHistory(RechargeHistoryPage page)
@@ -525,17 +530,77 @@ namespace FuntinoControlCenter.Forms
             }
             catch (Exception ex)
             {
-                SetStatus(DisplayError(ex));
+                ShowOperationFailure(ex);
                 return false;
             }
         }
 
         private static string DisplayError(Exception exception)
         {
+            exception = UnwrapException(exception);
+            var readerException = exception as CardReaderException;
+            if (readerException != null) return readerException.Message;
             var sqlException = exception as SqlException;
             if (sqlException != null)
                 return "خواندن یا ثبت اطلاعات در پایگاه انجام نشد. اتصال و دسترسی پایگاه را بررسی کنید. کد خطا: " + sqlException.Number.ToString(CultureInfo.InvariantCulture);
-            return DatabaseManager.SafeMessage(exception);
+            var unauthorized = exception as UnauthorizedAccessException;
+            if (unauthorized != null) return unauthorized.Message;
+            var invalidOperation = exception as InvalidOperationException;
+            if (invalidOperation != null) return invalidOperation.Message;
+            if (exception is TimeoutException)
+                return "کارت‌خوان پاسخ نداد. کارت را روی دستگاه بگذارید و اتصال و درگاه انتخاب‌شده را بررسی کنید.";
+            if (exception is System.IO.IOException)
+                return "ارتباط با کارت‌خوان قطع شد. اتصال کابل و درگاه انتخاب‌شده را بررسی کنید.";
+            return "عملیات انجام نشد. اتصال کارت‌خوان و تنظیمات را بررسی کنید و دوباره تلاش کنید.";
+        }
+
+        private void ShowOperationFailure(Exception exception)
+        {
+            Exception actual = UnwrapException(exception);
+            string message = DisplayError(actual);
+            SetStatus(message);
+            var readerException = actual as CardReaderException;
+            if (readerException != null)
+            {
+                string title = GetReaderFailureTitle(readerException.FailureKind);
+                if (readerException.FailureKind == CardReaderFailureKind.ReaderUnavailable ||
+                    readerException.FailureKind == CardReaderFailureKind.ReaderNotResponding ||
+                    readerException.FailureKind == CardReaderFailureKind.RechargeResultUnknown)
+                    AppMessageService.ShowError(this, message, title);
+                else
+                    AppMessageService.ShowWarning(this, message, title);
+                return;
+            }
+
+            if (actual is UnauthorizedAccessException)
+                AppMessageService.ShowWarning(this, message, "دسترسی مجاز نیست");
+            else
+                AppMessageService.ShowError(this, message, "عملیات انجام نشد");
+        }
+
+        private static string GetReaderFailureTitle(CardReaderFailureKind failureKind)
+        {
+            switch (failureKind)
+            {
+                case CardReaderFailureKind.NoCardOrReaderResponse: return "کارت یا کارت‌خوان پاسخ نداد";
+                case CardReaderFailureKind.ReaderUnavailable: return "کارت‌خوان در دسترس نیست";
+                case CardReaderFailureKind.ReaderNotResponding: return "پاسخی از کارت‌خوان نرسید";
+                case CardReaderFailureKind.CardKeyRejected: return "خواندن اطلاعات کارت ممکن نشد";
+                case CardReaderFailureKind.RechargeResultUnknown: return "وضعیت شارژ مشخص نیست";
+                case CardReaderFailureKind.CardIdentifierUnavailable:
+                case CardReaderFailureKind.CardSelectionFailed:
+                case CardReaderFailureKind.CardDataUnavailable: return "خواندن کارت کامل نشد";
+                case CardReaderFailureKind.CardWriteRejected: return "نوشتن روی کارت انجام نشد";
+                default: return "عملیات کارت انجام نشد";
+            }
+        }
+
+        private static Exception UnwrapException(Exception exception)
+        {
+            while (exception != null && exception.InnerException != null &&
+                (exception is System.Reflection.TargetInvocationException || exception is AggregateException))
+                exception = exception.InnerException;
+            return exception ?? new InvalidOperationException("عملیات انجام نشد.");
         }
 
         private static bool TryParseAmount(string value, out long amount)

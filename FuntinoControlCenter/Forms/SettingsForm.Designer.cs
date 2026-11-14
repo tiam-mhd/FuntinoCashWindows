@@ -310,6 +310,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlReaderPortInput.Size = new System.Drawing.Size(150, 38);
             this.pnlReaderPortInput.TabIndex = 2;
             this.cmbReaderPort.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbReaderPort.Enabled = false;
             this.cmbReaderPort.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.cmbReaderPort.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9F);
             this.cmbReaderPort.FormattingEnabled = true;
@@ -368,7 +369,7 @@ namespace FuntinoControlCenter.Forms
             this.lblReaderPortState.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblReaderPortState.Size = new System.Drawing.Size(1008, 25);
             this.lblReaderPortState.TabIndex = 9;
-            this.lblReaderPortState.Text = "پورت‌های در دسترس کارت‌خوان";
+            this.lblReaderPortState.Text = "برای شناسایی کارت‌خوان، کارت را روی دستگاه بگذارید و پویش را انتخاب کنید.";
             this.lblReaderPortState.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblPos.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9F, System.Drawing.FontStyle.Bold);
             this.lblPos.Location = new System.Drawing.Point(926, 155);
@@ -470,7 +471,7 @@ namespace FuntinoControlCenter.Forms
             this.btnImportReaderKey.Name = "btnImportReaderKey";
             this.btnImportReaderKey.Size = new System.Drawing.Size(252, 42);
             this.btnImportReaderKey.TabIndex = 14;
-            this.btnImportReaderKey.Text = "درون‌ریزی کلید کارت PlayCash";
+            this.btnImportReaderKey.Text = "درون‌ریزی کلید کارت";
             this.btnImportReaderKey.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnImportReaderKey.UseVisualStyleBackColor = false;
 

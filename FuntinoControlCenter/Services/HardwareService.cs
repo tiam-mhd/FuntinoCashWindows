@@ -28,9 +28,12 @@ namespace FuntinoControlCenter.Services
                 if (TestPort(port, baudRate, out result)) successfulPorts.Add(port);
             }
 
-            message = successfulPorts.Count == 0
-                ? (ports.Length == 0 ? "هیچ درگاه سریالی در ویندوز پیدا نشد." : "هیچ درگاه سریالی برای کارت‌خوان در دسترس نبود.")
-                : "فقط درگاه‌هایی نمایش داده می‌شوند که باز و بسته شدن آن‌ها با موفقیت انجام شد. این بررسی پاسخ خود کارت‌خوان را تأیید نمی‌کند.";
+            if (successfulPorts.Count == 0)
+                message = ports.Length == 0
+                    ? "هیچ درگاه سریالی در ویندوز پیدا نشد. اتصال کارت‌خوان را بررسی کنید."
+                    : "هیچ کارت‌خوانی پاسخ معتبر نداد. یک کارت را روی دستگاه بگذارید و دوباره پویش کنید؛ اگر کارت حاضر است، اتصال و سرعت ارتباط را بررسی کنید.";
+            else
+                message = "فقط درگاه‌هایی نمایش داده می‌شوند که به درخواست شناسایی کارت‌خوان پاسخ معتبر دادند. برای این آزمون، کارت باید روی دستگاه باشد؛ کارت در زمان بیکاری پایش نمی‌شود.";
             return successfulPorts;
         }
 
@@ -62,24 +65,9 @@ namespace FuntinoControlCenter.Services
         {
             AuthorizationGuard.Require("devices.test");
             if (String.IsNullOrWhiteSpace(portName)) { message = "درگاه انتخاب نشده است."; return false; }
-            try
-            {
-                using (var port = new SerialPort(portName.Trim(), baudRate, Parity.None, 8, StopBits.One))
-                {
-                    port.ReadTimeout = 500;
-                    port.WriteTimeout = 500;
-                    port.Open();
-                }
-                message = "درگاه " + portName + " باز و بسته شد؛ پاسخ کارت‌خوان بررسی نشده است.";
-                Record("serial-open-close", portName, true, message);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                message = "درگاه " + portName + " در دسترس نبود: " + FriendlyHardwareError(ex);
-                Record("serial-open-close", portName, false, message);
-                return false;
-            }
+            bool success = CardReaderService.TestReaderPort(portName, baudRate, out message);
+            Record("reader-protocol-handshake", portName, success, message);
+            return success;
         }
 
         public static bool TestPosSdk(out string message)
