@@ -30,6 +30,7 @@ These rules apply to every current and future change in this repository.
 - Form `.cs` files contain behavior only: event handlers, permission decisions, data binding, and runtime values or visibility that depend on the current user or data. They must not create controls, add controls to containers, or set fixed layout or styling properties.
 - Every form must remain a `partial` class with its matching `.cs` and `.Designer.cs` included in the project and associated with `DependentUpon`, so Visual Studio can open and edit it in the Windows Forms Designer.
 - When adding or changing a form control, update the `.Designer.cs`; do not replace designer-owned controls with runtime-created equivalents.
+- Whenever a form is created or changed, open that form in Visual Studio's Windows Forms Designer and confirm it loads without designer errors or an "Ignore and Continue" recovery prompt. A successful build alone is not sufficient; fix any design-time errors and reopen the form cleanly before completing the change.
 
 ## Professional UI/UX redesign
 
