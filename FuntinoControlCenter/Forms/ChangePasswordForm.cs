@@ -1,12 +1,13 @@
 using System;
 using System.Windows.Forms;
 using FuntinoControlCenter.Database;
+using FuntinoControlCenter.UI;
 
 namespace FuntinoControlCenter.Forms
 {
     public partial class ChangePasswordForm : Form
     {
-        public ChangePasswordForm() { InitializeComponent(); }
+        public ChangePasswordForm() { AppFontManager.EnsureVazirmatnLoaded(); InitializeComponent(); }
 
         private void BtnCancel_Click(object sender, EventArgs e)
         {
@@ -23,7 +24,13 @@ namespace FuntinoControlCenter.Forms
                 AppSession.Current.CompletePasswordChange();
                 DialogResult = DialogResult.OK; Close();
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message, "ذخیره گذرواژه ناموفق", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex)
+            {
+                string message = ex is InvalidOperationException || ex is UnauthorizedAccessException
+                    ? ex.Message
+                    : "تغییر گذرواژه انجام نشد. اتصال برنامه را بررسی کنید و دوباره تلاش کنید.";
+                MessageBox.Show(message, "تغییر گذرواژه انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

@@ -4,6 +4,14 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
-  <data name="LoginBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\LoginBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="LoginBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\LoginBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="ReportBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\ReportBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="ChangePasswordBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\ChangePasswordBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="InitialCredentialBackground" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\InitialCredentialBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="IconSignIn" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconSignIn.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="IconSettings" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconSettings.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="IconExit" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconExit.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="IconPasswordSave" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconPasswordSave.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="IconBack" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconBack.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="IconCopy" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Authentication\IconCopy.png;System.Drawing.Bitmap, System.Drawing</value></data>
 </root>

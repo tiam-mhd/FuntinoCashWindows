@@ -1,23 +1,24 @@
 using System;
 using System.Windows.Forms;
 using FuntinoControlCenter.Database;
+using FuntinoControlCenter.UI;
 
 namespace FuntinoControlCenter.Forms
 {
     public partial class LoginForm : Form
     {
         private bool ready;
-        public LoginForm() { InitializeComponent(); }
+        public LoginForm() { AppFontManager.EnsureVazirmatnLoaded(); InitializeComponent(); }
 
         private void BtnExit_Click(object sender, EventArgs e) { Close(); }
 
         private void LoginForm_Load(object sender, EventArgs e)
         {
-            lblStatus.Text = "در حال بررسی پایگاه‌های داده و اجرای به‌روزرسانی‌های امن…";
+            lblStatus.Text = "در حال آماده‌سازی اطلاعات برنامه…";
             try
             {
                 SchemaMigrator.EnsureAll(); ready = true;
-                lblStatus.Text = "پایگاه‌های Funtino آماده‌اند. ورود اولیه: Admin";
+                lblStatus.Text = "برنامه آماده است. نام کاربری و گذرواژه را وارد کنید.";
                 lblStatus.ForeColor = System.Drawing.Color.FromArgb(95, 196, 153);
                 btnLogin.Enabled = true; txtPassword.Focus();
                 string initialAdminPassword = SchemaMigrator.TakeInitialAdminPassword();
@@ -25,12 +26,12 @@ namespace FuntinoControlCenter.Forms
                     using (var credentials = new InitialCredentialDialog("Admin", initialAdminPassword))
                         credentials.ShowDialog(this);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ready = false; btnLogin.Enabled = false;
-                lblStatus.Text = "پایگاه آماده نیست. اجرای سرویس SQL و وجود هر دو پایگاه Funtino را بررسی کنید.";
+                lblStatus.Text = "اتصال به اطلاعات برنامه برقرار نشد. تنظیم ارتباط را بررسی کنید.";
                 lblStatus.ForeColor = System.Drawing.Color.FromArgb(230, 114, 104);
-                MessageBox.Show(DatabaseManager.SafeMessage(ex), "راه‌اندازی پایگاه داده", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("برنامه نتوانست اطلاعات را آماده کند. تنظیم ارتباط را بررسی کنید و دوباره تلاش کنید.", "آماده‌سازی برنامه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -60,7 +61,7 @@ namespace FuntinoControlCenter.Forms
                 using (var main = new MainForm()) main.ShowDialog();
                 AppSession.Clear(); txtPassword.Clear(); Show(); Activate();
             }
-            catch (Exception ex) { MessageBox.Show(DatabaseManager.SafeMessage(ex), "ورود ناموفق", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception) { MessageBox.Show("ورود انجام نشد. اتصال برنامه را بررسی کنید و دوباره تلاش کنید.", "ورود ناموفق", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }
     }
 }

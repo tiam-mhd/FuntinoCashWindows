@@ -79,5 +79,32 @@ namespace FuntinoControlCenter.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ChangePasswordBackground {
+            get {
+                object obj = ResourceManager.GetObject("ChangePasswordBackground", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap InitialCredentialBackground {
+            get {
+                object obj = ResourceManager.GetObject("InitialCredentialBackground", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        internal static System.Drawing.Bitmap IconSignIn { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconSignIn", resourceCulture))); } }
+        internal static System.Drawing.Bitmap IconSettings { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconSettings", resourceCulture))); } }
+        internal static System.Drawing.Bitmap IconExit { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconExit", resourceCulture))); } }
+        internal static System.Drawing.Bitmap IconPasswordSave { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconPasswordSave", resourceCulture))); } }
+        internal static System.Drawing.Bitmap IconBack { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconBack", resourceCulture))); } }
+        internal static System.Drawing.Bitmap IconCopy { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("IconCopy", resourceCulture))); } }
     }
 }

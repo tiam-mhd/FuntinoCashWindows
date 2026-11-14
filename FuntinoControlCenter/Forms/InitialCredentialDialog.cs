@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using FuntinoControlCenter.UI;
 
 namespace FuntinoControlCenter.Forms
 {
@@ -7,8 +8,9 @@ namespace FuntinoControlCenter.Forms
     {
         public InitialCredentialDialog(string userName, string password)
         {
+            AppFontManager.EnsureVazirmatnLoaded();
             InitializeComponent();
-            lblUserName.Text = "نام کاربری: " + (userName ?? "");
+            lblUserName.Text = "نام کاربری این حساب: " + (userName ?? "");
             txtPassword.Text = password ?? "";
         }
 
@@ -21,11 +23,11 @@ namespace FuntinoControlCenter.Forms
                 Clipboard.SetText(txtPassword.Text);
                 lblCopyStatus.Text = "گذرواژه کپی شد.";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                lblCopyStatus.Text = "کپی نشد؛ گذرواژه را انتخاب کنید.";
-                MessageBox.Show(this, "دسترسی به کلیپ‌بورد انجام نشد. گذرواژه را از کادر انتخاب و کپی کنید.\n" + ex.Message,
-                    "کپی گذرواژه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                lblCopyStatus.Text = "کپی انجام نشد؛ رمز را از کادر انتخاب کنید.";
+                MessageBox.Show(this, "اگر کپی خودکار انجام نشد، رمز را انتخاب کنید و از میانبر صفحه‌کلید برای کپی آن استفاده کنید.",
+                    "راهنمای کپی گذرواژه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtPassword.SelectAll();
             }
         }
