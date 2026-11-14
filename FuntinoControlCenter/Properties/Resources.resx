@@ -28,4 +28,8 @@
   <data name="RescanPorts" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\RescanPorts.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="Reports" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Reports.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="Exit" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Exit.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="MessageError" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageError.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="MessageWarning" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageWarning.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="MessageSuccess" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageSuccess.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="MessageInfo" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>..\Assets\Messages\MessageInfo.png;System.Drawing.Bitmap, System.Drawing</value></data>
 </root>

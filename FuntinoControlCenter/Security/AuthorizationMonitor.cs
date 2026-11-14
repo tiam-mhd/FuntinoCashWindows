@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 
 namespace FuntinoControlCenter.Security
 {

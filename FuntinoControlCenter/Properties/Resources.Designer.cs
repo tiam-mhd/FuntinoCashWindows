@@ -121,5 +121,9 @@ namespace FuntinoControlCenter.Properties {
         internal static System.Drawing.Bitmap RescanPorts { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("RescanPorts", resourceCulture))); } }
         internal static System.Drawing.Bitmap Reports { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("Reports", resourceCulture))); } }
         internal static System.Drawing.Bitmap Exit { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("Exit", resourceCulture))); } }
+        internal static System.Drawing.Bitmap MessageError { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageError", resourceCulture))); } }
+        internal static System.Drawing.Bitmap MessageWarning { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageWarning", resourceCulture))); } }
+        internal static System.Drawing.Bitmap MessageSuccess { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageSuccess", resourceCulture))); } }
+        internal static System.Drawing.Bitmap MessageInfo { get { return ((System.Drawing.Bitmap)(ResourceManager.GetObject("MessageInfo", resourceCulture))); } }
     }
 }

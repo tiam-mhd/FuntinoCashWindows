@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
 using FuntinoControlCenter.Security;
 using FuntinoControlCenter.Services;
