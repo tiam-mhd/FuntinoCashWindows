@@ -4,3 +4,7 @@
 *.user
 *.suo
 controlcenter.settings
+
+# Local workspace snapshots and attached SQL Server database files stay out of Git.
+FuntinoControlCenter/LocalOnly/
+FuntinoControlCenter/Databases/
