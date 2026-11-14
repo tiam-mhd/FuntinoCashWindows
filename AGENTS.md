@@ -23,3 +23,10 @@ These rules apply to every current and future change in this repository.
 ## Localization
 
 - User-facing forms and permission descriptions must be Persian, understandable to nontechnical users, and laid out for right-to-left reading.
+
+## WinForms design files
+
+- All WinForms visual construction and fixed design belong in the form's `.Designer.cs`: control declarations and creation, the control tree, layout containers, dimensions, positions, docking, anchors, fonts, colors, static captions, initial visual properties, and designer-managed event hookups.
+- Form `.cs` files contain behavior only: event handlers, permission decisions, data binding, and runtime values or visibility that depend on the current user or data. They must not create controls, add controls to containers, or set fixed layout or styling properties.
+- Every form must remain a `partial` class with its matching `.cs` and `.Designer.cs` included in the project and associated with `DependentUpon`, so Visual Studio can open and edit it in the Windows Forms Designer.
+- When adding or changing a form control, update the `.Designer.cs`; do not replace designer-owned controls with runtime-created equivalents.
