@@ -4,7 +4,7 @@ namespace FuntinoControlCenter.Forms
     {
         private System.ComponentModel.IContainer components = null;
         private System.Windows.Forms.Panel pnlHeader;
-        private FuntinoControlCenter.UI.RoundedBorderPanel pnlSummary, pnlActions, pnlAmountInput, pnlCardHistory, pnlDatabaseHistory, pnlSearchInput;
+        private FuntinoControlCenter.UI.RoundedBorderPanel pnlSummary, pnlActions, pnlAmountInput, pnlRechargeTerms, pnlCardHistory, pnlDatabaseHistory, pnlSearchInput;
         private System.Windows.Forms.Label lblTitle, lblSubtitle, lblCardNumberCaption, lblCardNumberValue, lblBalanceCaption, lblBalanceValue;
         private System.Windows.Forms.Label lblCardTypeCaption, lblCardTypeValue, lblDiscountCaption, lblDiscountValue, lblExpirationCaption, lblExpirationValue, lblOperationStatus, lblAmountCaption, lblHistoryPages;
         private FuntinoControlCenter.UI.RoundedButton btnReadInfo, btnReadBalance, btnReadRemainder, btnReadHistory, btnRecharge, btnCardHistoryTab, btnDatabaseHistoryTab, btnSearchHistory, btnPreviousHistory, btnNextHistory, btnClose;
@@ -17,7 +17,8 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Timer authorizationTimer;
         private System.Windows.Forms.TableLayoutPanel tlpRoot, tlpHeader, tlpHeaderText, tlpSummary, tlpActions, tlpActionButtons, tlpHistoryHost, tlpDatabaseHistory, tlpDatabaseToolbar;
         private System.Windows.Forms.FlowLayoutPanel flpHistoryTabs;
-        private System.Windows.Forms.Label lblAmountHint;
+        private System.Windows.Forms.Label lblAmountHint, lblPromotionCaption, lblRechargeTerms;
+        private System.Windows.Forms.ComboBox cmbPromotion;
 
         protected override void Dispose(bool disposing)
         {
@@ -48,6 +49,10 @@ namespace FuntinoControlCenter.Forms
             this.lblOperationStatus = new System.Windows.Forms.Label();
             this.tlpSummary = new System.Windows.Forms.TableLayoutPanel();
             this.pnlActions = new FuntinoControlCenter.UI.RoundedBorderPanel();
+            this.pnlRechargeTerms = new FuntinoControlCenter.UI.RoundedBorderPanel();
+            this.lblPromotionCaption = new System.Windows.Forms.Label();
+            this.lblRechargeTerms = new System.Windows.Forms.Label();
+            this.cmbPromotion = new System.Windows.Forms.ComboBox();
             this.btnReadInfo = new FuntinoControlCenter.UI.RoundedButton();
             this.btnReadBalance = new FuntinoControlCenter.UI.RoundedButton();
             this.btnReadRemainder = new FuntinoControlCenter.UI.RoundedButton();
@@ -96,6 +101,7 @@ namespace FuntinoControlCenter.Forms
             this.tlpSummary.SuspendLayout();
             this.pnlActions.SuspendLayout();
             this.pnlAmountInput.SuspendLayout();
+            this.pnlRechargeTerms.SuspendLayout();
             this.tlpActions.SuspendLayout();
             this.tlpActionButtons.SuspendLayout();
             this.pnlCardHistory.SuspendLayout();
@@ -411,7 +417,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlActions.Margin = new System.Windows.Forms.Padding(0, 4, 0, 8);
             this.pnlActions.Name = "pnlActions";
             this.pnlActions.Padding = new System.Windows.Forms.Padding(14, 8, 14, 8);
-            this.pnlActions.Size = new System.Drawing.Size(1156, 206);
+            this.pnlActions.Size = new System.Drawing.Size(1156, 248);
             this.pnlActions.TabIndex = 2;
             //
             // btnReadInfo
@@ -459,7 +465,7 @@ namespace FuntinoControlCenter.Forms
             this.btnReadBalance.Name = "btnReadBalance";
             this.btnReadBalance.Size = new System.Drawing.Size(214, 57);
             this.btnReadBalance.TabIndex = 3;
-            this.btnReadBalance.Text = "خواندن موجودی   F2";
+            this.btnReadBalance.Text = "خواندن موجودی کارت   F2";
             this.btnReadBalance.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnReadBalance.UseVisualStyleBackColor = false;
             this.btnReadBalance.Click += new System.EventHandler(this.ReadBalance_Click);
@@ -583,6 +589,51 @@ namespace FuntinoControlCenter.Forms
             this.txtAmount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtAmount.TextChanged += new System.EventHandler(this.Amount_TextChanged);
             //
+            // pnlRechargeTerms
+            //
+            this.pnlRechargeTerms.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(247)))), ((int)(((byte)(250)))), ((int)(((byte)(248)))));
+            this.pnlRechargeTerms.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(183)))), ((int)(((byte)(202)))), ((int)(((byte)(193)))));
+            this.pnlRechargeTerms.BorderSize = 1;
+            this.pnlRechargeTerms.Controls.Add(this.lblRechargeTerms);
+            this.pnlRechargeTerms.Controls.Add(this.cmbPromotion);
+            this.pnlRechargeTerms.Controls.Add(this.lblPromotionCaption);
+            this.pnlRechargeTerms.CornerRadius = 10;
+            this.pnlRechargeTerms.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlRechargeTerms.Location = new System.Drawing.Point(0, 100);
+            this.pnlRechargeTerms.Margin = new System.Windows.Forms.Padding(0, 1, 0, 2);
+            this.pnlRechargeTerms.Name = "pnlRechargeTerms";
+            this.pnlRechargeTerms.Size = new System.Drawing.Size(1128, 36);
+            this.pnlRechargeTerms.TabIndex = 2;
+            this.pnlRechargeTerms.Visible = false;
+            this.lblPromotionCaption.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8F, System.Drawing.FontStyle.Bold);
+            this.lblPromotionCaption.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(81)))), ((int)(((byte)(72)))));
+            this.lblPromotionCaption.Location = new System.Drawing.Point(927, 2);
+            this.lblPromotionCaption.Name = "lblPromotionCaption";
+            this.lblPromotionCaption.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.lblPromotionCaption.Size = new System.Drawing.Size(188, 28);
+            this.lblPromotionCaption.TabIndex = 0;
+            this.lblPromotionCaption.Text = "جشنواره‌ی این شارژ";
+            this.lblPromotionCaption.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.cmbPromotion.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbPromotion.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbPromotion.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8F);
+            this.cmbPromotion.FormattingEnabled = true;
+            this.cmbPromotion.Location = new System.Drawing.Point(550, 3);
+            this.cmbPromotion.Name = "cmbPromotion";
+            this.cmbPromotion.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.cmbPromotion.Size = new System.Drawing.Size(365, 27);
+            this.cmbPromotion.TabIndex = 1;
+            this.cmbPromotion.SelectedIndexChanged += new System.EventHandler(this.PromotionSelectionChanged);
+            this.lblRechargeTerms.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8F);
+            this.lblRechargeTerms.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(81)))), ((int)(((byte)(72)))));
+            this.lblRechargeTerms.Location = new System.Drawing.Point(12, 2);
+            this.lblRechargeTerms.Name = "lblRechargeTerms";
+            this.lblRechargeTerms.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.lblRechargeTerms.Size = new System.Drawing.Size(520, 28);
+            this.lblRechargeTerms.TabIndex = 2;
+            this.lblRechargeTerms.Text = "شرایط شارژ";
+            this.lblRechargeTerms.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            //
             // tlpActions
             //
             this.tlpActions.BackColor = System.Drawing.Color.Transparent;
@@ -590,17 +641,19 @@ namespace FuntinoControlCenter.Forms
             this.tlpActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpActions.Controls.Add(this.lblAmountCaption, 0, 0);
             this.tlpActions.Controls.Add(this.pnlAmountInput, 0, 1);
-            this.tlpActions.Controls.Add(this.lblAmountHint, 0, 2);
-            this.tlpActions.Controls.Add(this.tlpActionButtons, 0, 3);
+            this.tlpActions.Controls.Add(this.pnlRechargeTerms, 0, 2);
+            this.tlpActions.Controls.Add(this.lblAmountHint, 0, 3);
+            this.tlpActions.Controls.Add(this.tlpActionButtons, 0, 4);
             this.tlpActions.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tlpActions.Location = new System.Drawing.Point(14, 8);
             this.tlpActions.Name = "tlpActions";
-            this.tlpActions.RowCount = 4;
+            this.tlpActions.RowCount = 5;
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 72F));
+            this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 25F));
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpActions.Size = new System.Drawing.Size(1128, 190);
+            this.tlpActions.Size = new System.Drawing.Size(1128, 232);
             this.tlpActions.TabIndex = 0;
             //
             // lblAmountHint
@@ -608,12 +661,12 @@ namespace FuntinoControlCenter.Forms
             this.lblAmountHint.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lblAmountHint.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8F);
             this.lblAmountHint.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(94)))), ((int)(((byte)(112)))), ((int)(((byte)(105)))));
-            this.lblAmountHint.Location = new System.Drawing.Point(3, 98);
+            this.lblAmountHint.Location = new System.Drawing.Point(3, 136);
             this.lblAmountHint.Name = "lblAmountHint";
             this.lblAmountHint.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblAmountHint.Size = new System.Drawing.Size(1122, 25);
             this.lblAmountHint.TabIndex = 2;
-            this.lblAmountHint.Text = "شارژ کارت: P / Enter  |  اطلاعات کارت: F1  |  خواندن موجودی: F2  |  سوابق کارت: F3  |  باقیمانده‌ی شارژ: F4  |  سوابق سامانه: F5  |  نمایش سوابق کارت: F6  |  کادر جست‌وجو: Ctrl+F  |  جست‌وجو: Enter  |  قبلی: Ctrl+←  |  بعدی: Ctrl+→";
+            this.lblAmountHint.Text = "شارژ کارت: P / Enter  |  اطلاعات کارت: F1  |  خواندن موجودی کارت: F2  |  سوابق کارت: F3  |  باقیمانده‌ی شارژ: F4  |  سوابق سامانه: F5  |  نمایش سوابق کارت: F6  |  رفتن به کادر جست‌وجو: Ctrl+F  |  جست‌وجو: Enter  |  قبلی: Ctrl+←  |  بعدی: Ctrl+→";
             this.lblAmountHint.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             //
             // tlpActionButtons
@@ -747,6 +800,7 @@ namespace FuntinoControlCenter.Forms
             this.txtHistorySearch.Location = new System.Drawing.Point(8, 2);
             this.txtHistorySearch.Margin = new System.Windows.Forms.Padding(0);
             this.txtHistorySearch.Name = "txtHistorySearch";
+            this.txtHistorySearch.Tag = "Ctrl+F";
             this.txtHistorySearch.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.txtHistorySearch.Size = new System.Drawing.Size(358, 13);
             this.txtHistorySearch.TabIndex = 0;
@@ -1016,7 +1070,7 @@ namespace FuntinoControlCenter.Forms
             this.tlpRoot.RowCount = 5;
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 68F));
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 116F));
-            this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 218F));
+            this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 260F));
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 44F));
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpRoot.Size = new System.Drawing.Size(1200, 772);
@@ -1092,6 +1146,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlActions.ResumeLayout(false);
             this.pnlAmountInput.ResumeLayout(false);
             this.pnlAmountInput.PerformLayout();
+            this.pnlRechargeTerms.ResumeLayout(false);
             this.tlpActions.ResumeLayout(false);
             this.tlpActionButtons.ResumeLayout(false);
             this.pnlCardHistory.ResumeLayout(false);

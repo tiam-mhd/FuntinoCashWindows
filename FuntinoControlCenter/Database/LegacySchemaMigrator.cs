@@ -11,6 +11,7 @@ namespace FuntinoControlCenter.Database
     internal static class LegacySchemaMigrator
     {
         private const int LegacyRenameMigrationVersion = 1;
+        private const int RechargeDiscountSemanticsMigrationVersion = 6;
         private static readonly CatalogMap ParkCatalog = CreateParkCatalog();
         private static readonly CatalogMap DeviceCatalog = CreateDeviceCatalog();
 
@@ -18,28 +19,35 @@ namespace FuntinoControlCenter.Database
         {
             CatalogMap map = deviceDatabase ? DeviceCatalog : ParkCatalog;
             EnsureSchema(connection, transaction, "app");
-            if (ObjectExists(connection, transaction, "app", "SchemaMigrationHistory", "U") &&
-                IsMigrationApplied(connection, transaction, LegacyRenameMigrationVersion)) return;
-
-            ValidateLegacyCatalog(connection, transaction, map);
             EnsureMigrationHistory(connection, transaction);
-            Dictionary<string, long> originalRowCounts = CaptureRowCounts(connection, transaction, map);
-            foreach (string schema in map.Tables.Select(x => x.TargetSchema)
-                .Concat(map.Routines.Select(x => x.TargetSchema))
-                .Concat(new[] { "compat" }).Distinct(StringComparer.OrdinalIgnoreCase))
-                EnsureSchema(connection, transaction, schema);
+            if (!IsMigrationApplied(connection, transaction, LegacyRenameMigrationVersion))
+            {
+                ValidateLegacyCatalog(connection, transaction, map);
+                Dictionary<string, long> originalRowCounts = CaptureRowCounts(connection, transaction, map);
+                foreach (string schema in map.Tables.Select(x => x.TargetSchema)
+                    .Concat(map.Routines.Select(x => x.TargetSchema))
+                    .Concat(new[] { "compat" }).Distinct(StringComparer.OrdinalIgnoreCase))
+                    EnsureSchema(connection, transaction, schema);
 
-            Dictionary<string, ModuleDefinition> modules = LoadModuleDefinitions(connection, transaction, map);
-            MoveAndRenameTables(connection, transaction, map);
-            CreateCompatibilityViews(connection, transaction, map);
-            MoveAndRenameModules(connection, transaction, map, modules);
-            RenameDefaultConstraints(connection, transaction, map);
-            ValidateRenamedCatalog(connection, transaction, map, originalRowCounts);
+                Dictionary<string, ModuleDefinition> modules = LoadModuleDefinitions(connection, transaction, map);
+                MoveAndRenameTables(connection, transaction, map);
+                CreateCompatibilityViews(connection, transaction, map);
+                MoveAndRenameModules(connection, transaction, map, modules);
+                RenameDefaultConstraints(connection, transaction, map);
+                ValidateRenamedCatalog(connection, transaction, map, originalRowCounts);
 
-            InsertMigrationHistory(connection, transaction, LegacyRenameMigrationVersion,
-                deviceDatabase
-                    ? "Renamed device catalog schema while preserving reference data and stored routines"
-                    : "Renamed park operations catalog schema while preserving reference data and stored routines");
+                InsertMigrationHistory(connection, transaction, LegacyRenameMigrationVersion,
+                    deviceDatabase
+                        ? "Renamed device catalog schema while preserving reference data and stored routines"
+                        : "Renamed park operations catalog schema while preserving reference data and stored routines");
+            }
+
+            if (!deviceDatabase && !IsMigrationApplied(connection, transaction, RechargeDiscountSemanticsMigrationVersion))
+            {
+                ApplyRechargeDiscountSemantics(connection, transaction, map);
+                InsertMigrationHistory(connection, transaction, RechargeDiscountSemanticsMigrationVersion,
+                    "Clarified the stored promotion discount percentage while preserving the legacy recharge view");
+            }
         }
 
         private static CatalogMap CreateParkCatalog()
@@ -106,7 +114,7 @@ namespace FuntinoControlCenter.Database
                         "ID", "RechargeLimitId", "Value", "LimitValue"),
                     Table("SharjTble", "finance", "RechargeTransaction",
                         "ID", "RechargeTransactionId", "Price", "RechargeAmount",
-                        "Disscount", "DiscountAmount", "FestivalCode", "PromotionCode",
+                        "Disscount", "PromotionDiscountPercent", "FestivalCode", "PromotionCode",
                         "CartNo1", "CardNumberSegment1", "CartNo2", "CardNumberSegment2",
                         "CartNo3", "CardNumberSegment3", "CartNo4", "CardNumberSegment4",
                         "CreateDate", "CreatedAt", "UserName", "CreatedByUserName", "SharjTime", "RechargeAt",
@@ -520,6 +528,37 @@ namespace FuntinoControlCenter.Database
                     QuoteIdentifier(table.TargetSchema) + "." + QuoteIdentifier(table.TargetName) + ";";
                 Execute(connection, transaction, sql);
             }
+        }
+
+        private static void ApplyRechargeDiscountSemantics(SqlConnection connection, SqlTransaction transaction, CatalogMap map)
+        {
+            TableNameMap recharge = map.Tables.FirstOrDefault(x => String.Equals(x.SourceName, "SharjTble", StringComparison.OrdinalIgnoreCase));
+            if (recharge == null) throw new InvalidOperationException("جدول سوابق شارژ در نقشه‌ی مهاجرت پیدا نشد.");
+
+            bool currentColumnExists = ColumnExists(connection, transaction, recharge.TargetSchema, recharge.TargetName, "PromotionDiscountPercent");
+            bool legacyColumnExists = ColumnExists(connection, transaction, recharge.TargetSchema, recharge.TargetName, "DiscountAmount");
+            if (!currentColumnExists && legacyColumnExists)
+            {
+                Execute(connection, transaction,
+                    "EXEC sys.sp_rename N'" + recharge.TargetSchema + "." + recharge.TargetName + ".DiscountAmount',N'PromotionDiscountPercent',N'COLUMN';");
+            }
+            else if (!currentColumnExists)
+            {
+                throw new InvalidOperationException("ستون تخفیف جشنواره در جدول سوابق شارژ پیدا نشد.");
+            }
+
+            var projections = new List<string>();
+            foreach (ColumnNameMap column in recharge.Columns)
+                projections.Add(QuoteIdentifier(column.TargetName) + " AS " + QuoteIdentifier(column.SourceName));
+            using (var command = new SqlCommand("SET ANSI_NULLS ON;", connection, transaction)) command.ExecuteNonQuery();
+            using (var command = new SqlCommand("SET QUOTED_IDENTIFIER ON;", connection, transaction)) command.ExecuteNonQuery();
+            string viewSql = "ALTER VIEW [compat].[LegacySharjTble] AS SELECT " + String.Join(", ", projections) +
+                " FROM " + QuoteIdentifier(recharge.TargetSchema) + "." + QuoteIdentifier(recharge.TargetName) + ";";
+            Execute(connection, transaction, viewSql);
+
+            if (!ObjectExists(connection, transaction, "compat", "LegacySharjTble", "V") ||
+                !ColumnExists(connection, transaction, "compat", "LegacySharjTble", "Disscount"))
+                throw new InvalidOperationException("نمای سازگاری سوابق شارژ پس از مهاجرت قابل‌استفاده نیست.");
         }
 
         private static void MoveAndRenameModules(

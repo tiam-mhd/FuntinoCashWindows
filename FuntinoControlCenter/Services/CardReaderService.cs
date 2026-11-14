@@ -79,6 +79,7 @@ namespace FuntinoControlCenter.Services
         public long BalanceToman { get; set; }
         public bool HistoryRecorded { get; set; }
         public string Warning { get; set; }
+        public RechargeOperationTerms Terms { get; set; }
     }
 
     internal static class CardReaderService
@@ -252,12 +253,11 @@ namespace FuntinoControlCenter.Services
             });
         }
 
-        public static CardRechargeResult Recharge(long amountToman)
+        public static CardRechargeResult Recharge(long amountToman, int promotionCode)
         {
             AuthorizationGuard.Require("cards.recharge");
             AuthorizationGuard.Require("data.finance.create");
-            if (amountToman <= 0 || amountToman > 4000000 || amountToman % 100 != 0)
-                throw new InvalidOperationException("مبلغ شارژ باید بیشتر از صفر، مضربی از ۱۰۰ تومان و حداکثر ۴٬۰۰۰٬۰۰۰ تومان باشد.");
+            RechargeOperationTerms terms = BusinessManagementRepository.ResolveRechargeTerms(amountToman, promotionCode);
 
             lock (OperationLock)
             {
@@ -294,7 +294,7 @@ namespace FuntinoControlCenter.Services
 
                         try
                         {
-                            CardOperationsRepository.RecordRecharge(reader.Uid, amountToman);
+                            CardOperationsRepository.RecordRecharge(reader.Uid, amountToman, terms);
                             historyRecorded = true;
                         }
                         catch (Exception ex)
@@ -331,7 +331,8 @@ namespace FuntinoControlCenter.Services
                             Uid = uid,
                             BalanceToman = expectedBalance,
                             HistoryRecorded = historyRecorded,
-                            Warning = warning
+                            Warning = warning,
+                            Terms = terms
                         };
                     }
                 }

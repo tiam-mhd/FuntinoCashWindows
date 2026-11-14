@@ -33,6 +33,7 @@ namespace FuntinoControlCenter.Forms
             public int Filter { get; set; }
             public int Page { get; set; }
             public int Sort { get; set; }
+            public int PromotionCode { get; set; }
         }
 
         private sealed class WorkResult
@@ -50,6 +51,7 @@ namespace FuntinoControlCenter.Forms
         private bool showingDatabaseHistory;
         private bool formattingAmount;
         private bool keyboardRechargeShortcut;
+        private RechargeOperationSetup rechargeSetup;
 
         public CardOperationsForm()
         {
@@ -61,13 +63,24 @@ namespace FuntinoControlCenter.Forms
             try
             {
                 SetBusy(false);
+                if (AuthorizationGuard.Has("cards.recharge") &&
+                    AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) &&
+                    AuthorizationGuard.Has("operations.recharge_terms.view"))
+                {
+                    try { LoadRechargeSetup(); }
+                    catch (Exception ex)
+                    {
+                        rechargeSetup = null;
+                        AppMessageService.ShowWarning(this, DisplayError(ex), "شرایط شارژ در دسترس نیست");
+                    }
+                }
+                ApplyPermissions();
                 if (!HasAnyCardOperationAccess())
                 {
                     MessageBox.Show(this, "برای استفاده از عملیات کارت مجوزی ندارید.", "دسترسی محدود", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     Close();
                     return;
                 }
-                ApplyPermissions();
                 AuthorizationMonitor.Attach(this, HasAnyCardOperationAccess);
                 authorizationTimer.Start();
                 SetStatus(CardReaderService.GetConfiguredPortStatus());
@@ -97,7 +110,7 @@ namespace FuntinoControlCenter.Forms
 
         private void CardOperationsForm_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Control && e.KeyCode == Keys.F && pnlDatabaseHistory.Visible && txtHistorySearch.Enabled)
+            if (MatchesShortcut(e, txtHistorySearch.Tag as string) && pnlDatabaseHistory.Visible && txtHistorySearch.Enabled)
             {
                 txtHistorySearch.Focus();
                 txtHistorySearch.SelectAll();
@@ -106,80 +119,71 @@ namespace FuntinoControlCenter.Forms
                 return;
             }
 
-            // Do not steal cursor-navigation keys while the operator edits search text.
-            if (txtHistorySearch.Focused || cmbHistoryFilter.Focused || cmbHistoryFilter.DroppedDown)
-                return;
+            bool editingHistorySearch = txtHistorySearch.Focused || cmbHistoryFilter.Focused || cmbHistoryFilter.DroppedDown;
+            if (TryRunButtonShortcut(e, btnSearchHistory, pnlDatabaseHistory.Visible &&
+                (txtHistorySearch.Focused || btnSearchHistory.Focused))) return;
 
-            if (e.Control && pnlDatabaseHistory.Visible && e.KeyCode == Keys.Left)
+            // Preserve Ctrl+Left/Right for text editing; run them as page navigation elsewhere.
+            if (!editingHistorySearch && pnlDatabaseHistory.Visible)
             {
-                if (btnPreviousHistory.Enabled) RunShortcut(e, PreviousHistory_Click);
-                return;
+                if (TryRunButtonShortcut(e, btnPreviousHistory, true)) return;
+                if (TryRunButtonShortcut(e, btnNextHistory, true)) return;
             }
-            if (e.Control && pnlDatabaseHistory.Visible && e.KeyCode == Keys.Right)
-            {
-                if (btnNextHistory.Enabled) RunShortcut(e, NextHistory_Click);
-                return;
-            }
-
             if (e.Control || e.Alt) return;
 
-            switch (e.KeyCode)
-            {
-                case Keys.P:
-                    if (txtAmount.Focused && btnRecharge.Visible && btnRecharge.Enabled)
-                        RunRechargeShortcut(e);
-                    break;
-                case Keys.Enter:
-                    if (txtAmount.Focused && btnRecharge.Visible && btnRecharge.Enabled)
-                        RunRechargeShortcut(e);
-                    break;
-                case Keys.F1:
-                    if (btnReadInfo.Visible && btnReadInfo.Enabled)
-                        RunShortcut(e, ReadInfo_Click);
-                    break;
-                case Keys.F2:
-                    if (btnReadBalance.Visible && btnReadBalance.Enabled)
-                        RunShortcut(e, ReadBalance_Click);
-                    break;
-                case Keys.F3:
-                    if (btnReadHistory.Visible && btnReadHistory.Enabled)
-                        RunShortcut(e, ReadHistory_Click);
-                    break;
-                case Keys.F4:
-                    if (btnReadRemainder.Visible && btnReadRemainder.Enabled)
-                        RunShortcut(e, ReadRemainder_Click);
-                    break;
-                case Keys.F5:
-                    if (btnDatabaseHistoryTab.Visible && btnDatabaseHistoryTab.Enabled)
-                        RunShortcut(e, DatabaseHistoryTab_Click);
-                    break;
-                case Keys.F6:
-                    if (btnCardHistoryTab.Visible && btnCardHistoryTab.Enabled)
-                        RunShortcut(e, CardHistoryTab_Click);
-                    break;
-            }
+            if (TryRunButtonShortcut(e, btnRecharge, txtAmount.Focused)) return;
+            if (TryRunButtonShortcut(e, btnReadInfo, true)) return;
+            if (TryRunButtonShortcut(e, btnReadBalance, true)) return;
+            if (TryRunButtonShortcut(e, btnReadHistory, true)) return;
+            if (TryRunButtonShortcut(e, btnReadRemainder, true)) return;
+            if (TryRunButtonShortcut(e, btnDatabaseHistoryTab, true)) return;
+            TryRunButtonShortcut(e, btnCardHistoryTab, true);
         }
 
-        private void RunShortcut(KeyEventArgs e, EventHandler action)
+        private bool TryRunButtonShortcut(KeyEventArgs e, FuntinoControlCenter.UI.RoundedButton button, bool contextAllows)
         {
+            if (!contextAllows || button == null || !button.Visible || !button.Enabled || !MatchesShortcut(e, GetShortcut(button.Text)))
+                return false;
+
             e.Handled = true;
             e.SuppressKeyPress = true;
-            action(this, EventArgs.Empty);
+            if (button == btnRecharge)
+            {
+                keyboardRechargeShortcut = true;
+                try { button.PerformClick(); }
+                finally { keyboardRechargeShortcut = false; }
+            }
+            else button.PerformClick();
+            return true;
         }
 
-        private void RunRechargeShortcut(KeyEventArgs e)
+        private static string GetShortcut(string caption)
         {
-            e.Handled = true;
-            e.SuppressKeyPress = true;
-            keyboardRechargeShortcut = true;
-            try
+            if (String.IsNullOrWhiteSpace(caption)) return String.Empty;
+            int separator = caption.LastIndexOf("   ", StringComparison.Ordinal);
+            return separator < 0 || separator + 3 >= caption.Length ? String.Empty : caption.Substring(separator + 3).Trim();
+        }
+
+        private static bool MatchesShortcut(KeyEventArgs e, string shortcutText)
+        {
+            if (e == null || String.IsNullOrWhiteSpace(shortcutText)) return false;
+            foreach (string item in shortcutText.Split('/'))
             {
-                Recharge_Click(this, EventArgs.Empty);
+                string shortcut = item.Trim();
+                bool control = shortcut.StartsWith("Ctrl+", StringComparison.OrdinalIgnoreCase);
+                bool alt = shortcut.StartsWith("Alt+", StringComparison.OrdinalIgnoreCase);
+                if (control) shortcut = shortcut.Substring(5);
+                else if (alt) shortcut = shortcut.Substring(4);
+                if (e.Control != control || e.Alt != alt) continue;
+
+                Keys expected;
+                if (String.Equals(shortcut, "Enter", StringComparison.OrdinalIgnoreCase)) expected = Keys.Enter;
+                else if (shortcut == "←") expected = Keys.Left;
+                else if (shortcut == "→") expected = Keys.Right;
+                else if (!Enum.TryParse(shortcut, true, out expected)) continue;
+                if (e.KeyCode == expected) return true;
             }
-            finally
-            {
-                keyboardRechargeShortcut = false;
-            }
+            return false;
         }
 
         private void Amount_TextChanged(object sender, EventArgs e)
@@ -190,7 +194,11 @@ namespace FuntinoControlCenter.Forms
             int caret = Math.Max(0, Math.Min(txtAmount.SelectionStart, original.Length));
             int digitsBeforeCaret = ExtractAmountDigits(original.Substring(0, caret)).Length;
             string formatted = FormatAmountForEntry(ExtractAmountDigits(original));
-            if (String.Equals(original, formatted, StringComparison.Ordinal)) return;
+            if (String.Equals(original, formatted, StringComparison.Ordinal))
+            {
+                UpdateRechargeTermsDisplay();
+                return;
+            }
 
             formattingAmount = true;
             try
@@ -210,6 +218,44 @@ namespace FuntinoControlCenter.Forms
             {
                 formattingAmount = false;
             }
+            UpdateRechargeTermsDisplay();
+        }
+
+        private void LoadRechargeSetup()
+        {
+            rechargeSetup = BusinessManagementRepository.LoadRechargeOperationSetup();
+            var choices = new System.Collections.Generic.List<RechargePromotionOption>
+            {
+                new RechargePromotionOption { Code = -1, Name = "بدون جشنواره", DiscountPercent = 0 }
+            };
+            choices.AddRange(rechargeSetup.Promotions);
+            cmbPromotion.DataSource = null;
+            cmbPromotion.DisplayMember = String.Empty;
+            cmbPromotion.ValueMember = String.Empty;
+            cmbPromotion.DataSource = choices;
+            cmbPromotion.SelectedIndex = rechargeSetup.Promotions.Count == 1 ? 1 : 0;
+            UpdateRechargeTermsDisplay();
+        }
+
+        private void PromotionSelectionChanged(object sender, EventArgs e)
+        {
+            UpdateRechargeTermsDisplay();
+        }
+
+        private void UpdateRechargeTermsDisplay()
+        {
+            if (rechargeSetup == null || lblRechargeTerms == null) return;
+            long amount;
+            RechargeDiscountBand discount = TryParseAmount(txtAmount.Text, out amount) && amount > 0 ? rechargeSetup.FindDiscount(amount) : null;
+            int dailyPercent = discount == null ? 0 : discount.DiscountPercent;
+            var selected = cmbPromotion.SelectedItem as RechargePromotionOption;
+            string promotion = selected != null && selected.Code > 0
+                ? selected.Name + " " + selected.DiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪"
+                : "بدون جشنواره";
+            string discountText = dailyPercent > 0
+                ? "تخفیف روزانه " + dailyPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪"
+                : "بدون تخفیف روزانه برای این مبلغ";
+            lblRechargeTerms.Text = "سقف " + rechargeSetup.MaximumAmount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان  |  " + discountText + "  |  " + promotion;
         }
 
         private static string ExtractAmountDigits(string value)
@@ -257,7 +303,8 @@ namespace FuntinoControlCenter.Forms
             bool canBalance = AuthorizationGuard.Has("cards.balance.view");
             bool canRemainder = AuthorizationGuard.Has("cards.remainder.view");
             bool canHistory = AuthorizationGuard.Has("cards.history.view");
-            bool canRecharge = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create"));
+            bool canRecharge = rechargeSetup != null && AuthorizationGuard.Has("cards.recharge") &&
+                AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view");
             bool canDatabaseHistory = canHistory && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "view"));
             if (showingDatabaseHistory && !canDatabaseHistory) showingDatabaseHistory = false;
 
@@ -267,6 +314,8 @@ namespace FuntinoControlCenter.Forms
             btnReadHistory.Visible = canHistory;
             btnRecharge.Visible = canRecharge;
             pnlAmountInput.Visible = lblAmountCaption.Visible = canRecharge;
+            pnlRechargeTerms.Visible = canRecharge;
+            if (tlpActions.RowStyles.Count > 2) tlpActions.RowStyles[2].Height = canRecharge ? 38F : 0F;
             btnCardHistoryTab.Visible = canHistory;
             btnDatabaseHistoryTab.Visible = canDatabaseHistory;
             pnlCardHistory.Visible = canHistory && !showingDatabaseHistory;
@@ -279,6 +328,7 @@ namespace FuntinoControlCenter.Forms
             lblBalanceCaption.Visible = lblBalanceValue.Visible = canBalance;
 
             UpdateShortcutHint(canRecharge, canInformation, canBalance, canHistory, canRemainder, canDatabaseHistory);
+            UpdateRechargeTermsDisplay();
 
             bool hasActions = canInformation || canBalance || canRemainder || canHistory || canRecharge;
             pnlActions.Visible = hasActions;
@@ -298,7 +348,7 @@ namespace FuntinoControlCenter.Forms
 
             if (canDatabaseHistory)
             {
-                shortcuts.Add("کادر جست‌وجو: Ctrl+F");
+                shortcuts.Add("رفتن به کادر جست‌وجو: " + Convert.ToString(txtHistorySearch.Tag, CultureInfo.InvariantCulture));
                 AddShortcutHint(shortcuts, btnSearchHistory, true);
                 AddShortcutHint(shortcuts, btnPreviousHistory, true);
                 AddShortcutHint(shortcuts, btnNextHistory, true);
@@ -311,12 +361,12 @@ namespace FuntinoControlCenter.Forms
         {
             if (!isAllowed || button == null || String.IsNullOrWhiteSpace(button.Text)) return;
 
-            // The Designer caption separates the action from its shortcut with three spaces.
+            string keys = GetShortcut(button.Text);
+            if (String.IsNullOrWhiteSpace(keys)) return;
             int separatorIndex = button.Text.LastIndexOf("   ", StringComparison.Ordinal);
-            if (separatorIndex <= 0 || separatorIndex + 3 >= button.Text.Length) return;
+            if (separatorIndex <= 0) return;
 
             string action = button.Text.Substring(0, separatorIndex).Trim();
-            string keys = button.Text.Substring(separatorIndex + 3).Trim();
             if (action.Length == 0 || keys.Length == 0) return;
 
             shortcuts.Add(action + ": " + keys);
@@ -325,7 +375,8 @@ namespace FuntinoControlCenter.Forms
         private bool HasAnyCardOperationAccess()
         {
             return AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") ||
-                (AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")));
+                (rechargeSetup != null && AuthorizationGuard.Has("cards.recharge") &&
+                 AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view"));
         }
 
         private void ReadInfo_Click(object sender, EventArgs e)
@@ -352,7 +403,13 @@ namespace FuntinoControlCenter.Forms
 
         private void Recharge_Click(object sender, EventArgs e)
         {
-            if (!RequirePermission("cards.recharge") || !RequirePermission(PermissionCatalog.TableCode("finance", "create"))) return;
+            if (!RequirePermission("cards.recharge") || !RequirePermission(PermissionCatalog.TableCode("finance", "create")) ||
+                !RequirePermission("operations.recharge_terms.view")) return;
+            if (rechargeSetup == null)
+            {
+                AppMessageService.ShowWarning(this, "شرایط شارژ از پایگاه خوانده نشده است. تنظیمات را بررسی و دوباره تلاش کنید.", "شارژ در دسترس نیست");
+                return;
+            }
             long amount;
             if (String.IsNullOrWhiteSpace(txtAmount.Text))
             {
@@ -376,9 +433,9 @@ namespace FuntinoControlCenter.Forms
                 return;
             }
 
-            if (amount > 4000000)
+            if (amount > rechargeSetup.MaximumAmount)
             {
-                AppMessageService.ShowWarning(this, "حداکثر مبلغ هر بار شارژ ۴٬۰۰۰٬۰۰۰ تومان است.", "مبلغ بیش از سقف مجاز است");
+                AppMessageService.ShowWarning(this, "حداکثر مبلغ هر بار شارژ " + rechargeSetup.MaximumAmount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان است.", "مبلغ بیش از سقف مجاز است");
                 txtAmount.Focus();
                 txtAmount.SelectAll();
                 return;
@@ -392,14 +449,21 @@ namespace FuntinoControlCenter.Forms
                 return;
             }
 
+            var selectedPromotion = cmbPromotion.SelectedItem as RechargePromotionOption;
+            int promotionCode = selectedPromotion == null ? -1 : selectedPromotion.Code;
             if (!keyboardRechargeShortcut)
             {
+                RechargeDiscountBand discount = rechargeSetup.FindDiscount(amount);
+                string discountText = discount == null || discount.DiscountPercent == 0 ? "بدون تخفیف روزانه" : "تخفیف روزانه " + discount.DiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪";
+                string promotionText = selectedPromotion != null && selectedPromotion.Code > 0
+                    ? selectedPromotion.Name + " با " + selectedPromotion.DiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪ تخفیف"
+                    : "بدون جشنواره";
                 DialogResult confirmation = MessageBox.Show(this,
-                    "کارت را روی کارت‌خوان بگذارید. مبلغ " + amount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان روی کارت نوشته شود؟",
+                    "کارت را روی کارت‌خوان بگذارید. مبلغ " + amount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان روی کارت نوشته شود؟" + Environment.NewLine + discountText + "؛ " + promotionText,
                     "تأیید شارژ کارت", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
                 if (confirmation != DialogResult.Yes) return;
             }
-            StartWork(WorkKind.Recharge, "cards.recharge", "در حال شارژ کارت؛ تا نمایش نتیجه کارت را برندارید.", amount);
+            StartWork(WorkKind.Recharge, "cards.recharge", "در حال شارژ کارت؛ تا نمایش نتیجه کارت را برندارید.", amount, promotionCode);
         }
 
         private void CardHistoryTab_Click(object sender, EventArgs e)
@@ -481,10 +545,10 @@ namespace FuntinoControlCenter.Forms
             if (!e.Cancel) authorizationTimer.Stop();
         }
 
-        private void StartWork(WorkKind kind, string permission, string status, long amount = 0)
+        private void StartWork(WorkKind kind, string permission, string status, long amount = 0, int promotionCode = -1)
         {
             if (!RequirePermission(permission)) return;
-            if (kind == WorkKind.Recharge && !RequirePermission(PermissionCatalog.TableCode("finance", "create"))) return;
+            if (kind == WorkKind.Recharge && (!RequirePermission(PermissionCatalog.TableCode("finance", "create")) || !RequirePermission("operations.recharge_terms.view"))) return;
             if (operationWorker.IsBusy)
             {
                 SetStatus("درخواست قبلی هنوز در حال انجام است؛ تا پایان آن صبر کنید.");
@@ -495,7 +559,7 @@ namespace FuntinoControlCenter.Forms
             SetStatus(status);
             try
             {
-                operationWorker.RunWorkerAsync(new WorkRequest { Kind = kind, Amount = amount });
+                operationWorker.RunWorkerAsync(new WorkRequest { Kind = kind, Amount = amount, PromotionCode = promotionCode });
             }
             catch (Exception ex)
             {
@@ -550,7 +614,7 @@ namespace FuntinoControlCenter.Forms
                 case WorkKind.Balance: result = CardReaderService.ReadBalance(); break;
                 case WorkKind.Remainder: result = CardReaderService.ReadRemainder(); break;
                 case WorkKind.CardHistory: result = CardReaderService.ReadHistory(); break;
-                case WorkKind.Recharge: result = CardReaderService.Recharge(request.Amount); break;
+                case WorkKind.Recharge: result = CardReaderService.Recharge(request.Amount, request.PromotionCode); break;
                 case WorkKind.DatabaseHistory:
                     result = CardOperationsRepository.GetRechargeHistory(request.CardUid, request.Page, request.Search, request.Filter, request.Sort);
                     break;
@@ -660,6 +724,15 @@ namespace FuntinoControlCenter.Forms
             if (AuthorizationGuard.Has("cards.details.view")) lblCardNumberValue.Text = result.Uid;
 
             string message = result.HistoryRecorded ? "شارژ کارت و ثبت سابقه در سامانه انجام شد." : "شارژ کارت انجام شد، اما سابقه در سامانه ثبت نشد.";
+            if (result.Terms != null)
+            {
+                var appliedTerms = new System.Collections.Generic.List<string>();
+                if (result.Terms.DailyDiscountPercent > 0)
+                    appliedTerms.Add("تخفیف روزانه " + result.Terms.DailyDiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪");
+                if (result.Terms.PromotionDiscountPercent > 0 && !String.IsNullOrWhiteSpace(result.Terms.PromotionName))
+                    appliedTerms.Add("جشنواره‌ی " + result.Terms.PromotionName + " با " + result.Terms.PromotionDiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪ تخفیف");
+                if (appliedTerms.Count > 0) message += Environment.NewLine + "شرایط ثبت‌شده: " + String.Join("؛ ", appliedTerms.ToArray());
+            }
             if (!String.IsNullOrWhiteSpace(result.Warning) || !result.HistoryRecorded)
             {
                 message += Environment.NewLine + "شارژ روی کارت تأیید شده است؛ برای جلوگیری از شارژ دوباره، عملیات را تکرار نکنید.";

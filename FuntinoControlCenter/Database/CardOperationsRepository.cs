@@ -115,13 +115,15 @@ WHERE CardOperationLogId=@id AND ApplicationUserId=@userId AND OperationName=@op
             }
         }
 
-        public static void RecordRecharge(byte[] cardUid, long amountToman)
+        public static void RecordRecharge(byte[] cardUid, long amountToman, RechargeOperationTerms terms)
         {
             AuthorizationGuard.Require("cards.recharge");
             AuthorizationGuard.Require("data.finance.create");
+            AuthorizationGuard.Require("operations.recharge_terms.view");
             if (cardUid == null || cardUid.Length != 4) throw new ArgumentException("شناسه‌ی کارت معتبر نیست.", "cardUid");
-            if (amountToman <= 0 || amountToman % 100 != 0 || amountToman > 4000000)
-                throw new ArgumentOutOfRangeException("amountToman", "مبلغ شارژ باید مضربی از ۱۰۰ تومان و حداکثر ۴٬۰۰۰٬۰۰۰ تومان باشد.");
+            if (terms == null) throw new ArgumentNullException("terms");
+            if (amountToman <= 0 || amountToman % 100 != 0 || amountToman > terms.MaximumAmount)
+                throw new ArgumentOutOfRangeException("amountToman", "مبلغ شارژ با سقف یا گام مجاز تنظیم‌شده هم‌خوانی ندارد.");
 
             using (var connection = DatabaseManager.CreateMainConnection())
             {
@@ -139,11 +141,11 @@ WHERE CardOperationLogId=@id AND ApplicationUserId=@userId AND OperationName=@op
                             command.Parameters.Add("@Code2", SqlDbType.Int).Value = (int)cardUid[1];
                             command.Parameters.Add("@Code3", SqlDbType.Int).Value = (int)cardUid[2];
                             command.Parameters.Add("@Code4", SqlDbType.Int).Value = (int)cardUid[3];
-                            command.Parameters.Add("@FestivalCode", SqlDbType.Int).Value = 0;
-                            command.Parameters.Add("@Disscount", SqlDbType.Int).Value = 0;
+                            command.Parameters.Add("@FestivalCode", SqlDbType.Int).Value = terms.PromotionCode;
+                            command.Parameters.Add("@Disscount", SqlDbType.Int).Value = terms.PromotionDiscountPercent;
                             command.Parameters.Add("@Username", SqlDbType.NVarChar, 64).Value = AppSession.Current.UserName;
                             command.Parameters.Add("@SharjTime", SqlDbType.DateTime).Value = DBNull.Value;
-                            command.Parameters.Add("@DiscountPercent", SqlDbType.Int).Value = 0;
+                            command.Parameters.Add("@DiscountPercent", SqlDbType.Int).Value = terms.DiscountTierId;
                             command.Parameters.Add("@IsPos", SqlDbType.Bit).Value = false;
                             command.Parameters.Add("@PosResultID", SqlDbType.Int).Value = 0;
                             command.Parameters.Add("@ISHour", SqlDbType.Bit).Value = false;
@@ -152,7 +154,11 @@ WHERE CardOperationLogId=@id AND ApplicationUserId=@userId AND OperationName=@op
                             command.Parameters.Add("@CreditCount", SqlDbType.TinyInt).Value = 0;
                             command.ExecuteNonQuery();
                         }
-                        AuditService.Write(connection, transaction, "card-recharge-recorded", "RechargeTransaction", FormatUid(cardUid), amountToman.ToString("N0", CultureInfo.InvariantCulture) + " تومان");
+                        string details = amountToman.ToString("N0", CultureInfo.InvariantCulture) + " تومان؛ تخفیف روزانه " +
+                            terms.DailyDiscountPercent.ToString(CultureInfo.InvariantCulture) + " درصد";
+                        if (terms.PromotionCode != 0)
+                            details += "؛ جشنواره " + terms.PromotionName + " " + terms.PromotionDiscountPercent.ToString(CultureInfo.InvariantCulture) + " درصد";
+                        AuditService.Write(connection, transaction, "card-recharge-recorded", "RechargeTransaction", FormatUid(cardUid), details);
                         transaction.Commit();
                     }
                     catch
