@@ -57,6 +57,10 @@
     <Compile Include="Database\TableRepository.cs" />
     <Compile Include="Database\UserRepository.cs" />
     <Compile Include="Security\PasswordHasher.cs" />
+    <Compile Include="Security\PermissionCatalog.cs" />
+    <Compile Include="Security\AuthorizationGuard.cs" />
+    <Compile Include="Security\AuthorizationMonitor.cs" />
+    <Compile Include="Database\AccessControlRepository.cs" />
     <Compile Include="Services\AuditService.cs" />
     <Compile Include="Services\HardwareService.cs" />
     <Compile Include="Services\ReportExportService.cs" />
@@ -68,6 +72,18 @@
     </Compile>
     <Compile Include="Forms\LoginForm.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\InitialCredentialDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\InitialCredentialDialog.Designer.cs">
+      <DependentUpon>InitialCredentialDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\AccessManagementForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\AccessManagementForm.Designer.cs">
+      <DependentUpon>AccessManagementForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\LoginForm.Designer.cs">
       <DependentUpon>LoginForm.cs</DependentUpon>

@@ -1,6 +1,8 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using FuntinoControlCenter.Security;
+using FuntinoControlCenter.Services;
 
 namespace FuntinoControlCenter.Database
 {
@@ -31,8 +33,13 @@ namespace FuntinoControlCenter.Database
             return builder.ConnectionString;
         }
 
-        public static bool TestConnection(bool deviceDatabase, out string message)
+        public static bool TestConnection(bool deviceDatabase, out string message, bool bootstrapMode = false)
         {
+            if (bootstrapMode)
+            {
+                if (AppSession.Current != null) throw new UnauthorizedAccessException("تنظیم اتصال اولیه فقط پیش از ورود به حساب کاربری در دسترس است.");
+            }
+            else AuthorizationGuard.RequireAny("settings.database.test", "devices.view");
             try
             {
                 using (var connection = deviceDatabase ? CreateDeviceConnection() : CreateMainConnection()) connection.Open();
@@ -76,30 +83,45 @@ namespace FuntinoControlCenter.Database
 
         public static void ChangePassword(int userId, string currentPassword, string newPassword)
         {
+            if (AppSession.Current == null || AppSession.Current.ApplicationUserId != userId)
+                throw new UnauthorizedAccessException("فقط می‌توانید گذرواژه‌ی حساب خودتان را تغییر دهید.");
             if (newPassword == null || newPassword.Length < 8) throw new InvalidOperationException("گذرواژه جدید باید دست‌کم ۸ نویسه داشته باشد.");
             using (var connection = CreateMainConnection())
             {
                 connection.Open();
-                byte[] salt, storedHash; int iterations;
-                using (var command = new SqlCommand("SELECT PasswordSalt, PasswordHash, PasswordHashIterations FROM app.ApplicationUser WHERE ApplicationUserId=@id AND IsActive=1", connection))
+                using (var transaction = connection.BeginTransaction())
                 {
-                    command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
-                    using (var reader = command.ExecuteReader())
+                    try
                     {
-                        if (!reader.Read()) throw new InvalidOperationException("کاربر فعال یافت نشد.");
-                        salt = (byte[])reader[0]; storedHash = (byte[])reader[1]; iterations = Convert.ToInt32(reader[2]);
+                        byte[] salt, storedHash; int iterations;
+                        using (var command = new SqlCommand("SELECT PasswordSalt, PasswordHash, PasswordHashIterations FROM app.ApplicationUser WHERE ApplicationUserId=@id AND IsActive=1", connection, transaction))
+                        {
+                            command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
+                            using (var reader = command.ExecuteReader())
+                            {
+                                if (!reader.Read()) throw new InvalidOperationException("کاربر فعال یافت نشد.");
+                                salt = (byte[])reader[0]; storedHash = (byte[])reader[1]; iterations = Convert.ToInt32(reader[2]);
+                            }
+                        }
+                        if (!FuntinoControlCenter.Security.PasswordHasher.Verify(currentPassword, salt, storedHash, iterations))
+                            throw new InvalidOperationException("گذرواژه فعلی درست نیست.");
+                        byte[] newSalt, newHash; Security.PasswordHasher.Create(newPassword, out newSalt, out newHash);
+                        using (var command = new SqlCommand("UPDATE app.ApplicationUser SET PasswordSalt=@salt, PasswordHash=@hash, PasswordHashIterations=@iterations, MustChangePassword=0, AuthorizationVersion=AuthorizationVersion+1 WHERE ApplicationUserId=@id", connection, transaction))
+                        {
+                            command.Parameters.Add("@salt", SqlDbType.VarBinary, 32).Value = newSalt;
+                            command.Parameters.Add("@hash", SqlDbType.VarBinary, 32).Value = newHash;
+                            command.Parameters.Add("@iterations", SqlDbType.Int).Value = Security.PasswordHasher.Iterations;
+                            command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
+                            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("ذخیره گذرواژه انجام نشد.");
+                        }
+                        AuditService.Write(connection, transaction, "password-change", "ApplicationUser", userId.ToString(), "تغییر گذرواژه");
+                        transaction.Commit();
                     }
-                }
-                if (!FuntinoControlCenter.Security.PasswordHasher.Verify(currentPassword, salt, storedHash, iterations))
-                    throw new InvalidOperationException("گذرواژه فعلی درست نیست.");
-                byte[] newSalt, newHash; Security.PasswordHasher.Create(newPassword, out newSalt, out newHash);
-                using (var command = new SqlCommand("UPDATE app.ApplicationUser SET PasswordSalt=@salt, PasswordHash=@hash, PasswordHashIterations=@iterations, MustChangePassword=0 WHERE ApplicationUserId=@id", connection))
-                {
-                    command.Parameters.Add("@salt", SqlDbType.VarBinary, 32).Value = newSalt;
-                    command.Parameters.Add("@hash", SqlDbType.VarBinary, 32).Value = newHash;
-                    command.Parameters.Add("@iterations", SqlDbType.Int).Value = Security.PasswordHasher.Iterations;
-                    command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
-                    if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("ذخیره گذرواژه انجام نشد.");
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
                 }
             }
         }

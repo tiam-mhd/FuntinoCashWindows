@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using FuntinoControlCenter.Security;
 
 namespace FuntinoControlCenter.Services
 {
@@ -19,6 +20,7 @@ namespace FuntinoControlCenter.Services
 
         public static void ExportExcel(DataTable data, string title, string filePath)
         {
+            AuthorizationGuard.Require("reports.export");
             if (data == null) throw new ArgumentNullException("data");
             using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
@@ -66,6 +68,7 @@ namespace FuntinoControlCenter.Services
 
         public static void ExportPdf(DataTable data, string title, string filePath)
         {
+            AuthorizationGuard.Require("reports.export");
             if (data == null) throw new ArgumentNullException("data");
             var pages = new System.Collections.Generic.List<byte[]>();
             int pageSize = 22, pageCount = Math.Max(1, (int)Math.Ceiling(data.Rows.Count / (double)pageSize));

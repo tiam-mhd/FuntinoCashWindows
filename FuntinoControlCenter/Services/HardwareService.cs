@@ -1,5 +1,6 @@
 using System;
 using System.IO.Ports;
+using FuntinoControlCenter.Security;
 
 namespace FuntinoControlCenter.Services
 {
@@ -7,11 +8,13 @@ namespace FuntinoControlCenter.Services
     {
         public static string[] GetPortNames()
         {
+            AuthorizationGuard.RequireAny("settings.hardware.view", "settings.hardware.update");
             try { return SerialPort.GetPortNames(); } catch { return new string[0]; }
         }
 
         public static bool TestPort(string portName, int baudRate, out string message)
         {
+            AuthorizationGuard.Require("devices.test");
             if (String.IsNullOrWhiteSpace(portName)) { message = "پورت انتخاب نشده است."; return false; }
             try
             {
@@ -33,6 +36,7 @@ namespace FuntinoControlCenter.Services
 
         public static bool TestPosSdk(out string message)
         {
+            AuthorizationGuard.Require("devices.test");
             try
             {
                 string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "External", "SSP1126.PcPos.dll");

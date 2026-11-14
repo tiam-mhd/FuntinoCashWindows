@@ -7,20 +7,23 @@ namespace FuntinoControlCenter.Forms
     public partial class LoginForm : Form
     {
         private bool ready;
-        public LoginForm() { InitializeComponent(); Load += LoginForm_Load; btnLogin.Click += BtnLogin_Click; btnSettings.Click += BtnSettings_Click; btnExit.Click += delegate { Close(); }; txtPassword.KeyDown += Password_KeyDown; }
+        public LoginForm() { InitializeComponent(); }
+
+        private void BtnExit_Click(object sender, EventArgs e) { Close(); }
 
         private void LoginForm_Load(object sender, EventArgs e)
         {
             lblStatus.Text = "در حال بررسی پایگاه‌های داده و اجرای به‌روزرسانی‌های امن…";
-            lblStatus.ForeColor = System.Drawing.Color.FromArgb(232, 174, 88);
             try
             {
                 SchemaMigrator.EnsureAll(); ready = true;
                 lblStatus.Text = "پایگاه‌های Funtino آماده‌اند. ورود اولیه: Admin";
                 lblStatus.ForeColor = System.Drawing.Color.FromArgb(95, 196, 153);
                 btnLogin.Enabled = true; txtPassword.Focus();
-                if (!String.IsNullOrEmpty(SchemaMigrator.InitialAdminPassword))
-                    MessageBox.Show(this, "حساب اولیه ساخته شد.\nنام کاربری: Admin\nگذرواژه‌ی یک‌بارمصرف:\n" + SchemaMigrator.InitialAdminPassword + "\n\nاین گذرواژه فقط همین بار نمایش داده می‌شود. پس از ورود، آن را تغییر دهید.", "راه‌اندازی حساب مدیر", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string initialAdminPassword = SchemaMigrator.TakeInitialAdminPassword();
+                if (!String.IsNullOrEmpty(initialAdminPassword))
+                    using (var credentials = new InitialCredentialDialog("Admin", initialAdminPassword))
+                        credentials.ShowDialog(this);
             }
             catch (Exception ex)
             {
@@ -33,7 +36,7 @@ namespace FuntinoControlCenter.Forms
 
         private void BtnSettings_Click(object sender, EventArgs e)
         {
-            using (var form = new SettingsForm()) form.ShowDialog(this);
+            using (var form = new SettingsForm(true)) form.ShowDialog(this);
             LoginForm_Load(this, EventArgs.Empty);
         }
 

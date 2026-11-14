@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using FuntinoControlCenter.Security;
 
 namespace FuntinoControlCenter.Database
 {
@@ -34,13 +35,24 @@ namespace FuntinoControlCenter.Database
             {
                 connection.Open();
                 var dt = DatabaseManager.Query(connection, "SELECT s.name + N'.' + t.name AS FullName FROM sys.tables t INNER JOIN sys.schemas s ON s.schema_id=t.schema_id WHERE t.is_ms_shipped=0 AND s.name<>N'app' ORDER BY s.name,t.name");
-                var result = new List<string>(); foreach (DataRow row in dt.Rows) result.Add(Convert.ToString(row[0])); return result;
+                var result = new List<string>();
+                var session = AppSession.Current;
+                if (session == null) return result;
+                session.RefreshAuthorization(false);
+                foreach (DataRow row in dt.Rows)
+                {
+                    string fullName = Convert.ToString(row[0]);
+                    string schema = fullName.Split('.')[0];
+                    if (session.HasPermissionCached(PermissionCatalog.TableCode(schema, "view"))) result.Add(fullName);
+                }
+                return result;
             }
         }
 
         public static List<TableColumn> GetColumns(string fullName, bool deviceDatabase = false)
         {
             string schema, table; SplitName(fullName, deviceDatabase, out schema, out table);
+            AuthorizationGuard.RequireTable(schema, "view");
             using (var connection = DatabaseManager.CreateConnection(deviceDatabase))
             {
                 connection.Open();
@@ -100,6 +112,7 @@ WHERE s.name=@s AND t.name=@t ORDER BY c.column_id";
         public static DataTable GetReportData(string fullName, string search, int maxRows, out bool truncated, bool deviceDatabase = false)
         {
             if (maxRows < 1) throw new ArgumentOutOfRangeException("maxRows");
+            AuthorizationGuard.Require("reports.export");
             var columns = GetColumns(fullName, deviceDatabase); string schema, table; SplitName(fullName, deviceDatabase, out schema, out table);
             var searchable = columns.Where(c => c.IsSearchable).ToList(); string predicate = ""; object searchValue = null;
             if (!String.IsNullOrWhiteSpace(search) && searchable.Count > 0)
@@ -132,6 +145,9 @@ WHERE s.name=@s AND t.name=@t ORDER BY c.column_id";
             if (data == null) return 0;
             var columns = GetColumns(fullName, deviceDatabase); var keys = columns.Where(c => c.PrimaryKey).ToList();
             string schema, table; SplitName(fullName, deviceDatabase, out schema, out table);
+            if (data.Rows.Cast<DataRow>().Any(r => r.RowState == DataRowState.Added)) AuthorizationGuard.RequireTable(schema, "create");
+            if (data.Rows.Cast<DataRow>().Any(r => r.RowState == DataRowState.Modified)) AuthorizationGuard.RequireTable(schema, "update");
+            if (data.Rows.Cast<DataRow>().Any(r => r.RowState == DataRowState.Deleted)) AuthorizationGuard.RequireTable(schema, "delete");
             if (keys.Count == 0 && data.Rows.Cast<DataRow>().Any(r => r.RowState == DataRowState.Modified || r.RowState == DataRowState.Deleted))
                 throw new InvalidOperationException("این جدول کلید اصلی ندارد؛ ویرایش و حذف برای جلوگیری از تغییر چند ردیف هم‌زمان غیرفعال است.");
             int changed = 0;

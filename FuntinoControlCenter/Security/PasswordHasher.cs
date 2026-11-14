@@ -1,5 +1,6 @@
 using System;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace FuntinoControlCenter.Security
 {
@@ -15,6 +16,28 @@ namespace FuntinoControlCenter.Security
             salt = new byte[SaltLength];
             using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(salt);
             using (var derive = new Rfc2898DeriveBytes(password, salt, Iterations)) hash = derive.GetBytes(HashLength);
+        }
+
+        public static string GenerateTemporaryPassword()
+        {
+            const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*+-_";
+            const int length = 24;
+            int limit = 256 - (256 % alphabet.Length);
+            var result = new StringBuilder(length);
+            var bytes = new byte[48];
+            using (var random = RandomNumberGenerator.Create())
+            {
+                while (result.Length < length)
+                {
+                    random.GetBytes(bytes);
+                    for (int i = 0; i < bytes.Length && result.Length < length; i++)
+                    {
+                        if (bytes[i] >= limit) continue;
+                        result.Append(alphabet[bytes[i] % alphabet.Length]);
+                    }
+                }
+            }
+            return result.ToString();
         }
 
         public static bool Verify(string password, byte[] salt, byte[] expected, int iterations)

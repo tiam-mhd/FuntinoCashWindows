@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using FuntinoControlCenter.Database;
+using FuntinoControlCenter.Security;
 
 namespace FuntinoControlCenter.Services
 {
@@ -10,16 +11,15 @@ namespace FuntinoControlCenter.Services
     {
         public static int CountBusinessTables()
         {
-            using (var connection = DatabaseManager.CreateMainConnection())
-            {
-                connection.Open(); return Convert.ToInt32(DatabaseManager.Scalar(connection, "SELECT COUNT(1) FROM sys.tables t INNER JOIN sys.schemas s ON s.schema_id=t.schema_id WHERE t.is_ms_shipped=0 AND s.name<>N'app'"));
-            }
+            AuthorizationGuard.Require("dashboard.view");
+            return TableRepository.GetTableNames(false).Count;
         }
 
         public static long CountRows(string fullName)
         {
             var parts = fullName.Split('.');
             if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0 || String.Equals(parts[0], "app", StringComparison.OrdinalIgnoreCase)) return 0;
+            AuthorizationGuard.RequireTable(parts[0], "view");
             using (var connection = DatabaseManager.CreateMainConnection())
             {
                 connection.Open();
@@ -29,6 +29,7 @@ namespace FuntinoControlCenter.Services
 
         public static string GetMainSummary()
         {
+            AuthorizationGuard.Require("dashboard.view");
             try
             {
                 var tables = TableRepository.GetTableNames();
