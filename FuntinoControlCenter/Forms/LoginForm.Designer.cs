@@ -10,11 +10,13 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblWelcome;
         private System.Windows.Forms.Label lblUsername;
         private System.Windows.Forms.Label lblPassword;
+        private global::FuntinoControlCenter.UI.RoundedBorderPanel pnlUsernameInput;
+        private global::FuntinoControlCenter.UI.RoundedBorderPanel pnlPasswordInput;
         private System.Windows.Forms.TextBox txtUsername;
         private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Button btnLogin;
-        private System.Windows.Forms.Button btnSettings;
-        private System.Windows.Forms.Button btnExit;
+        private global::FuntinoControlCenter.UI.RoundedButton btnLogin;
+        private global::FuntinoControlCenter.UI.RoundedButton btnSettings;
+        private global::FuntinoControlCenter.UI.RoundedButton btnExit;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblDatabases;
 
@@ -33,11 +35,13 @@ namespace FuntinoControlCenter.Forms
             this.lblWelcome = new System.Windows.Forms.Label();
             this.lblUsername = new System.Windows.Forms.Label();
             this.lblPassword = new System.Windows.Forms.Label();
+            this.pnlUsernameInput = new global::FuntinoControlCenter.UI.RoundedBorderPanel();
+            this.pnlPasswordInput = new global::FuntinoControlCenter.UI.RoundedBorderPanel();
             this.txtUsername = new System.Windows.Forms.TextBox();
             this.txtPassword = new System.Windows.Forms.TextBox();
-            this.btnLogin = new System.Windows.Forms.Button();
-            this.btnSettings = new System.Windows.Forms.Button();
-            this.btnExit = new System.Windows.Forms.Button();
+            this.btnLogin = new global::FuntinoControlCenter.UI.RoundedButton();
+            this.btnSettings = new global::FuntinoControlCenter.UI.RoundedButton();
+            this.btnExit = new global::FuntinoControlCenter.UI.RoundedButton();
             this.lblStatus = new System.Windows.Forms.Label();
             this.lblDatabases = new System.Windows.Forms.Label();
             this.pnlCard.SuspendLayout();
@@ -51,9 +55,9 @@ namespace FuntinoControlCenter.Forms
             this.pnlCard.Controls.Add(this.lblSubtitle);
             this.pnlCard.Controls.Add(this.lblWelcome);
             this.pnlCard.Controls.Add(this.lblUsername);
-            this.pnlCard.Controls.Add(this.txtUsername);
+            this.pnlCard.Controls.Add(this.pnlUsernameInput);
             this.pnlCard.Controls.Add(this.lblPassword);
-            this.pnlCard.Controls.Add(this.txtPassword);
+            this.pnlCard.Controls.Add(this.pnlPasswordInput);
             this.pnlCard.Controls.Add(this.pnlStatus);
             this.pnlCard.Controls.Add(this.btnLogin);
             this.pnlCard.Controls.Add(this.btnSettings);
@@ -113,16 +117,29 @@ namespace FuntinoControlCenter.Forms
             this.lblUsername.Text = "نام کاربری";
             this.lblUsername.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
+            // pnlUsernameInput
+            //
+            this.pnlUsernameInput.BackColor = System.Drawing.Color.White;
+            this.pnlUsernameInput.BorderColor = System.Drawing.Color.FromArgb(190, 213, 204);
+            this.pnlUsernameInput.BorderSize = 1;
+            this.pnlUsernameInput.Controls.Add(this.txtUsername);
+            this.pnlUsernameInput.CornerRadius = 9;
+            this.pnlUsernameInput.Location = new System.Drawing.Point(35, 237);
+            this.pnlUsernameInput.Name = "pnlUsernameInput";
+            this.pnlUsernameInput.Size = new System.Drawing.Size(490, 42);
+            this.pnlUsernameInput.TabIndex = 0;
+            this.pnlUsernameInput.TabStop = false;
+            //
             // txtUsername
             //
             this.txtUsername.BackColor = System.Drawing.Color.White;
-            this.txtUsername.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtUsername.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtUsername.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 12F);
             this.txtUsername.ForeColor = System.Drawing.Color.FromArgb(31, 55, 57);
-            this.txtUsername.Location = new System.Drawing.Point(35, 241);
+            this.txtUsername.Location = new System.Drawing.Point(8, 6);
             this.txtUsername.Name = "txtUsername";
             this.txtUsername.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.txtUsername.Size = new System.Drawing.Size(490, 34);
+            this.txtUsername.Size = new System.Drawing.Size(474, 29);
             this.txtUsername.TabIndex = 0;
             this.txtUsername.Text = "Admin";
             //
@@ -138,17 +155,30 @@ namespace FuntinoControlCenter.Forms
             this.lblPassword.Text = "گذرواژه";
             this.lblPassword.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
+            // pnlPasswordInput
+            //
+            this.pnlPasswordInput.BackColor = System.Drawing.Color.White;
+            this.pnlPasswordInput.BorderColor = System.Drawing.Color.FromArgb(190, 213, 204);
+            this.pnlPasswordInput.BorderSize = 1;
+            this.pnlPasswordInput.Controls.Add(this.txtPassword);
+            this.pnlPasswordInput.CornerRadius = 9;
+            this.pnlPasswordInput.Location = new System.Drawing.Point(35, 325);
+            this.pnlPasswordInput.Name = "pnlPasswordInput";
+            this.pnlPasswordInput.Size = new System.Drawing.Size(490, 42);
+            this.pnlPasswordInput.TabIndex = 1;
+            this.pnlPasswordInput.TabStop = false;
+            //
             // txtPassword
             //
             this.txtPassword.BackColor = System.Drawing.Color.White;
-            this.txtPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtPassword.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 12F);
             this.txtPassword.ForeColor = System.Drawing.Color.FromArgb(31, 55, 57);
-            this.txtPassword.Location = new System.Drawing.Point(35, 329);
+            this.txtPassword.Location = new System.Drawing.Point(8, 6);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.PasswordChar = '●';
             this.txtPassword.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.txtPassword.Size = new System.Drawing.Size(490, 34);
+            this.txtPassword.Size = new System.Drawing.Size(474, 29);
             this.txtPassword.TabIndex = 1;
             //
             // pnlStatus
@@ -180,6 +210,9 @@ namespace FuntinoControlCenter.Forms
             this.btnLogin.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(13, 76, 68);
             this.btnLogin.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(27, 117, 101);
             this.btnLogin.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnLogin.BorderColor = System.Drawing.Color.FromArgb(13, 76, 68);
+            this.btnLogin.BorderSize = 1;
+            this.btnLogin.CornerRadius = 12;
             this.btnLogin.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 12F, System.Drawing.FontStyle.Bold);
             this.btnLogin.ForeColor = System.Drawing.Color.White;
             this.btnLogin.Image = global::FuntinoControlCenter.Properties.Resources.IconSignIn;
@@ -198,6 +231,9 @@ namespace FuntinoControlCenter.Forms
             this.btnSettings.FlatAppearance.BorderSize = 0;
             this.btnSettings.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(219, 232, 226);
             this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSettings.BorderColor = System.Drawing.Color.FromArgb(184, 207, 198);
+            this.btnSettings.BorderSize = 1;
+            this.btnSettings.CornerRadius = 10;
             this.btnSettings.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9.5F, System.Drawing.FontStyle.Bold);
             this.btnSettings.ForeColor = System.Drawing.Color.FromArgb(34, 75, 68);
             this.btnSettings.Image = global::FuntinoControlCenter.Properties.Resources.IconSettings;
@@ -216,6 +252,9 @@ namespace FuntinoControlCenter.Forms
             this.btnExit.FlatAppearance.BorderSize = 0;
             this.btnExit.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(244, 224, 219);
             this.btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnExit.BorderColor = System.Drawing.Color.FromArgb(222, 192, 184);
+            this.btnExit.BorderSize = 1;
+            this.btnExit.CornerRadius = 10;
             this.btnExit.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9.5F);
             this.btnExit.ForeColor = System.Drawing.Color.FromArgb(128, 70, 59);
             this.btnExit.Image = global::FuntinoControlCenter.Properties.Resources.IconExit;

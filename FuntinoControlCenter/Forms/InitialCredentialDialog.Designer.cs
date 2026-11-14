@@ -8,9 +8,10 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblInstructions;
         private System.Windows.Forms.Label lblUserName;
         private System.Windows.Forms.Label lblPassword;
+        private global::FuntinoControlCenter.UI.RoundedBorderPanel pnlPasswordInput;
         private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Button btnCopyPassword;
-        private System.Windows.Forms.Button btnClose;
+        private global::FuntinoControlCenter.UI.RoundedButton btnCopyPassword;
+        private global::FuntinoControlCenter.UI.RoundedButton btnClose;
         private System.Windows.Forms.Label lblCopyStatus;
 
         protected override void Dispose(bool disposing)
@@ -26,9 +27,10 @@ namespace FuntinoControlCenter.Forms
             this.lblInstructions = new System.Windows.Forms.Label();
             this.lblUserName = new System.Windows.Forms.Label();
             this.lblPassword = new System.Windows.Forms.Label();
+            this.pnlPasswordInput = new global::FuntinoControlCenter.UI.RoundedBorderPanel();
             this.txtPassword = new System.Windows.Forms.TextBox();
-            this.btnCopyPassword = new System.Windows.Forms.Button();
-            this.btnClose = new System.Windows.Forms.Button();
+            this.btnCopyPassword = new global::FuntinoControlCenter.UI.RoundedButton();
+            this.btnClose = new global::FuntinoControlCenter.UI.RoundedButton();
             this.lblCopyStatus = new System.Windows.Forms.Label();
             this.pnlCard.SuspendLayout();
             this.SuspendLayout();
@@ -40,7 +42,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlCard.Controls.Add(this.lblInstructions);
             this.pnlCard.Controls.Add(this.lblUserName);
             this.pnlCard.Controls.Add(this.lblPassword);
-            this.pnlCard.Controls.Add(this.txtPassword);
+            this.pnlCard.Controls.Add(this.pnlPasswordInput);
             this.pnlCard.Controls.Add(this.lblCopyStatus);
             this.pnlCard.Controls.Add(this.btnCopyPassword);
             this.pnlCard.Controls.Add(this.btnClose);
@@ -97,17 +99,30 @@ namespace FuntinoControlCenter.Forms
             this.lblPassword.Text = "گذرواژه‌ی موقت";
             this.lblPassword.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
+            // pnlPasswordInput
+            //
+            this.pnlPasswordInput.BackColor = System.Drawing.Color.FromArgb(244, 248, 246);
+            this.pnlPasswordInput.BorderColor = System.Drawing.Color.FromArgb(190, 213, 204);
+            this.pnlPasswordInput.BorderSize = 1;
+            this.pnlPasswordInput.Controls.Add(this.txtPassword);
+            this.pnlPasswordInput.CornerRadius = 9;
+            this.pnlPasswordInput.Location = new System.Drawing.Point(35, 214);
+            this.pnlPasswordInput.Name = "pnlPasswordInput";
+            this.pnlPasswordInput.Size = new System.Drawing.Size(520, 48);
+            this.pnlPasswordInput.TabIndex = 0;
+            this.pnlPasswordInput.TabStop = false;
+            //
             // txtPassword
             //
             this.txtPassword.BackColor = System.Drawing.Color.FromArgb(244, 248, 246);
-            this.txtPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtPassword.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 14F, System.Drawing.FontStyle.Bold);
             this.txtPassword.ForeColor = System.Drawing.Color.FromArgb(20, 58, 57);
-            this.txtPassword.Location = new System.Drawing.Point(35, 218);
+            this.txtPassword.Location = new System.Drawing.Point(8, 8);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.ReadOnly = true;
             this.txtPassword.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.txtPassword.Size = new System.Drawing.Size(520, 40);
+            this.txtPassword.Size = new System.Drawing.Size(504, 31);
             this.txtPassword.TabIndex = 0;
             this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             //
@@ -129,6 +144,9 @@ namespace FuntinoControlCenter.Forms
             this.btnCopyPassword.FlatAppearance.BorderSize = 0;
             this.btnCopyPassword.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(27, 117, 101);
             this.btnCopyPassword.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCopyPassword.BorderColor = System.Drawing.Color.FromArgb(13, 76, 68);
+            this.btnCopyPassword.BorderSize = 1;
+            this.btnCopyPassword.CornerRadius = 12;
             this.btnCopyPassword.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 10F, System.Drawing.FontStyle.Bold);
             this.btnCopyPassword.ForeColor = System.Drawing.Color.White;
             this.btnCopyPassword.Image = global::FuntinoControlCenter.Properties.Resources.IconCopy;
@@ -149,6 +167,9 @@ namespace FuntinoControlCenter.Forms
             this.btnClose.FlatAppearance.BorderSize = 0;
             this.btnClose.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(219, 232, 226);
             this.btnClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnClose.BorderColor = System.Drawing.Color.FromArgb(184, 207, 198);
+            this.btnClose.BorderSize = 1;
+            this.btnClose.CornerRadius = 10;
             this.btnClose.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9.5F);
             this.btnClose.ForeColor = System.Drawing.Color.FromArgb(45, 76, 71);
             this.btnClose.Image = global::FuntinoControlCenter.Properties.Resources.IconBack;

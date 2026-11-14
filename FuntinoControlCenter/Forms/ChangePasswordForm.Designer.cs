@@ -10,11 +10,14 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblNew;
         private System.Windows.Forms.Label lblConfirm;
         private System.Windows.Forms.Label lblHint;
+        private global::FuntinoControlCenter.UI.RoundedBorderPanel pnlCurrentPassword;
+        private global::FuntinoControlCenter.UI.RoundedBorderPanel pnlNewPassword;
+        private global::FuntinoControlCenter.UI.RoundedBorderPanel pnlConfirmPassword;
         private System.Windows.Forms.TextBox txtCurrentPassword;
         private System.Windows.Forms.TextBox txtNewPassword;
         private System.Windows.Forms.TextBox txtConfirmPassword;
-        private System.Windows.Forms.Button btnSave;
-        private System.Windows.Forms.Button btnCancel;
+        private global::FuntinoControlCenter.UI.RoundedButton btnSave;
+        private global::FuntinoControlCenter.UI.RoundedButton btnCancel;
 
         protected override void Dispose(bool disposing)
         {
@@ -31,11 +34,14 @@ namespace FuntinoControlCenter.Forms
             this.lblNew = new System.Windows.Forms.Label();
             this.lblConfirm = new System.Windows.Forms.Label();
             this.lblHint = new System.Windows.Forms.Label();
+            this.pnlCurrentPassword = new global::FuntinoControlCenter.UI.RoundedBorderPanel();
+            this.pnlNewPassword = new global::FuntinoControlCenter.UI.RoundedBorderPanel();
+            this.pnlConfirmPassword = new global::FuntinoControlCenter.UI.RoundedBorderPanel();
             this.txtCurrentPassword = new System.Windows.Forms.TextBox();
             this.txtNewPassword = new System.Windows.Forms.TextBox();
             this.txtConfirmPassword = new System.Windows.Forms.TextBox();
-            this.btnSave = new System.Windows.Forms.Button();
-            this.btnCancel = new System.Windows.Forms.Button();
+            this.btnSave = new global::FuntinoControlCenter.UI.RoundedButton();
+            this.btnCancel = new global::FuntinoControlCenter.UI.RoundedButton();
             this.pnlCard.SuspendLayout();
             this.SuspendLayout();
             //
@@ -45,11 +51,11 @@ namespace FuntinoControlCenter.Forms
             this.pnlCard.Controls.Add(this.lblTitle);
             this.pnlCard.Controls.Add(this.lblSubtitle);
             this.pnlCard.Controls.Add(this.lblCurrent);
-            this.pnlCard.Controls.Add(this.txtCurrentPassword);
+            this.pnlCard.Controls.Add(this.pnlCurrentPassword);
             this.pnlCard.Controls.Add(this.lblNew);
-            this.pnlCard.Controls.Add(this.txtNewPassword);
+            this.pnlCard.Controls.Add(this.pnlNewPassword);
             this.pnlCard.Controls.Add(this.lblConfirm);
-            this.pnlCard.Controls.Add(this.txtConfirmPassword);
+            this.pnlCard.Controls.Add(this.pnlConfirmPassword);
             this.pnlCard.Controls.Add(this.lblHint);
             this.pnlCard.Controls.Add(this.btnSave);
             this.pnlCard.Controls.Add(this.btnCancel);
@@ -94,17 +100,30 @@ namespace FuntinoControlCenter.Forms
             this.lblCurrent.Text = "گذرواژه‌ی فعلی";
             this.lblCurrent.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
+            // pnlCurrentPassword
+            //
+            this.pnlCurrentPassword.BackColor = System.Drawing.Color.White;
+            this.pnlCurrentPassword.BorderColor = System.Drawing.Color.FromArgb(190, 213, 204);
+            this.pnlCurrentPassword.BorderSize = 1;
+            this.pnlCurrentPassword.Controls.Add(this.txtCurrentPassword);
+            this.pnlCurrentPassword.CornerRadius = 9;
+            this.pnlCurrentPassword.Location = new System.Drawing.Point(40, 158);
+            this.pnlCurrentPassword.Name = "pnlCurrentPassword";
+            this.pnlCurrentPassword.Size = new System.Drawing.Size(490, 42);
+            this.pnlCurrentPassword.TabIndex = 0;
+            this.pnlCurrentPassword.TabStop = false;
+            //
             // txtCurrentPassword
             //
             this.txtCurrentPassword.BackColor = System.Drawing.Color.White;
-            this.txtCurrentPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtCurrentPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtCurrentPassword.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 12F);
             this.txtCurrentPassword.ForeColor = System.Drawing.Color.FromArgb(30, 54, 56);
-            this.txtCurrentPassword.Location = new System.Drawing.Point(40, 162);
+            this.txtCurrentPassword.Location = new System.Drawing.Point(8, 6);
             this.txtCurrentPassword.Name = "txtCurrentPassword";
             this.txtCurrentPassword.PasswordChar = '●';
             this.txtCurrentPassword.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.txtCurrentPassword.Size = new System.Drawing.Size(490, 34);
+            this.txtCurrentPassword.Size = new System.Drawing.Size(474, 29);
             this.txtCurrentPassword.TabIndex = 0;
             //
             // lblNew
@@ -119,17 +138,30 @@ namespace FuntinoControlCenter.Forms
             this.lblNew.Text = "گذرواژه‌ی تازه";
             this.lblNew.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
+            // pnlNewPassword
+            //
+            this.pnlNewPassword.BackColor = System.Drawing.Color.White;
+            this.pnlNewPassword.BorderColor = System.Drawing.Color.FromArgb(190, 213, 204);
+            this.pnlNewPassword.BorderSize = 1;
+            this.pnlNewPassword.Controls.Add(this.txtNewPassword);
+            this.pnlNewPassword.CornerRadius = 9;
+            this.pnlNewPassword.Location = new System.Drawing.Point(40, 240);
+            this.pnlNewPassword.Name = "pnlNewPassword";
+            this.pnlNewPassword.Size = new System.Drawing.Size(490, 42);
+            this.pnlNewPassword.TabIndex = 1;
+            this.pnlNewPassword.TabStop = false;
+            //
             // txtNewPassword
             //
             this.txtNewPassword.BackColor = System.Drawing.Color.White;
-            this.txtNewPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtNewPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtNewPassword.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 12F);
             this.txtNewPassword.ForeColor = System.Drawing.Color.FromArgb(30, 54, 56);
-            this.txtNewPassword.Location = new System.Drawing.Point(40, 244);
+            this.txtNewPassword.Location = new System.Drawing.Point(8, 6);
             this.txtNewPassword.Name = "txtNewPassword";
             this.txtNewPassword.PasswordChar = '●';
             this.txtNewPassword.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.txtNewPassword.Size = new System.Drawing.Size(490, 34);
+            this.txtNewPassword.Size = new System.Drawing.Size(474, 29);
             this.txtNewPassword.TabIndex = 1;
             //
             // lblConfirm
@@ -144,17 +176,30 @@ namespace FuntinoControlCenter.Forms
             this.lblConfirm.Text = "تکرار گذرواژه‌ی تازه";
             this.lblConfirm.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
+            // pnlConfirmPassword
+            //
+            this.pnlConfirmPassword.BackColor = System.Drawing.Color.White;
+            this.pnlConfirmPassword.BorderColor = System.Drawing.Color.FromArgb(190, 213, 204);
+            this.pnlConfirmPassword.BorderSize = 1;
+            this.pnlConfirmPassword.Controls.Add(this.txtConfirmPassword);
+            this.pnlConfirmPassword.CornerRadius = 9;
+            this.pnlConfirmPassword.Location = new System.Drawing.Point(40, 322);
+            this.pnlConfirmPassword.Name = "pnlConfirmPassword";
+            this.pnlConfirmPassword.Size = new System.Drawing.Size(490, 42);
+            this.pnlConfirmPassword.TabIndex = 2;
+            this.pnlConfirmPassword.TabStop = false;
+            //
             // txtConfirmPassword
             //
             this.txtConfirmPassword.BackColor = System.Drawing.Color.White;
-            this.txtConfirmPassword.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtConfirmPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtConfirmPassword.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 12F);
             this.txtConfirmPassword.ForeColor = System.Drawing.Color.FromArgb(30, 54, 56);
-            this.txtConfirmPassword.Location = new System.Drawing.Point(40, 326);
+            this.txtConfirmPassword.Location = new System.Drawing.Point(8, 6);
             this.txtConfirmPassword.Name = "txtConfirmPassword";
             this.txtConfirmPassword.PasswordChar = '●';
             this.txtConfirmPassword.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.txtConfirmPassword.Size = new System.Drawing.Size(490, 34);
+            this.txtConfirmPassword.Size = new System.Drawing.Size(474, 29);
             this.txtConfirmPassword.TabIndex = 2;
             //
             // lblHint
@@ -176,6 +221,9 @@ namespace FuntinoControlCenter.Forms
             this.btnSave.FlatAppearance.BorderSize = 0;
             this.btnSave.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(27, 117, 101);
             this.btnSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSave.BorderColor = System.Drawing.Color.FromArgb(13, 76, 68);
+            this.btnSave.BorderSize = 1;
+            this.btnSave.CornerRadius = 12;
             this.btnSave.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 10F, System.Drawing.FontStyle.Bold);
             this.btnSave.ForeColor = System.Drawing.Color.White;
             this.btnSave.Image = global::FuntinoControlCenter.Properties.Resources.IconPasswordSave;
@@ -194,6 +242,9 @@ namespace FuntinoControlCenter.Forms
             this.btnCancel.FlatAppearance.BorderSize = 0;
             this.btnCancel.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(219, 232, 226);
             this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCancel.BorderColor = System.Drawing.Color.FromArgb(184, 207, 198);
+            this.btnCancel.BorderSize = 1;
+            this.btnCancel.CornerRadius = 10;
             this.btnCancel.Font = new System.Drawing.Font(global::FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9.5F);
             this.btnCancel.ForeColor = System.Drawing.Color.FromArgb(45, 76, 71);
             this.btnCancel.Image = global::FuntinoControlCenter.Properties.Resources.IconBack;

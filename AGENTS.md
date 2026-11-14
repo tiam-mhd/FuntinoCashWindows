@@ -39,6 +39,8 @@ These rules apply to every current and future change in this repository.
 - Use Vazirmatn for interface text. Bundle the font when the target system may not have it installed.
 - Give each requested page an attractive, page-appropriate background generated with the image-generation skill. Generate and integrate custom WebP icons for every operation on the requested screens.
 - Route each create, read, update, or delete operation to a dedicated page or form. If a requested screen contains a table, implement real search, filters, pagination, and useful table states along with a polished, usable table design; do not add decorative or nonfunctional controls.
+- Buttons with white or light backgrounds must have a visible border so their labels and icons read as part of the button; use rounded corners for buttons where the control supports them.
+- Text boxes must use a background coordinated with their containing card or page and have rounded, bordered edges so they remain visually distinct and readable.
 - Keep all WinForms visual construction, layout, fixed styling, captions, and designer-managed event hookups in `.Designer.cs`, in accordance with the WinForms design-file rules above. Keep runtime behavior in `.cs` files.
 
 <!-- gitnexus:start -->
