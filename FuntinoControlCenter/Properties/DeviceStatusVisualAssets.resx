@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Background" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/DeviceStatusBackground.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="StatusReader" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/StatusReader.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Back" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/ActionBack.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="TestReader" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/TestReader.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="TestPos" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/TestPos.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="DatabaseConnected" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/DatabaseConnected.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="History" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/History.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Refresh" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/Refresh.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Search" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/Search.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Previous" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/Previous.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Next" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/Devices/Icons/Next.png;System.Drawing.Bitmap, System.Drawing</value></data>
+</root>

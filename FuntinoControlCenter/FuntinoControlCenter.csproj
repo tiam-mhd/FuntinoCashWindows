@@ -112,6 +112,7 @@
     </Compile>
     <Compile Include="Properties\AccessManagementVisualAssets.cs" />
     <Compile Include="Properties\ReportsVisualAssets.cs" />
+    <Compile Include="Properties\DeviceStatusVisualAssets.cs" />
     <Compile Include="Forms\LoginForm.Designer.cs">
       <DependentUpon>LoginForm.cs</DependentUpon>
     </Compile>
@@ -199,6 +200,11 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\AccessManagementVisualAssets.resx" />
     <EmbeddedResource Include="Properties\ReportsVisualAssets.resx" />
+    <EmbeddedResource Include="Properties\DeviceStatusVisualAssets.resx" />
+    <None Include="Assets\Devices\DeviceStatusBackground.jpg" />
+    <Content Include="Assets\Devices\Icons\*.webp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="app.manifest" />
     <None Include="App.config" />
     <None Include="README_FA.md" />
