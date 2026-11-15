@@ -42,14 +42,30 @@ namespace FuntinoControlCenter.Forms
             permissionLists.Add("امنیت و حساب‌های قدیمی", clbSecurityDataPermissions);
             permissionLists.Add("پیکربندی", clbConfigurationPermissions);
             permissionLists.Add("مدیریت کسب‌وکار", clbBusinessPermissions);
+            permissionLists.Add("مدیریت دستگاه‌های تفریحی", clbAttractionsPermissions);
+            permissionLists.Add("مدیریت کنترل‌گرها", clbControllerDevicesPermissions);
+            permissionLists.Add("جشنواره‌ها و تخفیف‌ها", clbPromotionsPermissions);
+            permissionLists.Add("قوانین تخفیف", clbDiscountRulesPermissions);
+            permissionLists.Add("تنظیمات شارژ", clbRechargeSettingsPermissions);
+            permissionLists.Add("تنظیمات بلیت", clbTicketSettingsPermissions);
+            permissionLists.Add("عملیات کارت", clbCardOperationsPermissions);
+            permissionLists.Add("سایر مجوزها", clbOtherPermissions);
 
             foreach (var group in PermissionCatalog.All.GroupBy(p => p.Category))
             {
                 CheckedListBox list;
                 if (!permissionLists.TryGetValue(group.Key, out list))
-                    throw new InvalidOperationException("گروه مجوز «" + group.Key + "» در فرم طراحی نشده است.");
+                {
+                    list = clbOtherPermissions;
+                    gbOtherPermissions.Visible = true;
+                }
                 foreach (var permission in group.OrderBy(p => p.DisplayOrder))
-                    list.Items.Add(new PermissionChoice(permission.Code, permission.Name + " — " + permission.Description), false);
+                {
+                    string caption = list == clbOtherPermissions
+                        ? group.Key + " — " + permission.Name + " — " + permission.Description
+                        : permission.Name + " — " + permission.Description;
+                    list.Items.Add(new PermissionChoice(permission.Code, caption), false);
+                }
             }
         }
 
