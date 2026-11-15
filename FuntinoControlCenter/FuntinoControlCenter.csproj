@@ -111,6 +111,7 @@
       <DependentUpon>RoleEditorForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AccessManagementVisualAssets.cs" />
+    <Compile Include="Properties\ReportsVisualAssets.cs" />
     <Compile Include="Forms\LoginForm.Designer.cs">
       <DependentUpon>LoginForm.cs</DependentUpon>
     </Compile>
@@ -197,6 +198,7 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\AccessManagementVisualAssets.resx" />
+    <EmbeddedResource Include="Properties\ReportsVisualAssets.resx" />
     <None Include="app.manifest" />
     <None Include="App.config" />
     <None Include="README_FA.md" />
@@ -224,6 +226,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\*.webp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Reports\Icons\*.webp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="External\*.dll">

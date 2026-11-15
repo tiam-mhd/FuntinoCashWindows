@@ -1,120 +1,494 @@
 using System;
 using System.Data;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
-using FuntinoControlCenter.Services;
+using FuntinoControlCenter.Properties;
 using FuntinoControlCenter.Security;
+using FuntinoControlCenter.Services;
+using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 
 namespace FuntinoControlCenter.Forms
 {
     public partial class ReportsForm : Form
     {
-        private int page = 1, pages = 1;
-        private string tableName;
-        private bool deviceDatabase;
         private const int PageSize = 100;
         private const int ExcelExportLimit = 50000;
         private const int PdfExportLimit = 5000;
-        public ReportsForm() { InitializeComponent(); }
 
-        private void Generate_Click(object sender, EventArgs e) { page = 1; LoadPage(); }
-        private void Previous_Click(object sender, EventArgs e) { if (page > 1) { page--; LoadPage(); } }
-        private void Next_Click(object sender, EventArgs e) { if (page < pages) { page++; LoadPage(); } }
-        private void TableSelectionChanged(object sender, EventArgs e)
+        private int page = 1;
+        private int pages = 1;
+        private string tableName;
+        private string tableCaption;
+        private string databaseCaption;
+        private bool deviceDatabase;
+        private bool suppressSelectionEvents;
+        private bool operationBusy;
+        private bool canExport;
+
+        public ReportsForm()
         {
-            if (!loading && cmbTables.SelectedItem != null) { tableName = Convert.ToString(cmbTables.SelectedItem); page = 1; LoadPage(); }
+            InitializeComponent();
         }
-        private void Search_KeyDown(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; page = 1; LoadPage(); } }
-        private void ExportExcel_Click(object sender, EventArgs e) { Export(false); }
-        private void ExportPdf_Click(object sender, EventArgs e) { Export(true); }
 
-        private bool loading;
-        private void ReportsForm_Load(object sender, EventArgs e)
+        private async void ReportsForm_Load(object sender, EventArgs e)
         {
             try
             {
                 AuthorizationGuard.Require("reports.view");
-                AuthorizationGuard.RequireAny(PermissionCatalog.DataSchemas.Select(schema => PermissionCatalog.TableCode(schema, "view")).ToArray());
-                btnExcel.Visible = btnPdf.Visible = AuthorizationGuard.Has("reports.export");
-                loading = true;
-                cmbDatabase.Items.Clear();
-                if (TableRepository.GetTableNames(false).Count > 0) cmbDatabase.Items.Add(new DatabaseChoice("پایگاه اصلی", false));
-                if (TableRepository.GetTableNames(true).Count > 0) cmbDatabase.Items.Add(new DatabaseChoice("پایگاه دستگاه‌ها", true));
-                if (cmbDatabase.Items.Count == 0) { loading = false; Close(); return; }
-                cmbDatabase.SelectedIndex = 0;
-                deviceDatabase = ((DatabaseChoice)cmbDatabase.SelectedItem).DeviceDatabase;
-                loading = false; PopulateTables();
+                AuthorizationGuard.RequireAny(PermissionCatalog.DataSchemas
+                    .Select(schema => PermissionCatalog.TableCode(schema, "view")).ToArray());
+
+                canExport = AuthorizationGuard.Has("reports.export");
+                btnExcel.Visible = canExport;
+                btnPdf.Visible = canExport;
+                flpExports.Visible = canExport;
+
+                await LoadAvailableDatabasesAsync();
+                if (IsFormUnavailable()) return;
                 AuthorizationMonitor.Attach(this, HasReportAccess);
             }
-            catch (Exception ex) { loading = false; MessageBox.Show(DatabaseManager.SafeMessage(ex), "آماده‌سازی گزارش", MessageBoxButtons.OK, MessageBoxIcon.Error); Close(); }
+            catch (UnauthorizedAccessException)
+            {
+                if (IsFormUnavailable()) return;
+                MessageBox.ShowWarning(this, "دسترسی مشاهدهٔ گزارش‌ها برای حساب شما فعال نیست.", "دسترسی به گزارش‌ها");
+                Close();
+            }
+            catch (Exception)
+            {
+                if (IsFormUnavailable()) return;
+                lblEmptyState.Text = "گزارش‌ها بارگذاری نشدند. ارتباط پایگاه داده را بررسی کنید و دوباره تلاش کنید.";
+                lblEmptyState.Visible = true;
+                ShowDataError("گزارش‌ها بارگذاری نشدند.");
+            }
         }
 
-        private void DatabaseChanged(object sender, EventArgs e)
+        private async Task LoadAvailableDatabasesAsync()
         {
-            if (loading || cmbDatabase.SelectedIndex < 0) return;
-            var choice = cmbDatabase.SelectedItem as DatabaseChoice;
+            SetOperationBusy(true, "در حال آماده‌سازی گزارش‌ها…");
+            try
+            {
+                DatabaseAvailability available = await Task.Run(() => new DatabaseAvailability
+                {
+                    Main = TableRepository.GetTableNames(false).Count > 0,
+                    Devices = TableRepository.GetTableNames(true).Count > 0
+                });
+                if (IsFormUnavailable()) return;
+
+                suppressSelectionEvents = true;
+                cmbDatabase.Items.Clear();
+                if (available.Main) cmbDatabase.Items.Add(new DatabaseChoice("پایگاه اصلی", false));
+                if (available.Devices) cmbDatabase.Items.Add(new DatabaseChoice("پایگاه دستگاه‌ها", true));
+
+                if (cmbDatabase.Items.Count == 0)
+                {
+                    databaseCaption = null;
+                    tableName = null;
+                    tableCaption = null;
+                    lblSummary.Text = "جدولی برای گزارش در دسترس نیست.";
+                    lblEmptyState.Text = "در پایگاه‌های در دسترس شما، جدولی برای گزارش پیدا نشد.";
+                    lblEmptyState.Visible = true;
+                    grid.Visible = false;
+                    return;
+                }
+
+                cmbDatabase.SelectedIndex = 0;
+                DatabaseChoice choice = (DatabaseChoice)cmbDatabase.SelectedItem;
+                deviceDatabase = choice.DeviceDatabase;
+                databaseCaption = choice.Caption;
+                await PopulateTablesWithinOperationAsync();
+            }
+            finally
+            {
+                suppressSelectionEvents = false;
+                SetOperationBusy(false, null);
+            }
+        }
+
+        private async void DatabaseChanged(object sender, EventArgs e)
+        {
+            if (suppressSelectionEvents || operationBusy || cmbDatabase.SelectedIndex < 0) return;
+
+            DatabaseChoice choice = cmbDatabase.SelectedItem as DatabaseChoice;
             if (choice == null) return;
-            deviceDatabase = choice.DeviceDatabase; tableName = null; page = 1; PopulateTables();
+
+            deviceDatabase = choice.DeviceDatabase;
+            databaseCaption = choice.Caption;
+            tableName = null;
+            tableCaption = null;
+            page = 1;
+            await PopulateTablesAsync();
+        }
+
+        private async void TableSelectionChanged(object sender, EventArgs e)
+        {
+            if (suppressSelectionEvents || operationBusy || cmbTables.SelectedItem == null) return;
+
+            TableChoice choice = cmbTables.SelectedItem as TableChoice;
+            if (choice == null) return;
+
+            tableName = choice.FullName;
+            tableCaption = choice.Caption;
+            page = 1;
+            await LoadPageAsync(1);
+        }
+
+        private async void Generate_Click(object sender, EventArgs e)
+        {
+            page = 1;
+            await LoadPageAsync(page);
+        }
+
+        private async void Previous_Click(object sender, EventArgs e)
+        {
+            if (page > 1) await LoadPageAsync(page - 1);
+        }
+
+        private async void Next_Click(object sender, EventArgs e)
+        {
+            if (page < pages) await LoadPageAsync(page + 1);
+        }
+
+        private async void Search_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            page = 1;
+            await LoadPageAsync(page);
+        }
+
+        private async void ExportExcel_Click(object sender, EventArgs e)
+        {
+            await ExportAsync(false);
+        }
+
+        private async void ExportPdf_Click(object sender, EventArgs e)
+        {
+            await ExportAsync(true);
+        }
+
+        private void Back_Click(object sender, EventArgs e)
+        {
+            Close();
         }
 
         private bool HasReportAccess()
         {
+            canExport = AuthorizationGuard.Has("reports.export");
+            btnExcel.Visible = canExport;
+            btnPdf.Visible = canExport;
+            flpExports.Visible = canExport;
+
             if (!AuthorizationGuard.Has("reports.view")) return false;
             if (String.IsNullOrWhiteSpace(tableName))
-                return AuthorizationGuard.HasAny(PermissionCatalog.DataSchemas.Select(schema => PermissionCatalog.TableCode(schema, "view")).ToArray());
+            {
+                return AuthorizationGuard.HasAny(PermissionCatalog.DataSchemas
+                    .Select(schema => PermissionCatalog.TableCode(schema, "view")).ToArray());
+            }
+
             return AuthorizationGuard.Has(PermissionCatalog.TableCode(tableName.Split('.')[0], "view"));
         }
 
-        private void PopulateTables()
+        private async Task PopulateTablesAsync()
         {
-            loading = true; cmbTables.Items.Clear(); foreach (string table in TableRepository.GetTableNames(deviceDatabase)) cmbTables.Items.Add(table); loading = false;
-            if (cmbTables.Items.Count > 0) cmbTables.SelectedIndex = 0;
-            else { tableName = null; grid.DataSource = null; lblSummary.Text = "جدولی برای گزارش در دسترس نیست."; }
+            SetOperationBusy(true, "در حال آماده‌سازی فهرست گزارش‌ها…");
+            try
+            {
+                await PopulateTablesWithinOperationAsync();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                if (IsFormUnavailable()) return;
+                ShowPermissionError(ex);
+            }
+            catch (Exception)
+            {
+                if (IsFormUnavailable()) return;
+                lblEmptyState.Text = "فهرست گزارش‌ها بارگذاری نشد. ارتباط پایگاه داده را بررسی کنید.";
+                lblEmptyState.Visible = true;
+                grid.Visible = false;
+                ShowDataError("فهرست گزارش‌ها بارگذاری نشد.");
+            }
+            finally
+            {
+                SetOperationBusy(false, null);
+            }
         }
 
-        private void LoadPage()
+        private async Task PopulateTablesWithinOperationAsync()
         {
-            if (loading || String.IsNullOrWhiteSpace(tableName)) return;
+            var tables = await Task.Run(() => TableRepository.GetTableNames(deviceDatabase));
+            if (IsFormUnavailable()) return;
+
+            suppressSelectionEvents = true;
+            cmbTables.Items.Clear();
+            foreach (string fullName in tables)
+            {
+                cmbTables.Items.Add(new TableChoice(fullName));
+            }
+
+            if (cmbTables.Items.Count == 0)
+            {
+                tableName = null;
+                tableCaption = null;
+                grid.DataSource = null;
+                grid.Visible = false;
+                lblSummary.Text = "در این پایگاه، جدولی برای گزارش شما وجود ندارد.";
+                lblGenerated.Text = String.Empty;
+                lblPage.Text = "صفحهٔ ۰ از ۰";
+                lblEmptyState.Text = "برای این پایگاه، داده‌ای برای نمایش گزارش در دسترس نیست.";
+                lblEmptyState.Visible = true;
+                return;
+            }
+
+            cmbTables.SelectedIndex = 0;
+            TableChoice first = (TableChoice)cmbTables.SelectedItem;
+            tableName = first.FullName;
+            tableCaption = first.Caption;
+            page = 1;
+            await LoadPageWithinOperationAsync(1);
+        }
+
+        private async Task LoadPageAsync(int requestedPage)
+        {
+            if (operationBusy || String.IsNullOrWhiteSpace(tableName)) return;
+
+            SetOperationBusy(true, "در حال دریافت اطلاعات گزارش…");
             try
             {
                 AuthorizationGuard.Require("reports.view");
-                var result = TableRepository.GetPage(tableName, page, PageSize, txtSearch.Text, deviceDatabase); page = result.Page; pages = result.PageCount;
-                grid.DataSource = result.Data; lblPage.Text = "صفحه " + page + " / " + pages;
-                lblSummary.Text = "جدول: " + tableName + "     |     تعداد نتیجه: " + result.TotalRows.ToString("N0") + "     |     پایگاه: " + (deviceDatabase ? DatabaseManager.DeviceCatalog : DatabaseManager.MainCatalog);
-                lblGenerated.Text = "به‌روزرسانی: " + DateTime.Now.ToString("yyyy/MM/dd HH:mm"); btnPrevious.Enabled = page > 1; btnNext.Enabled = page < pages;
+                await LoadPageWithinOperationAsync(requestedPage);
             }
-            catch (Exception ex) { MessageBox.Show(DatabaseManager.SafeMessage(ex), "گزارش بارگذاری نشد", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (UnauthorizedAccessException ex)
+            {
+                if (IsFormUnavailable()) return;
+                ShowPermissionError(ex);
+            }
+            catch (Exception)
+            {
+                if (IsFormUnavailable()) return;
+                ShowDataError("اطلاعات گزارش دریافت نشد.");
+            }
+            finally
+            {
+                SetOperationBusy(false, null);
+            }
         }
 
-        private void Export(bool pdf)
+        private async Task LoadPageWithinOperationAsync(int requestedPage)
         {
-            if (String.IsNullOrWhiteSpace(tableName)) return;
-            try { AuthorizationGuard.Require("reports.export"); }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "مجوز خروجی", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            string selectedTable = tableName;
+            bool selectedDeviceDatabase = deviceDatabase;
+            string search = txtSearch.Text;
+            TablePage result = await Task.Run(() => TableRepository.GetPage(
+                selectedTable, requestedPage, PageSize, search, selectedDeviceDatabase));
+            if (IsFormUnavailable()) return;
+
+            page = result.Page;
+            pages = result.PageCount;
+            grid.DataSource = result.Data;
+            bool hasRows = result.Data != null && result.Data.Rows.Count > 0;
+            grid.Visible = hasRows;
+            lblEmptyState.Text = hasRows
+                ? String.Empty
+                : (String.IsNullOrWhiteSpace(search)
+                    ? "در این جدول، ردیفی برای نمایش وجود ندارد."
+                    : "با این عبارت، نتیجه‌ای پیدا نشد. عبارت دیگری را جست‌وجو کنید.");
+            lblEmptyState.Visible = !hasRows;
+            lblPage.Text = "صفحهٔ " + page.ToString("N0") + " از " + pages.ToString("N0");
+            lblSummary.Text = tableCaption + "  |  " + result.TotalRows.ToString("N0") + " ردیف";
+            lblGenerated.Text = "پایگاه: " + (databaseCaption ?? "—") + "  •  آخرین به‌روزرسانی: " +
+                DateTime.Now.ToString("yyyy/MM/dd  HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        private async Task ExportAsync(bool pdf)
+        {
+            if (operationBusy || String.IsNullOrWhiteSpace(tableName)) return;
+
+            try
+            {
+                AuthorizationGuard.Require("reports.export");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                ShowPermissionError(ex);
+                return;
+            }
+
             using (var dialog = new SaveFileDialog())
             {
-                dialog.Filter = pdf ? "گزارش PDF|*.pdf" : "فایل Excel|*.xlsx";
-                dialog.FileName = "Funtino_" + tableName.Replace('.', '_') + "_" + DateTime.Now.ToString("yyyyMMdd_HHmm");
+                dialog.Filter = pdf
+                    ? "گزارش قابل‌چاپ (*.pdf)|*.pdf"
+                    : "صفحه‌گسترده (*.xlsx)|*.xlsx";
+                dialog.DefaultExt = pdf ? "pdf" : "xlsx";
+                dialog.AddExtension = true;
+                dialog.FileName = CreateExportFileName();
                 if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+                string selectedTable = tableName;
+                string selectedCaption = tableCaption;
+                string search = txtSearch.Text;
+                bool selectedDeviceDatabase = deviceDatabase;
+                string path = dialog.FileName;
+                int maximum = pdf ? PdfExportLimit : ExcelExportLimit;
+
+                SetOperationBusy(true, pdf
+                    ? "در حال ساخت گزارش قابل‌چاپ…"
+                    : "در حال آماده‌سازی صفحه‌گسترده…");
                 try
                 {
-                    int maximum = pdf ? PdfExportLimit : ExcelExportLimit;
-                    bool truncated; DataTable data = TableRepository.GetReportData(tableName, txtSearch.Text, maximum, out truncated, deviceDatabase);
-                    if (pdf) ReportExportService.ExportPdf(data, "گزارش فانتینو | " + tableName, dialog.FileName); else ReportExportService.ExportExcel(data, "Funtino Report", dialog.FileName);
-                    MessageBox.Show("خروجی با " + data.Rows.Count.ToString("N0") + " ردیف ساخته شد." + (truncated ? " خروجی این قالب به " + maximum.ToString("N0") + " ردیف محدود شد؛ فیلتر را دقیق‌تر کنید." : ""), "گزارش آماده است", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    ExportResult result = await Task.Run(() =>
+                    {
+                        bool truncated;
+                        DataTable data = TableRepository.GetReportData(
+                            selectedTable, search, maximum, out truncated, selectedDeviceDatabase);
+
+                        if (pdf)
+                        {
+                            ReportExportService.ExportPdf(data, "گزارش فانتینو | " + selectedCaption, path);
+                        }
+                        else
+                        {
+                            ReportExportService.ExportExcel(data, "گزارش فانتینو", path);
+                        }
+
+                        return new ExportResult(data.Rows.Count, truncated);
+                    });
+                    if (IsFormUnavailable()) return;
+
+                    string message = "گزارش با " + result.RowCount.ToString("N0") + " ردیف ذخیره شد.";
+                    if (result.Truncated)
+                    {
+                        message += " برای کوتاه‌تر شدن زمان آماده‌سازی، این خروجی حداکثر " +
+                            maximum.ToString("N0") + " ردیف دارد؛ عبارت جست‌وجو را دقیق‌تر کنید.";
+                    }
+                    MessageBox.Show(this, message, "گزارش آماده است", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (Exception ex) { MessageBox.Show(DatabaseManager.SafeMessage(ex), "ساخت گزارش ناموفق", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                catch (UnauthorizedAccessException ex)
+                {
+                    if (IsFormUnavailable()) return;
+                    ShowPermissionError(ex);
+                }
+                catch (Exception)
+                {
+                    if (IsFormUnavailable()) return;
+                    MessageBox.ShowError(this, "ذخیرهٔ گزارش انجام نشد. فضای ذخیره‌سازی و دسترسی پوشه را بررسی کنید.", "ذخیرهٔ گزارش ناموفق بود");
+                }
+                finally
+                {
+                    SetOperationBusy(false, null);
+                }
             }
+        }
+
+        private string CreateExportFileName()
+        {
+            string raw = "گزارش_" + (tableName ?? "داده‌ها").Replace('.', '_') + "_" +
+                DateTime.Now.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture);
+            foreach (char invalid in Path.GetInvalidFileNameChars()) raw = raw.Replace(invalid, '_');
+            return raw;
+        }
+
+        private void SetOperationBusy(bool busy, string message)
+        {
+            if (IsDisposed || Disposing) return;
+
+            operationBusy = busy;
+            if (busy)
+            {
+                lblGenerated.Visible = false;
+                loadingReports.BeginLoading(message, ReportsVisualAssets.Report);
+            }
+            else
+            {
+                loadingReports.EndLoading();
+                lblGenerated.Visible = true;
+            }
+
+            cmbDatabase.Enabled = !busy && cmbDatabase.Items.Count > 0;
+            cmbTables.Enabled = !busy && cmbTables.Items.Count > 0;
+            txtSearch.Enabled = !busy && !String.IsNullOrWhiteSpace(tableName);
+            btnGenerate.Enabled = !busy && !String.IsNullOrWhiteSpace(tableName);
+            btnExcel.Enabled = !busy && canExport && !String.IsNullOrWhiteSpace(tableName);
+            btnPdf.Enabled = !busy && canExport && !String.IsNullOrWhiteSpace(tableName);
+            btnPrevious.Enabled = !busy && page > 1;
+            btnNext.Enabled = !busy && page < pages;
+        }
+
+        private bool IsFormUnavailable()
+        {
+            return IsDisposed || Disposing;
+        }
+
+        private void ShowPermissionError(Exception ex)
+        {
+            string message = String.IsNullOrWhiteSpace(ex.Message)
+                ? "دسترسی لازم برای این کار در حساب شما فعال نیست."
+                : ex.Message;
+            MessageBox.ShowWarning(this, message, "دسترسی به گزارش‌ها");
+        }
+
+        private void ShowDataError(string message)
+        {
+            MessageBox.ShowError(this, message + " ارتباط پایگاه داده را بررسی کنید و دوباره تلاش کنید.", "گزارش در دسترس نیست");
+        }
+
+        private sealed class DatabaseAvailability
+        {
+            public bool Main;
+            public bool Devices;
         }
 
         private sealed class DatabaseChoice
         {
             public string Caption { get; private set; }
             public bool DeviceDatabase { get; private set; }
-            public DatabaseChoice(string caption, bool deviceDatabase) { Caption = caption; DeviceDatabase = deviceDatabase; }
-            public override string ToString() { return Caption; }
+
+            public DatabaseChoice(string caption, bool deviceDatabase)
+            {
+                Caption = caption;
+                DeviceDatabase = deviceDatabase;
+            }
+
+            public override string ToString()
+            {
+                return Caption;
+            }
+        }
+
+        private sealed class TableChoice
+        {
+            public string FullName { get; private set; }
+            public string Caption { get; private set; }
+
+            public TableChoice(string fullName)
+            {
+                FullName = fullName;
+                string[] parts = (fullName ?? String.Empty).Split(new[] { '.' }, 2);
+                Caption = parts.Length == 2
+                    ? PermissionCatalog.SchemaCaption(parts[0]) + "  |  " + parts[1]
+                    : fullName;
+            }
+
+            public override string ToString()
+            {
+                return Caption;
+            }
+        }
+
+        private sealed class ExportResult
+        {
+            public int RowCount { get; private set; }
+            public bool Truncated { get; private set; }
+
+            public ExportResult(int rowCount, bool truncated)
+            {
+                RowCount = rowCount;
+                Truncated = truncated;
+            }
         }
     }
 }
