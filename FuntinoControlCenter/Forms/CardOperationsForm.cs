@@ -71,13 +71,13 @@ namespace FuntinoControlCenter.Forms
                     catch (Exception ex)
                     {
                         rechargeSetup = null;
-                        AppMessageService.ShowWarning(this, DisplayRechargeSetupError(ex), "بارگذاری شرایط شارژ انجام نشد");
+                        AppMessageService.ShowWarning(this, DisplayRechargeSetupError(ex), "شارژ در دسترس نیست");
                     }
                 }
                 ApplyPermissions();
                 if (!HasAnyCardOperationAccess())
                 {
-                    MessageBox.Show(this, "برای استفاده از عملیات کارت مجوزی ندارید.", "دسترسی محدود", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(this, "شما اجازه‌ی استفاده از عملیات کارت را ندارید. برای دریافت دسترسی با مدیر سامانه تماس بگیرید.", "دسترسی به عملیات ممکن نیست", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     Close();
                     return;
                 }
@@ -88,7 +88,7 @@ namespace FuntinoControlCenter.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, DisplayError(ex), "بررسی دسترسی", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, DisplayError(ex), "باز کردن بخش کارت ممکن نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 Close();
             }
         }
@@ -292,7 +292,7 @@ namespace FuntinoControlCenter.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, DisplayError(ex), "بررسی دسترسی", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, DisplayError(ex), "ادامه‌ی کار ممکن نیست", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 Close();
             }
         }
@@ -407,7 +407,7 @@ namespace FuntinoControlCenter.Forms
                 !RequirePermission("operations.recharge_terms.view")) return;
             if (rechargeSetup == null)
             {
-                AppMessageService.ShowWarning(this, "شرایط شارژ از پایگاه خوانده نشده است. تنظیمات را بررسی و دوباره تلاش کنید.", "شارژ در دسترس نیست");
+                AppMessageService.ShowWarning(this, "امکان شارژ در حال حاضر وجود ندارد. کمی بعد دوباره تلاش کنید یا از مسئول سامانه کمک بگیرید.", "شارژ در دسترس نیست");
                 return;
             }
             long amount;
@@ -420,14 +420,14 @@ namespace FuntinoControlCenter.Forms
 
             if (!TryParseAmount(txtAmount.Text, out amount))
             {
-                AppMessageService.ShowWarning(this, "مبلغ را فقط با رقم وارد کنید.", "مبلغ نامعتبر است");
+                AppMessageService.ShowWarning(this, "مبلغ را با عدد وارد کنید.", "مبلغ پذیرفته نشد");
                 txtAmount.Focus();
                 return;
             }
 
             if (amount == 0)
             {
-                AppMessageService.ShowWarning(this, "مبلغ شارژ نمی‌تواند صفر باشد. مبلغی بیشتر از صفر وارد کنید.", "شارژ با مبلغ صفر انجام نمی‌شود");
+                AppMessageService.ShowWarning(this, "مبلغ شارژ باید بیشتر از صفر باشد.", "مبلغ پذیرفته نشد");
                 txtAmount.Focus();
                 txtAmount.SelectAll();
                 return;
@@ -435,7 +435,7 @@ namespace FuntinoControlCenter.Forms
 
             if (amount > rechargeSetup.MaximumAmount)
             {
-                AppMessageService.ShowWarning(this, "حداکثر مبلغ هر بار شارژ " + rechargeSetup.MaximumAmount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان است.", "مبلغ بیش از سقف مجاز است");
+                AppMessageService.ShowWarning(this, "بیشترین مبلغ برای هر بار شارژ " + rechargeSetup.MaximumAmount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان است.", "مبلغ بیش از حد مجاز است");
                 txtAmount.Focus();
                 txtAmount.SelectAll();
                 return;
@@ -443,7 +443,7 @@ namespace FuntinoControlCenter.Forms
 
             if (amount % 100 != 0)
             {
-                AppMessageService.ShowWarning(this, "مبلغ شارژ باید مضربی از ۱۰۰ تومان باشد.", "مبلغ نامعتبر است");
+                AppMessageService.ShowWarning(this, "مبلغ شارژ را به مضرب ۱۰۰ تومان وارد کنید.", "مبلغ پذیرفته نشد");
                 txtAmount.Focus();
                 txtAmount.SelectAll();
                 return;
@@ -459,11 +459,11 @@ namespace FuntinoControlCenter.Forms
                     ? selectedPromotion.Name + " با " + selectedPromotion.DiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪ تخفیف"
                     : "بدون جشنواره";
                 DialogResult confirmation = MessageBox.Show(this,
-                    "کارت را روی کارت‌خوان بگذارید. مبلغ " + amount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان روی کارت نوشته شود؟" + Environment.NewLine + discountText + "؛ " + promotionText,
-                    "تأیید شارژ کارت", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+                    "می‌خواهید " + amount.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان به کارت اضافه شود؟" + Environment.NewLine + "کارت را روی دستگاه بگذارید." + Environment.NewLine + discountText + "؛ " + promotionText,
+                    "تأیید مبلغ شارژ", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
                 if (confirmation != DialogResult.Yes) return;
             }
-            StartWork(WorkKind.Recharge, "cards.recharge", "در حال شارژ کارت؛ تا نمایش نتیجه کارت را برندارید.", amount, promotionCode);
+            StartWork(WorkKind.Recharge, "cards.recharge", "در حال شارژ کارت؛ تا پایان کار، کارت را روی دستگاه نگه دارید.", amount, promotionCode);
         }
 
         private void CardHistoryTab_Click(object sender, EventArgs e)
@@ -477,7 +477,7 @@ namespace FuntinoControlCenter.Forms
             ShowDatabaseHistoryPanel();
             if (currentUid == null)
             {
-                SetStatus("برای دیدن سوابق سامانه، ابتدا اطلاعات، موجودی یا سوابق همین کارت را بخوانید.");
+                SetStatus("برای دیدن سوابق، ابتدا اطلاعات یا موجودی همین کارت را بخوانید.");
                 return;
             }
             historyPage = 1;
@@ -540,7 +540,7 @@ namespace FuntinoControlCenter.Forms
             if (operationWorker.IsBusy && hasCardAccess)
             {
                 e.Cancel = true;
-                MessageBox.Show(this, "عملیات کارت در حال انجام است. تا نمایش نتیجه صبر کنید.", "عملیات در جریان", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "این کار هنوز تمام نشده است. پس از نمایش نتیجه می‌توانید صفحه را ببندید.", "لطفاً کمی صبر کنید", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             if (!e.Cancel) authorizationTimer.Stop();
         }
@@ -551,7 +551,7 @@ namespace FuntinoControlCenter.Forms
             if (kind == WorkKind.Recharge && (!RequirePermission(PermissionCatalog.TableCode("finance", "create")) || !RequirePermission("operations.recharge_terms.view"))) return;
             if (operationWorker.IsBusy)
             {
-                SetStatus("درخواست قبلی هنوز در حال انجام است؛ تا پایان آن صبر کنید.");
+                SetStatus("کار قبلی هنوز تمام نشده است. پس از نمایش نتیجه دوباره تلاش کنید.");
                 return;
             }
 
@@ -572,19 +572,19 @@ namespace FuntinoControlCenter.Forms
         {
             if (currentUid == null)
             {
-                SetStatus("ابتدا کارت را بخوانید تا سوابق همان کارت جست‌وجو شود.");
+                SetStatus("ابتدا کارت را بخوانید تا سوابق همان کارت نمایش داده شود.");
                 return;
             }
             if (!RequirePermission("cards.history.view") || !RequirePermission(PermissionCatalog.TableCode("finance", "view"))) return;
             if (operationWorker.IsBusy)
             {
-                SetStatus("درخواست قبلی هنوز در حال انجام است؛ تا پایان آن صبر کنید.");
+                SetStatus("کار قبلی هنوز تمام نشده است. پس از نمایش نتیجه دوباره تلاش کنید.");
                 return;
             }
 
             ShowDatabaseHistoryPanel();
             SetBusy(true);
-            SetStatus("در حال جست‌وجوی سوابق شارژ این کارت…");
+            SetStatus("در حال نمایش سوابق شارژ کارت…");
             try
             {
                 operationWorker.RunWorkerAsync(new WorkRequest
@@ -723,7 +723,7 @@ namespace FuntinoControlCenter.Forms
                 lblBalanceValue.Text = result.BalanceToman.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + " تومان";
             if (AuthorizationGuard.Has("cards.details.view")) lblCardNumberValue.Text = result.Uid;
 
-            string message = result.HistoryRecorded ? "شارژ کارت و ثبت سابقه در سامانه انجام شد." : "شارژ کارت انجام شد، اما سابقه در سامانه ثبت نشد.";
+            string message = result.HistoryRecorded ? "کارت با موفقیت شارژ شد." : "شارژ انجام شد، اما سابقه‌ی آن در سامانه ثبت نشد.";
             if (result.Terms != null)
             {
                 var appliedTerms = new System.Collections.Generic.List<string>();
@@ -731,16 +731,16 @@ namespace FuntinoControlCenter.Forms
                     appliedTerms.Add("تخفیف روزانه " + result.Terms.DailyDiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪");
                 if (result.Terms.PromotionDiscountPercent > 0 && !String.IsNullOrWhiteSpace(result.Terms.PromotionName))
                     appliedTerms.Add("جشنواره‌ی " + result.Terms.PromotionName + " با " + result.Terms.PromotionDiscountPercent.ToString("N0", CultureInfo.GetCultureInfo("fa-IR")) + "٪ تخفیف");
-                if (appliedTerms.Count > 0) message += Environment.NewLine + "شرایط ثبت‌شده: " + String.Join("؛ ", appliedTerms.ToArray());
+                if (appliedTerms.Count > 0) message += Environment.NewLine + "تخفیف‌های اعمال‌شده: " + String.Join("؛ ", appliedTerms.ToArray());
             }
             if (!String.IsNullOrWhiteSpace(result.Warning) || !result.HistoryRecorded)
             {
-                message += Environment.NewLine + "شارژ روی کارت تأیید شده است؛ برای جلوگیری از شارژ دوباره، عملیات را تکرار نکنید.";
+                message += Environment.NewLine + "برای جلوگیری از شارژ دوباره، دوباره تلاش نکنید. ابتدا موجودی کارت را بررسی کنید.";
             }
             if (!String.IsNullOrWhiteSpace(result.Warning)) message += Environment.NewLine + result.Warning;
             SetStatus(message);
             if (!String.IsNullOrWhiteSpace(result.Warning) || !result.HistoryRecorded)
-                AppMessageService.ShowWarning(this, message, "شارژ کارت انجام شد؛ سوابق نیاز به بررسی دارد");
+                AppMessageService.ShowWarning(this, message, "شارژ انجام شد؛ نیاز به بررسی دارد");
         }
 
         private void ShowDatabaseHistory(RechargeHistoryPage page)
@@ -754,7 +754,7 @@ namespace FuntinoControlCenter.Forms
             btnPreviousHistory.Enabled = page.PageNumber > 1;
             btnNextHistory.Enabled = page.PageNumber < pageCount;
             ShowDatabaseHistoryPanel();
-            SetStatus(historyTotal == 0 ? "برای این کارت سابقه‌ای در سامانه پیدا نشد." : "سوابق شارژ سامانه به‌روز شد.");
+            SetStatus(historyTotal == 0 ? "برای این کارت سابقه‌ای پیدا نشد." : "سوابق شارژ به‌روز شد.");
         }
 
         private bool CanViewDatabaseHistory()
@@ -843,38 +843,45 @@ namespace FuntinoControlCenter.Forms
                 if (sqlException.Number == 0 &&
                     (sqlException.Message.IndexOf("SSPI context", StringComparison.OrdinalIgnoreCase) >= 0 ||
                      sqlException.Message.IndexOf("principal name is incorrect", StringComparison.OrdinalIgnoreCase) >= 0))
-                    return "ورود به پایگاه داده با حساب ویندوز برقرار نشد. نام سرور و دسترسی همین حساب ویندوز به پایگاه را بررسی کنید.";
-                return "خواندن یا ثبت اطلاعات در پایگاه انجام نشد. اتصال و دسترسی پایگاه را بررسی کنید. کد خطا: " + sqlException.Number.ToString(CultureInfo.InvariantCulture);
+                    return "اتصال به سامانه برقرار نشد. برای بررسی مشکل با مسئول سامانه تماس بگیرید.";
+                return "اطلاعات دریافت یا ذخیره نشد. دوباره تلاش کنید؛ اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.";
             }
             var unauthorized = exception as UnauthorizedAccessException;
-            if (unauthorized != null) return unauthorized.Message;
+            if (unauthorized != null) return "شما اجازه‌ی انجام این کار را ندارید. برای دریافت دسترسی با مدیر سامانه تماس بگیرید.";
             var invalidOperation = exception as InvalidOperationException;
-            if (invalidOperation != null) return invalidOperation.Message;
+            if (invalidOperation != null)
+            {
+                if (invalidOperation.Message.IndexOf("ظرفیت", StringComparison.Ordinal) >= 0)
+                    return "موجودی کارت از حد مجاز بیشتر است و نمی‌توان آن را شارژ کرد.";
+                if (invalidOperation.Message.IndexOf("سقف مجاز شارژ", StringComparison.Ordinal) >= 0)
+                    return "شارژ موقتاً در دسترس نیست. برای تنظیم مبلغ مجاز با مسئول سامانه تماس بگیرید.";
+                return "این کار در حال حاضر انجام نشد. دوباره تلاش کنید یا از مسئول سامانه کمک بگیرید.";
+            }
             if (exception is InvalidCastException || exception is FormatException || exception is OverflowException || exception is DataException)
-                return "قالب یکی از مقدارهای دریافت‌شده از پایگاه یا کارت معتبر نیست. تنظیمات تخفیف و اطلاعات کارت را بررسی کنید.";
+                return "اطلاعات کارت یا شرایط شارژ قابل استفاده نیست. برای بررسی با مسئول سامانه تماس بگیرید.";
             if (exception is TimeoutException)
-                return "کارت‌خوان پاسخ نداد. کارت را روی دستگاه بگذارید و اتصال و درگاه انتخاب‌شده را بررسی کنید.";
+                return "کارت‌خوان پاسخ نداد. اتصال دستگاه را بررسی کنید و دوباره تلاش کنید.";
             if (exception is System.IO.IOException)
-                return "ارتباط با کارت‌خوان قطع شد. اتصال کابل و درگاه انتخاب‌شده را بررسی کنید.";
-            return "عملیات کارت تکمیل نشد. علت خطا در دسته‌ی خطاهای شناخته‌شده‌ی کارت‌خوان یا پایگاه نیست؛ وضعیت پایگاه و تنظیمات عملیات را بررسی کنید.";
+                return "ارتباط با کارت‌خوان قطع شد. دستگاه را دوباره وصل کنید و تلاش کنید.";
+            return "این کار انجام نشد. دوباره تلاش کنید؛ اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.";
         }
 
         private static string DisplayRechargeSetupError(Exception exception)
         {
             exception = UnwrapException(exception);
             if (exception is SqlException)
-                return "شرایط شارژ از پایگاه داده دریافت نشد. این مرحله پیش از ارتباط با کارت‌خوان انجام می‌شود. " + DisplayError(exception);
+                return "شرایط شارژ در دسترس نیست. دوباره تلاش کنید؛ اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.";
 
             var invalidOperation = exception as InvalidOperationException;
-            if (invalidOperation != null) return invalidOperation.Message;
+            if (invalidOperation != null) return DisplayError(invalidOperation);
 
             if (exception is InvalidCastException || exception is FormatException || exception is OverflowException || exception is DataException)
-                return "یکی از عددهای سقف شارژ یا تخفیف‌ها در پایگاه قالب معتبر ندارد. اطلاعات سقف، تخفیف روزانه و جشنواره‌ها را در بخش مدیریت بررسی کنید.";
+                return "شرایط تخفیف یا مبلغ مجاز شارژ درست تنظیم نشده است. لطفاً به مسئول سامانه اطلاع دهید.";
 
             var unauthorized = exception as UnauthorizedAccessException;
-            if (unauthorized != null) return unauthorized.Message;
+            if (unauthorized != null) return "شما اجازه‌ی دریافت شرایط شارژ را ندارید. برای دریافت دسترسی با مدیر سامانه تماس بگیرید.";
 
-            return "شرایط شارژ از پایگاه دریافت نشد. این خطا پیش از ارتباط با کارت‌خوان رخ می‌دهد؛ اطلاعات سقف شارژ، تخفیف‌ها و جشنواره‌ها را بررسی کنید.";
+            return "شرایط شارژ در دسترس نیست. دوباره تلاش کنید یا از مسئول سامانه کمک بگیرید.";
         }
 
         private void ShowOperationFailure(Exception exception)
@@ -897,7 +904,7 @@ namespace FuntinoControlCenter.Forms
             }
 
             if (actual is UnauthorizedAccessException)
-                AppMessageService.ShowWarning(this, message, "دسترسی مجاز نیست");
+                AppMessageService.ShowWarning(this, message, "اجازه‌ی انجام این کار را ندارید");
             else
                 AppMessageService.ShowError(this, message, "عملیات انجام نشد");
         }
@@ -906,18 +913,18 @@ namespace FuntinoControlCenter.Forms
         {
             switch (failureKind)
             {
-                case CardReaderFailureKind.NoCardOrReaderResponse: return "کارت روی دستگاه شناسایی نشد";
-                case CardReaderFailureKind.NoCardDetected: return "کارتی روی کارت‌خوان پیدا نشد";
+                case CardReaderFailureKind.NoCardOrReaderResponse: return "کارت‌خوان پاسخ نداد";
+                case CardReaderFailureKind.NoCardDetected: return "کارت روی دستگاه نیست";
                 case CardReaderFailureKind.ReaderUnavailable: return "کارت‌خوان در دسترس نیست";
-                case CardReaderFailureKind.ReaderNotResponding: return "پاسخی از کارت‌خوان نرسید";
-                case CardReaderFailureKind.ReaderResponseInvalid: return "پاسخ کارت‌خوان معتبر نیست";
-                case CardReaderFailureKind.CardKeyRejected: return "خواندن اطلاعات کارت ممکن نشد";
+                case CardReaderFailureKind.ReaderNotResponding: return "کارت‌خوان پاسخ نداد";
+                case CardReaderFailureKind.ReaderResponseInvalid: return "ارتباط با کارت‌خوان کامل نشد";
+                case CardReaderFailureKind.CardKeyRejected: return "خواندن کارت ممکن نشد";
                 case CardReaderFailureKind.RechargeResultUnknown: return "وضعیت شارژ مشخص نیست";
                 case CardReaderFailureKind.CardIdentifierUnavailable:
                 case CardReaderFailureKind.CardSelectionFailed:
-                case CardReaderFailureKind.CardDataUnavailable: return "خواندن کارت کامل نشد";
-                case CardReaderFailureKind.CardWriteRejected: return "نوشتن روی کارت انجام نشد";
-                default: return "عملیات کارت انجام نشد";
+                case CardReaderFailureKind.CardDataUnavailable: return "خواندن اطلاعات کارت کامل نشد";
+                case CardReaderFailureKind.CardWriteRejected: return "وضعیت شارژ مشخص نیست";
+                default: return "این کار انجام نشد";
             }
         }
 

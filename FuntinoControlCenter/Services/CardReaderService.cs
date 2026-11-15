@@ -116,8 +116,8 @@ namespace FuntinoControlCenter.Services
             AuthorizationGuard.RequireAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view", "cards.recharge");
             string portName = AppSettings.Current.ReaderPort;
             if (String.IsNullOrWhiteSpace(portName))
-                return "درگاه کارت‌خوان تنظیم نشده است. از تنظیمات سخت‌افزار، درگاه کارت‌خوان را انتخاب و بررسی کنید.";
-            return "درگاه " + portName + " در تنظیمات انتخاب شده است. پاسخ کارت‌خوان فقط هنگام اجرای عملیات یا پویش دستی بررسی می‌شود؛ برنامه کارت را در زمان بیکاری پایش نمی‌کند.";
+                return "کارت‌خوان انتخاب نشده است. از بخش تنظیمات دستگاه، کارت‌خوان را انتخاب کنید.";
+            return "کارت‌خوان برای استفاده انتخاب شده است. کارت را روی دستگاه بگذارید و عملیات موردنظر را انتخاب کنید.";
         }
 
         public static bool TestReaderPort(string portName, int baudRate, out string message)
@@ -125,7 +125,7 @@ namespace FuntinoControlCenter.Services
             AuthorizationGuard.Require("devices.test");
             if (String.IsNullOrWhiteSpace(portName))
             {
-                message = "درگاه کارت‌خوان انتخاب نشده است.";
+                message = "کارت‌خوان انتخاب نشده است. آن را از بخش تنظیمات دستگاه انتخاب کنید.";
                 return false;
             }
 
@@ -151,38 +151,38 @@ namespace FuntinoControlCenter.Services
                         response.Enqueue(next);
                         if (MatchesResponse(response, RequestCardReply))
                         {
-                            message = "کارت‌خوان روی درگاه " + portName + " به فرمان شناسایی پاسخ داد. این آزمون حضور کارت را بررسی نمی‌کند.";
+                            message = "کارت‌خوان شناسایی شد و آماده‌ی استفاده است.";
                             return true;
                         }
                         if (MatchesResponse(response, RequestCardNoCardReply))
                         {
-                            message = "کارت‌خوان روی درگاه " + portName + " پاسخ داد و آماده است؛ کارتی روی آن شناسایی نشد. برای شناسایی دستگاه، کارت لازم نیست.";
+                            message = "کارت‌خوان شناسایی شد و پاسخ می‌دهد. برای خواندن کارت، کارت را روی دستگاه بگذارید.";
                             return true;
                         }
                     }
                 }
 
-                message = "درگاه " + portName + " باز شد، اما پاسخ فرمان شناسایی کارت‌خوان دریافت نشد. برای این آزمون کارت لازم نیست؛ اتصال USB، سرعت ارتباط، درگاه و روشن بودن دستگاه را بررسی کنید.";
+                message = "کارت‌خوان پاسخ نداد. مطمئن شوید دستگاه روشن و به رایانه وصل است؛ سپس دوباره تلاش کنید.";
                 return false;
             }
             catch (UnauthorizedAccessException)
             {
-                message = "درگاه " + portName + " در اختیار برنامه‌ی دیگری است یا دسترسی ویندوز به آن ممکن نیست.";
+                message = "امکان دسترسی به کارت‌خوان وجود ندارد. برنامه‌های دیگری را که از دستگاه استفاده می‌کنند ببندید و دوباره تلاش کنید.";
                 return false;
             }
             catch (System.IO.IOException)
             {
-                message = "درگاه " + portName + " در دسترس نیست. اتصال دستگاه و درگاه انتخاب‌شده را بررسی کنید.";
+                message = "کارت‌خوان پیدا نشد. اتصال دستگاه را بررسی کنید و آن را از تنظیمات دوباره انتخاب کنید.";
                 return false;
             }
             catch (ArgumentException)
             {
-                message = "درگاه یا سرعت ارتباط کارت‌خوان معتبر نیست. تنظیمات سخت‌افزار را بررسی کنید.";
+                message = "تنظیمات کارت‌خوان درست نیست. آن را از بخش تنظیمات دستگاه دوباره انتخاب کنید.";
                 return false;
             }
             catch (Exception)
             {
-                message = "پاسخ کارت‌خوان روی درگاه " + portName + " بررسی نشد. اتصال و تنظیمات سخت‌افزار را بررسی کنید.";
+                message = "کارت‌خوان شناسایی نشد. اتصال دستگاه را بررسی کنید و دوباره تلاش کنید.";
                 return false;
             }
         }
@@ -294,19 +294,19 @@ namespace FuntinoControlCenter.Services
                         startingBalance = ToToman(balanceData);
                         uint units = checked((uint)(amountToman / 100));
                         if ((ulong)startingBalance / 100UL + units > UInt32.MaxValue)
-                            throw new InvalidOperationException("موجودی کارت از ظرفیت قابل‌ذخیره بیشتر می‌شود.");
+                            throw new InvalidOperationException("موجودی کارت از حد مجاز بیشتر است و نمی‌توان آن را شارژ کرد.");
 
                         AuthorizationGuard.Require("cards.recharge");
                         AuthorizationGuard.Require("data.finance.create");
                         reader.Increment(CardBalanceBlock, units);
-                        CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "increment_accepted", "فرمان افزایش موجودی پذیرفته شد؛ انتقال نهایی هنوز انجام نشده است.");
+                        CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "increment_accepted", "شارژ کارت در حال تکمیل است.");
                         AuthorizationGuard.Require("cards.recharge");
                         AuthorizationGuard.Require("data.finance.create");
                         transferSent = true;
                         reader.Transfer(CardBalanceBlock);
                         cardWritten = true;
                         try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "card_written", "کارت‌خوان انتقال موجودی را تأیید کرد."); }
-                        catch (Exception ex) { warning = AppendWarning(warning, "ثبت وضعیت عملیات در پایگاه انجام نشد: " + FriendlyError(ex)); }
+                        catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد، اما ثبت نتیجه‌ی آن در سوابق سامانه کامل نشد. " + FriendlyError(ex)); }
 
                         try
                         {
@@ -315,11 +315,11 @@ namespace FuntinoControlCenter.Services
                         }
                         catch (Exception ex)
                         {
-                            warning = AppendWarning(warning, "موجودی کارت افزایش یافت، اما ثبت شارژ در سوابق سامانه انجام نشد: " + FriendlyError(ex));
+                            warning = AppendWarning(warning, "شارژ انجام شد، اما سابقه‌ی آن در سامانه ثبت نشد. " + FriendlyError(ex));
                         }
 
                         try { reader.SaveRechargeHistory(units); }
-                        catch (Exception ex) { warning = AppendWarning(warning, "موجودی کارت افزایش یافت، اما سابقه‌ی روی خود کارت به‌روزرسانی نشد: " + FriendlyError(ex)); }
+                        catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد، اما سوابق کارت به‌روز نشد. " + FriendlyError(ex)); }
 
                         long expectedBalance = startingBalance + amountToman;
                         try
@@ -327,19 +327,19 @@ namespace FuntinoControlCenter.Services
                             reader.Authenticate(CardBalanceBlock);
                             long verifiedBalance = ToToman(reader.ReadBlocks(CardBalanceBlock, 1));
                             if (verifiedBalance != expectedBalance)
-                                warning = AppendWarning(warning, "پاسخ کارت‌خوان با موجودی مورد انتظار همخوانی ندارد؛ موجودی را دوباره بخوانید و شارژ را تکرار نکنید.");
+                                warning = AppendWarning(warning, "موجودی کارت با مبلغ مورد انتظار همخوانی ندارد. دوباره شارژ نکنید و ابتدا موجودی را بررسی کنید.");
                             else expectedBalance = verifiedBalance;
                         }
                         catch (Exception ex)
                         {
-                            warning = AppendWarning(warning, "شارژ توسط کارت‌خوان تأیید شد، اما خواندن دوباره‌ی موجودی ممکن نشد: " + FriendlyError(ex));
+                            warning = AppendWarning(warning, "شارژ انجام شد، اما بررسی دوباره‌ی موجودی کامل نشد. دوباره شارژ نکنید و موجودی کارت را بررسی کنید. " + FriendlyError(ex));
                         }
 
                         try { reader.Halt(); }
-                        catch (Exception ex) { warning = AppendWarning(warning, "شارژ کارت‌خوان تأیید شد، اما پایان ارتباط تأیید نشد؛ شارژ را تکرار نکنید. " + FriendlyError(ex)); }
+                        catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد. برای اطمینان، موجودی کارت را دوباره بخوانید و شارژ را تکرار نکنید. " + FriendlyError(ex)); }
                         string finalStatus = String.IsNullOrEmpty(warning) ? "completed" : "completed_with_warning";
-                        try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, finalStatus, String.IsNullOrEmpty(warning) ? "شارژ کارت و ثبت عملیات پایان یافت." : warning); }
-                        catch (Exception ex) { warning = AppendWarning(warning, "ثبت نتیجه‌ی نهایی در گزارش عملیات انجام نشد: " + FriendlyError(ex)); }
+                        try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, finalStatus, String.IsNullOrEmpty(warning) ? "شارژ کارت با موفقیت انجام شد." : warning); }
+                        catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد، اما ثبت نتیجه‌ی آن در سوابق سامانه کامل نشد. " + FriendlyError(ex)); }
 
                         return new CardRechargeResult
                         {
@@ -356,13 +356,13 @@ namespace FuntinoControlCenter.Services
                 {
                     string status = transferSent && !cardWritten ? "unknown" : "failed";
                     string details = transferSent && !cardWritten
-                        ? "پاسخ انتقال نهایی دریافت نشد؛ ممکن است موجودی تغییر کرده باشد. شارژ را تکرار نکنید و ابتدا موجودی کارت را بخوانید. " + FriendlyError(ex)
+                        ? "وضعیت شارژ مشخص نیست و ممکن است مبلغ به کارت اضافه شده باشد. دوباره شارژ نکنید؛ ابتدا موجودی کارت را بخوانید. " + FriendlyError(ex)
                         : FriendlyError(ex);
                     try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, status, details); }
                     catch { }
                 if (transferSent && !cardWritten)
                         throw new CardReaderException(CardReaderFailureKind.RechargeResultUnknown,
-                            "نتیجه‌ی شارژ مشخص نیست؛ برای جلوگیری از برداشت دوباره، شارژ را تکرار نکنید. ابتدا موجودی کارت را بخوانید. شماره‌ی پیگیری: " + operationId.ToString(CultureInfo.InvariantCulture), ex);
+                            "وضعیت شارژ مشخص نیست و ممکن است مبلغ به کارت اضافه شده باشد. دوباره شارژ نکنید؛ ابتدا موجودی کارت را بخوانید. اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.", ex);
                     throw;
                 }
             }
@@ -421,13 +421,13 @@ namespace FuntinoControlCenter.Services
 
         private static long ToToman(byte[] data)
         {
-            if (data == null || data.Length < 4) throw new InvalidOperationException("اطلاعات موجودی کارت کامل دریافت نشد.");
+            if (data == null || data.Length < 4) throw new InvalidOperationException("خواندن موجودی کارت کامل نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید.");
             return checked((long)BitConverter.ToUInt32(data, 0) * 100L);
         }
 
         private static IList<CardRechargeHistoryEntry> ParseRechargeHistory(byte[] data)
         {
-            if (data == null || data.Length < 32) throw new InvalidOperationException("سوابق شارژ روی کارت کامل دریافت نشد.");
+            if (data == null || data.Length < 32) throw new InvalidOperationException("خواندن سوابق شارژ کارت کامل نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید.");
             var result = new List<CardRechargeHistoryEntry>();
             for (int record = 0; record < 2; record++)
             {
@@ -447,7 +447,7 @@ namespace FuntinoControlCenter.Services
 
         private static IList<CardUsageHistoryEntry> ParseUsageHistory(byte[] data, int firstBlock)
         {
-            if (data == null || data.Length < 48) throw new InvalidOperationException("سوابق استفاده روی کارت کامل دریافت نشد.");
+            if (data == null || data.Length < 48) throw new InvalidOperationException("خواندن سوابق استفاده از کارت کامل نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید.");
             var result = new List<CardUsageHistoryEntry>();
             for (int offset = 0; offset < 48; offset += 6)
             {
@@ -487,19 +487,20 @@ namespace FuntinoControlCenter.Services
         private static string FriendlyError(Exception exception)
         {
             if (exception is CardReaderException) return exception.Message;
-            if (exception is TimeoutException) return exception.Message;
-            if (exception is UnauthorizedAccessException &&
-                (exception.Message.IndexOf("مجوز", StringComparison.Ordinal) >= 0 ||
-                 exception.Message.IndexOf("وارد حساب", StringComparison.Ordinal) >= 0 ||
-                 exception.Message.IndexOf("گذرواژه‌ی موقت", StringComparison.Ordinal) >= 0))
-                return exception.Message;
-            if (exception is System.IO.IOException || exception is UnauthorizedAccessException)
-                return "درگاه کارت‌خوان در دسترس نیست یا برنامه‌ی دیگری آن را باز کرده است.";
-            if (exception is InvalidOperationException) return exception.Message;
+            if (exception is TimeoutException) return "کارت‌خوان پاسخ نداد. اتصال دستگاه را بررسی کنید و دوباره تلاش کنید.";
+            if (exception is UnauthorizedAccessException) return "برای انجام این کار، دسترسی لازم وجود ندارد. به مدیر سامانه اطلاع دهید.";
+            if (exception is System.IO.IOException)
+                return "کارت‌خوان در دسترس نیست. اتصال دستگاه را بررسی کنید و برنامه‌های دیگری را که از آن استفاده می‌کنند ببندید.";
+            if (exception is InvalidOperationException)
+            {
+                if (exception.Message.IndexOf("ظرفیت", StringComparison.Ordinal) >= 0)
+                    return "موجودی کارت از حد مجاز بیشتر است و نمی‌توان آن را شارژ کرد.";
+                return "این کار در حال حاضر انجام نشد. دوباره تلاش کنید یا به مسئول سامانه اطلاع دهید.";
+            }
             var sqlException = exception as SqlException;
             if (sqlException != null)
-                return "خواندن یا ثبت اطلاعات در پایگاه انجام نشد. اتصال و دسترسی پایگاه را بررسی کنید. کد خطا: " + sqlException.Number.ToString(CultureInfo.InvariantCulture);
-            return DatabaseManager.SafeMessage(exception);
+                return "ثبت یا دریافت اطلاعات در سامانه انجام نشد. دوباره تلاش کنید؛ اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.";
+            return "این کار انجام نشد. دوباره تلاش کنید؛ اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.";
         }
 
         private sealed class ReaderSession : IDisposable
@@ -520,7 +521,7 @@ namespace FuntinoControlCenter.Services
             {
                 string portName = AppSettings.Current.ReaderPort;
                 if (String.IsNullOrWhiteSpace(portName))
-                    throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "درگاه کارت‌خوان تنظیم نشده است. از تنظیمات سخت‌افزار، درگاه کارت‌خوان را انتخاب و بررسی کنید.");
+                    throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "کارت‌خوان انتخاب نشده است. از بخش تنظیمات دستگاه، آن را انتخاب کنید.");
                 byte[] key = AppSettings.Current.GetReaderCardKey();
 
                 SerialPort serialPort = null;
@@ -537,11 +538,11 @@ namespace FuntinoControlCenter.Services
                     if (serialPort != null) serialPort.Dispose();
                     if (key != null) Array.Clear(key, 0, key.Length);
                     if (ex is UnauthorizedAccessException)
-                        throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "درگاه " + portName + " در اختیار برنامه‌ی دیگری است یا دسترسی ویندوز به آن ممکن نیست. برنامه‌ی دیگر را ببندید یا درگاه کارت‌خوان را در تنظیمات تغییر دهید.", ex);
+                        throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "امکان دسترسی به کارت‌خوان وجود ندارد. برنامه‌های دیگری را که از دستگاه استفاده می‌کنند ببندید و دوباره تلاش کنید.", ex);
                     if (ex is System.IO.IOException)
-                        throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "درگاه " + portName + " پیدا نشد یا کارت‌خوان به آن وصل نیست. اتصال و درگاه انتخاب‌شده را بررسی کنید.", ex);
+                        throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "کارت‌خوان پیدا نشد. اتصال دستگاه را بررسی کنید یا آن را از تنظیمات دوباره انتخاب کنید.", ex);
                     if (ex is ArgumentException || ex is InvalidOperationException)
-                        throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "درگاه کارت‌خوان معتبر نیست یا در دسترس نیست. از تنظیمات، درگاه دیگری را انتخاب و بررسی کنید.", ex);
+                        throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "تنظیمات کارت‌خوان درست نیست. آن را از بخش تنظیمات دستگاه دوباره انتخاب کنید.", ex);
                     throw;
                 }
 
@@ -572,7 +573,7 @@ namespace FuntinoControlCenter.Services
                 Array.Copy(Uid, 0, frame, 6, 4);
                 frame[10] = Xor(AuthenticateCommand[1], AuthenticateCommand[2], AuthenticateCommand[3], AuthenticateCommand[4], frame[5], Uid[0], Uid[1], Uid[2], Uid[3]);
                 Send(frame);
-                ReadStatus("کارت شناسایی شد، اما اطلاعات آن با کلید ذخیره‌شده قابل‌خواندن نیست. کارت را ثابت نگه دارید؛ اگر این خطا برای همه‌ی کارت‌ها تکرار می‌شود، کلید کارت را از تنظیمات دوباره درون‌ریزی کنید.", CardReaderFailureKind.CardKeyRejected);
+                ReadStatus("خواندن این کارت ممکن نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید؛ اگر مشکل تکرار شد، به مسئول سامانه اطلاع دهید.", CardReaderFailureKind.CardKeyRejected);
             }
 
             public byte[] ReadBlocks(int firstBlock, int count)
@@ -586,7 +587,7 @@ namespace FuntinoControlCenter.Services
                 byte[] expected = count == 1 ? ReadOneBlockReply : (count == 2 ? ReadTwoBlocksReply : ReadThreeBlocksReply);
                 int frameLength = 4 + 16 * count;
                 byte[] response = ReadFrame(expected, frameLength, TimeSpan.FromSeconds(3), CardReaderFailureKind.CardDataUnavailable,
-                    "کارت هنگام خواندن پاسخ نداد. ممکن است از روی کارت‌خوان برداشته شده یا درست روی آن قرار نگرفته باشد؛ کارت را ثابت بگذارید و دوباره تلاش کنید.");
+                    "خواندن کارت کامل نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید.");
                 var data = new byte[16 * count];
                 Array.Copy(response, 4, data, 0, data.Length);
                 return data;
@@ -604,7 +605,7 @@ namespace FuntinoControlCenter.Services
                 Array.Copy(bytes, 0, frame, 6, 4);
                 frame[10] = checksum;
                 Send(frame);
-                ReadStatus("کارت‌خوان افزایش موجودی را نپذیرفت. کارت را برندارید و دوباره موجودی را بخوانید.", CardReaderFailureKind.CardWriteRejected);
+                ReadStatus("شارژ کارت انجام نشد. کارت را روی دستگاه نگه دارید و موجودی را دوباره بررسی کنید.", CardReaderFailureKind.CardWriteRejected);
             }
 
             public void Transfer(int block)
@@ -613,7 +614,7 @@ namespace FuntinoControlCenter.Services
                 byte blockByte = checked((byte)block);
                 byte checksum = Xor(TransferValue[1], TransferValue[2], TransferValue[3], blockByte);
                 Send(new[] { TransferValue[0], TransferValue[1], TransferValue[2], TransferValue[3], blockByte, checksum });
-                ReadStatus("کارت‌خوان انتقال نهایی موجودی را تأیید نکرد.", CardReaderFailureKind.CardWriteRejected);
+                ReadStatus("وضعیت شارژ تأیید نشد. دوباره شارژ نکنید؛ ابتدا موجودی کارت را بخوانید.", CardReaderFailureKind.CardWriteRejected);
             }
 
             public void SaveRechargeHistory(uint addedUnits)
@@ -653,7 +654,7 @@ namespace FuntinoControlCenter.Services
                 frame.Add(oldData[31]);
                 frame.Add(checksum);
                 Send(frame.ToArray());
-                ReadStatus("شارژ انجام شد، اما ثبت سابقه روی خود کارت تأیید نشد.", CardReaderFailureKind.CardDataUnavailable);
+                ReadStatus("شارژ انجام شد، اما سوابق کارت به‌روز نشد.", CardReaderFailureKind.CardDataUnavailable);
             }
 
             public void Halt()
@@ -667,17 +668,17 @@ namespace FuntinoControlCenter.Services
             {
                 Send(RequestCard);
                 byte[] requestReply = ReadFrame(new byte[] { 2, 4 }, RequestCardReply.Length, TimeSpan.FromSeconds(7), CardReaderFailureKind.ReaderNotResponding,
-                    "کارت‌خوان به فرمان آغاز خواندن پاسخ نداد. اتصال دستگاه، درگاه انتخاب‌شده و سرعت ارتباط را بررسی کنید.");
+                    "کارت‌خوان پاسخ نداد. مطمئن شوید دستگاه روشن و به رایانه وصل است؛ سپس دوباره تلاش کنید.");
                 if (MatchesFrame(requestReply, RequestCardNoCardReply))
                     throw new CardReaderException(CardReaderFailureKind.NoCardDetected,
-                        "کارت‌خوان روی درگاه " + port.PortName + " آماده است، اما کارتی روی آن شناسایی نشد. کارت را در مرکز دستگاه بگذارید و دوباره تلاش کنید.");
+                        "کارتی روی کارت‌خوان نیست. کارت را روی دستگاه بگذارید و دوباره تلاش کنید.");
                 if (!MatchesFrame(requestReply, RequestCardReply))
                     throw new CardReaderException(CardReaderFailureKind.ReaderResponseInvalid,
-                        "کارت‌خوان روی درگاه " + port.PortName + " پاسخ داد، اما پاسخ آغاز خواندن معتبر نبود. سرعت ارتباط و سازگاری دستگاه را بررسی کنید.");
+                        "ارتباط با کارت‌خوان کامل نشد. دستگاه را جدا و دوباره وصل کنید و تلاش کنید.");
 
                 Send(Anticollision);
                 byte[] collideResponse = ReadFrame(AnticollisionReply, 8, TimeSpan.FromSeconds(3), CardReaderFailureKind.NoCardDetected,
-                    "کارت‌خوان آماده است، اما کارتی روی آن شناسایی نشد. کارت را در مرکز دستگاه بگذارید و دوباره تلاش کنید. اگر این پیام با کارت‌های دیگر هم تکرار شد، وضعیت کارت و سطح کارت‌خوان را بررسی کنید.");
+                    "کارتی روی کارت‌خوان نیست. کارت را روی دستگاه بگذارید و دوباره تلاش کنید.");
                 Uid = new byte[4];
                 Array.Copy(collideResponse, 4, Uid, 0, Uid.Length);
 
@@ -687,24 +688,24 @@ namespace FuntinoControlCenter.Services
                 selectFrame[9] = Xor(SelectCard[1], SelectCard[2], SelectCard[3], SelectCard[4], Uid[0], Uid[1], Uid[2], Uid[3]);
                 Send(selectFrame);
                 ReadFrame(SelectCardReply, SelectCardReply.Length, TimeSpan.FromSeconds(3), CardReaderFailureKind.CardSelectionFailed,
-                    "شناسه‌ی کارت دریافت شد، اما ارتباط با خود کارت کامل نشد. کارت را روی کارت‌خوان ثابت بگذارید و دوباره تلاش کنید.");
+                    "کارت شناسایی شد، اما خواندن آن کامل نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید.");
 
                 if (key == null)
                     throw new CardReaderException(CardReaderFailureKind.CardKeyRejected,
-                        "کارت روی کارت‌خوان شناسایی شد، اما کلید امنیتی کارت در تنظیمات این حساب ویندوز ثبت نشده است. فایل کلید کارت را از تنظیمات درون‌ریزی کنید.");
+                        "خواندن این کارت ممکن نشد. به مسئول سامانه اطلاع دهید.");
 
                 var keyFrame = new byte[11];
                 Array.Copy(LoadKey, keyFrame, LoadKey.Length);
                 Array.Copy(key, 0, keyFrame, 4, key.Length);
                 keyFrame[10] = Xor(LoadKey[1], LoadKey[2], LoadKey[3], key[0], key[1], key[2], key[3], key[4], key[5]);
                 Send(keyFrame);
-                ReadStatus("کارت شناسایی شد، اما کلید امنیتی کارت پذیرفته نشد. ممکن است کارت آسیب‌دیده یا با این سامانه ناسازگار باشد. اگر همه‌ی کارت‌ها همین خطا را می‌دهند، کلید کارت را در تنظیمات دوباره وارد کنید.", CardReaderFailureKind.CardKeyRejected);
+                ReadStatus("خواندن این کارت ممکن نشد. کارت را بردارید، دوباره روی دستگاه بگذارید و تلاش کنید؛ اگر مشکل تکرار شد، به مسئول سامانه اطلاع دهید.", CardReaderFailureKind.CardKeyRejected);
             }
 
             private void ReadStatus(string failureMessage, CardReaderFailureKind failureKind)
             {
                 byte[] response = ReadFrame(StatusReply, 4, TimeSpan.FromSeconds(3), CardReaderFailureKind.ReaderNotResponding,
-                    "کارت‌خوان به فرمان پاسخ نداد. کارت را ثابت نگه دارید؛ اگر دوباره تکرار شد، درگاه و اتصال دستگاه را بررسی کنید.");
+                    "کارت‌خوان پاسخ نداد. اتصال دستگاه را بررسی کنید و دوباره تلاش کنید.");
                 if (response[3] != 0) throw new CardReaderException(failureKind, failureMessage);
             }
 
@@ -761,7 +762,7 @@ namespace FuntinoControlCenter.Services
 
             private void EnsureOpen()
             {
-                if (disposed || port == null || !port.IsOpen) throw new InvalidOperationException("ارتباط کارت‌خوان برقرار نیست.");
+                if (disposed || port == null || !port.IsOpen) throw new InvalidOperationException("ارتباط با کارت‌خوان برقرار نیست. دستگاه را بررسی کنید و دوباره تلاش کنید.");
             }
 
             public void Dispose()

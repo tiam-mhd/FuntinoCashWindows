@@ -47,9 +47,9 @@ namespace FuntinoControlCenter.Services
             if (successfulPorts.Count == 0)
                 message = BuildReaderDetectionFailureMessage(ports, usbBridge, baudRate);
             else if (successfulPorts.Any(port => cp210xPorts.Contains(port)))
-                message = "مبدل کارت‌خوان روی درگاه " + String.Join("، ", successfulPorts.Where(port => cp210xPorts.Contains(port))) + " از روی شناسه‌ی سخت‌افزاری شناسایی شد. این شناسایی به کارت نیاز ندارد؛ خواندن کارت فقط هنگام اجرای عملیات انجام می‌شود.";
+                message = "کارت‌خوان از روی اتصال به رایانه شناسایی شد. برای بررسی عملکرد، کارت را روی دستگاه بگذارید و یکی از عملیات‌ها را انجام دهید.";
             else
-                message = "کارت‌خوان به فرمان شناسایی پاسخ داد. این آزمون به حضور کارت وابسته نیست؛ کارت فقط هنگام اجرای عملیات انتخاب‌شده خوانده می‌شود.";
+                message = "کارت‌خوان پاسخ می‌دهد و آماده‌ی استفاده است.";
             return successfulPorts;
         }
 
@@ -68,19 +68,18 @@ namespace FuntinoControlCenter.Services
         private static string BuildReaderDetectionFailureMessage(string[] serialPorts, UsbSerialBridgeStatus usbBridge, int baudRate)
         {
             if (usbBridge != null && usbBridge.ConfigurationErrorCode == 28)
-                return "ویندوز مبدل CP210x را می‌بیند، اما درایورش نصب نیست؛ درایور رسمی CP210x VCP را نصب و دستگاه را دوباره وصل کنید. کارت برای شناسایی دستگاه لازم نیست.";
+                return "کارت‌خوان پیدا شد، اما آماده‌ی استفاده نیست. برای راه‌اندازی دستگاه از مسئول سامانه کمک بگیرید.";
 
             if (usbBridge != null && usbBridge.ConfigurationErrorCode != 0)
-                return "ویندوز مبدل «" + usbBridge.Name + "» را می‌بیند، اما درایورش آماده نیست. درایور CP210x VCP را بررسی و دستگاه را دوباره وصل کنید.";
+                return "کارت‌خوان پیدا شد، اما آماده‌ی استفاده نیست. دستگاه را جدا و دوباره وصل کنید؛ اگر مشکل ادامه داشت، از مسئول سامانه کمک بگیرید.";
 
             if (serialPorts.Length == 0 && usbBridge != null)
-                return "ویندوز مبدل «" + usbBridge.Name + "» را می‌بیند، اما درگاه COM فعالی برای آن نساخته است. درایور CP210x VCP را بررسی کنید.";
+                return "کارت‌خوان به رایانه وصل است، اما هنوز آماده‌ی استفاده نیست. دستگاه را جدا و دوباره وصل کنید؛ اگر مشکل ادامه داشت، از مسئول سامانه کمک بگیرید.";
 
             if (serialPorts.Length == 0)
-                return "هیچ درگاه سریالی در ویندوز پیدا نشد. اتصال USB و نصب درایور کارت‌خوان را بررسی کنید؛ برای شناسایی خود دستگاه کارت لازم نیست.";
+                return "کارت‌خوان پیدا نشد. اتصال دستگاه را بررسی کنید و دوباره تلاش کنید.";
 
-            string availablePorts = String.Join("، ", serialPorts);
-            return "درگاه‌های " + availablePorts + " در ویندوز موجودند، اما هیچ‌کدام به فرمان شناسایی کارت‌خوان در سرعت " + baudRate + " پاسخ ندادند. کارت لازم نیست؛ درگاه درست، سرعت، کابل و روشن بودن دستگاه را بررسی کنید.";
+            return "کارت‌خوان پیدا شد، اما پاسخ نمی‌دهد. مطمئن شوید دستگاه روشن و به رایانه وصل است؛ سپس دوباره تلاش کنید.";
         }
 
         private static IList<UsbSerialBridgeStatus> FindCp210xBridges()
@@ -161,7 +160,7 @@ namespace FuntinoControlCenter.Services
         public static bool TestPort(string portName, int baudRate, out string message)
         {
             AuthorizationGuard.Require("devices.test");
-            if (String.IsNullOrWhiteSpace(portName)) { message = "درگاه انتخاب نشده است."; return false; }
+            if (String.IsNullOrWhiteSpace(portName)) { message = "کارت‌خوان انتخاب نشده است. آن را از فهرست دستگاه‌ها انتخاب کنید."; return false; }
             bool success = CardReaderService.TestReaderPort(portName, baudRate, out message);
             Record("reader-protocol-handshake", portName, success, message);
             return success;
