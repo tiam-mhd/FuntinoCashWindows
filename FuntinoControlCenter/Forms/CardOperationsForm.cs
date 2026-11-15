@@ -879,7 +879,8 @@ namespace FuntinoControlCenter.Forms
         {
             switch (failureKind)
             {
-                case CardReaderFailureKind.NoCardOrReaderResponse: return "کارت یا کارت‌خوان پاسخ نداد";
+                case CardReaderFailureKind.NoCardOrReaderResponse: return "کارت روی دستگاه شناسایی نشد";
+                case CardReaderFailureKind.NoCardDetected: return "کارتی روی کارت‌خوان پیدا نشد";
                 case CardReaderFailureKind.ReaderUnavailable: return "کارت‌خوان در دسترس نیست";
                 case CardReaderFailureKind.ReaderNotResponding: return "پاسخی از کارت‌خوان نرسید";
                 case CardReaderFailureKind.CardKeyRejected: return "خواندن اطلاعات کارت ممکن نشد";

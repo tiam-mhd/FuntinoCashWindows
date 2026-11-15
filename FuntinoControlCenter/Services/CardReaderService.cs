@@ -12,6 +12,7 @@ namespace FuntinoControlCenter.Services
     internal enum CardReaderFailureKind
     {
         NoCardOrReaderResponse,
+        NoCardDetected,
         CardIdentifierUnavailable,
         CardSelectionFailed,
         CardKeyRejected,
@@ -148,13 +149,13 @@ namespace FuntinoControlCenter.Services
                         response.Enqueue(next);
                         if (MatchesResponse(response, RequestCardReply))
                         {
-                            message = "کارت‌خوان روی درگاه " + portName + " به درخواست شناسایی پاسخ داد. این آزمون فقط پاسخ دستگاه و کارت حاضر روی آن را در همین لحظه تأیید می‌کند.";
+                            message = "کارت‌خوان روی درگاه " + portName + " به فرمان شناسایی پاسخ داد. این آزمون حضور کارت را بررسی نمی‌کند.";
                             return true;
                         }
                     }
                 }
 
-                message = "درگاه " + portName + " باز شد، اما پاسخ معتبر کارت‌خوان دریافت نشد. برای پویش، یک کارت را روی دستگاه بگذارید و دوباره تلاش کنید؛ اگر کارت حاضر است، اتصال، سرعت ارتباط و درگاه را بررسی کنید.";
+                message = "درگاه " + portName + " باز شد، اما پاسخ فرمان شناسایی کارت‌خوان دریافت نشد. برای این آزمون کارت لازم نیست؛ اتصال USB، سرعت ارتباط، درگاه و روشن بودن دستگاه را بررسی کنید.";
                 return false;
             }
             catch (UnauthorizedAccessException)
@@ -164,7 +165,7 @@ namespace FuntinoControlCenter.Services
             }
             catch (System.IO.IOException)
             {
-                message = "درگاه " + portName + " در دسترس نیست. اتصال کارت‌خوان و درگاه انتخاب‌شده را بررسی کنید.";
+                message = "درگاه " + portName + " در دسترس نیست. اتصال دستگاه و درگاه انتخاب‌شده را بررسی کنید.";
                 return false;
             }
             catch (ArgumentException)
@@ -652,12 +653,12 @@ namespace FuntinoControlCenter.Services
             private void SelectAndLoadKey()
             {
                 Send(RequestCard);
-                ReadFrame(RequestCardReply, RequestCardReply.Length, TimeSpan.FromSeconds(7), CardReaderFailureKind.NoCardOrReaderResponse,
-                    "کارت‌خوان از کارت پاسخی نگرفت. کارت را در مرکز دستگاه بگذارید و عملیات را دوباره انتخاب کنید. اگر کارت روی دستگاه است، ممکن است درگاه یا سرعت ارتباط نادرست باشد یا کارت‌خوان پاسخ ندهد؛ چراغ، کابل و تنظیمات سخت‌افزار را بررسی کنید.");
+                ReadFrame(RequestCardReply, RequestCardReply.Length, TimeSpan.FromSeconds(7), CardReaderFailureKind.ReaderNotResponding,
+                    "کارت‌خوان به فرمان آغاز خواندن پاسخ نداد. اتصال دستگاه، درگاه انتخاب‌شده و سرعت ارتباط را بررسی کنید.");
 
                 Send(Anticollision);
-                byte[] collideResponse = ReadFrame(AnticollisionReply, 8, TimeSpan.FromSeconds(3), CardReaderFailureKind.CardIdentifierUnavailable,
-                    "کارت روی دستگاه پاسخ داد، اما شناسه‌ی آن خوانده نشد. کارت را ثابت نگه دارید و اگر لازم شد یک کارت دیگر را امتحان کنید.");
+                byte[] collideResponse = ReadFrame(AnticollisionReply, 8, TimeSpan.FromSeconds(3), CardReaderFailureKind.NoCardDetected,
+                    "کارت‌خوان آماده است، اما کارتی روی آن شناسایی نشد. کارت را در مرکز دستگاه بگذارید و دوباره تلاش کنید. اگر این پیام با کارت‌های دیگر هم تکرار شد، وضعیت کارت و سطح کارت‌خوان را بررسی کنید.");
                 Uid = new byte[4];
                 Array.Copy(collideResponse, 4, Uid, 0, Uid.Length);
 

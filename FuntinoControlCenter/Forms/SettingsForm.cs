@@ -119,7 +119,8 @@ namespace FuntinoControlCenter.Forms
                     cmbReaderPort.Visible = cmbPosPort.Visible = canTestDevices;
                     if (canTestDevices)
                     {
-                        lblReaderPortState.Text = "برای شناسایی کارت‌خوان، کارت را روی دستگاه بگذارید و «پویش کارت‌خوان» را انتخاب کنید.";
+                        lblReaderPortState.Text = "برای شناسایی کارت‌خوان به کارت نیاز نیست؛ پویش فقط خود دستگاه را بررسی می‌کند.";
+                        ScanReaderPorts(false);
                         ScanPosPorts(false);
                     }
                     else
@@ -200,6 +201,11 @@ namespace FuntinoControlCenter.Forms
                 string message;
                 var ports = HardwareService.DetectReaderPorts(ReadBaud(cmbReaderBaud, AppSettings.Current.ReaderBaud), out message);
                 BindSuccessfulPorts(cmbReaderPort, ports, preferred);
+                if (ports.Count == 1 && canUpdateHardware && !String.Equals(AppSettings.Current.ReaderPort, ports[0], StringComparison.OrdinalIgnoreCase))
+                {
+                    AppSettings.Current.ReaderPort = ports[0];
+                    AppSettings.Current.Save();
+                }
                 lblReaderPortState.Text = BuildPortStatus(message, ports.Count, cmbReaderPort.SelectedItem != null);
                 cmbReaderPort.Enabled = canUpdateHardware && ports.Count > 0;
                 btnRescanReader.Enabled = true;
@@ -210,7 +216,7 @@ namespace FuntinoControlCenter.Forms
             {
                 cmbReaderPort.Items.Clear();
                 cmbReaderPort.Enabled = false;
-                lblReaderPortState.Text = "پویش کارت‌خوان کامل نشد. کارت را روی دستگاه بگذارید و اتصال، درگاه و سرعت ارتباط را بررسی کنید.";
+                lblReaderPortState.Text = "پویش کارت‌خوان کامل نشد. برای شناسایی دستگاه کارت لازم نیست؛ اتصال، درگاه و سرعت ارتباط را بررسی کنید.";
                 if (showCompletion) MessageBox.Show(this, lblReaderPortState.Text, "بررسی کارت‌خوان", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }

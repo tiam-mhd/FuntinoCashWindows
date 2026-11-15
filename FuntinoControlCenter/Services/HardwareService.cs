@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using Microsoft.Win32;
 using System.Reflection;
 using FuntinoControlCenter.Security;
 
@@ -10,6 +11,13 @@ namespace FuntinoControlCenter.Services
 {
     internal static class HardwareService
     {
+        private sealed class UsbSerialBridgeStatus
+        {
+            public string Name { get; set; }
+            public string PortName { get; set; }
+            public int ConfigurationErrorCode { get; set; }
+        }
+
         public static string[] GetPortNames()
         {
             AuthorizationGuard.RequireAny("settings.hardware.view", "settings.hardware.update", "devices.test");
@@ -22,19 +30,108 @@ namespace FuntinoControlCenter.Services
             AuthorizationGuard.Require("devices.test");
             var successfulPorts = new List<string>();
             string[] ports = SerialPort.GetPortNames().OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray();
+            UsbSerialBridgeStatus usbBridge = FindCp210xBridge();
+            var cp210xPorts = FindReadyCp210xPorts(ports);
             foreach (string port in ports)
             {
+                if (cp210xPorts.Contains(port))
+                {
+                    successfulPorts.Add(port);
+                    continue;
+                }
+
                 string result;
                 if (TestPort(port, baudRate, out result)) successfulPorts.Add(port);
             }
 
             if (successfulPorts.Count == 0)
-                message = ports.Length == 0
-                    ? "هیچ درگاه سریالی در ویندوز پیدا نشد. اتصال کارت‌خوان را بررسی کنید."
-                    : "هیچ کارت‌خوانی پاسخ معتبر نداد. یک کارت را روی دستگاه بگذارید و دوباره پویش کنید؛ اگر کارت حاضر است، اتصال و سرعت ارتباط را بررسی کنید.";
+                message = BuildReaderDetectionFailureMessage(ports, usbBridge, baudRate);
+            else if (successfulPorts.Any(port => cp210xPorts.Contains(port)))
+                message = "مبدل کارت‌خوان روی درگاه " + String.Join("، ", successfulPorts.Where(port => cp210xPorts.Contains(port))) + " از روی شناسه‌ی سخت‌افزاری شناسایی شد. این شناسایی به کارت نیاز ندارد؛ خواندن کارت فقط هنگام اجرای عملیات انجام می‌شود.";
             else
-                message = "فقط درگاه‌هایی نمایش داده می‌شوند که به درخواست شناسایی کارت‌خوان پاسخ معتبر دادند. برای این آزمون، کارت باید روی دستگاه باشد؛ کارت در زمان بیکاری پایش نمی‌شود.";
+                message = "کارت‌خوان به فرمان شناسایی پاسخ داد. این آزمون به حضور کارت وابسته نیست؛ کارت فقط هنگام اجرای عملیات انتخاب‌شده خوانده می‌شود.";
             return successfulPorts;
+        }
+
+        private static HashSet<string> FindReadyCp210xPorts(string[] availablePorts)
+        {
+            var serialPorts = new HashSet<string>(availablePorts, StringComparer.OrdinalIgnoreCase);
+            var recognizedPorts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (UsbSerialBridgeStatus bridge in FindCp210xBridges())
+            {
+                if (bridge.ConfigurationErrorCode == 0 && !String.IsNullOrWhiteSpace(bridge.PortName) && serialPorts.Contains(bridge.PortName))
+                    recognizedPorts.Add(bridge.PortName);
+            }
+            return recognizedPorts;
+        }
+
+        private static string BuildReaderDetectionFailureMessage(string[] serialPorts, UsbSerialBridgeStatus usbBridge, int baudRate)
+        {
+            if (usbBridge != null && usbBridge.ConfigurationErrorCode == 28)
+                return "ویندوز مبدل CP210x را می‌بیند، اما درایورش نصب نیست؛ درایور رسمی CP210x VCP را نصب و دستگاه را دوباره وصل کنید. کارت برای شناسایی دستگاه لازم نیست.";
+
+            if (usbBridge != null && usbBridge.ConfigurationErrorCode != 0)
+                return "ویندوز مبدل «" + usbBridge.Name + "» را می‌بیند، اما درایورش آماده نیست. درایور CP210x VCP را بررسی و دستگاه را دوباره وصل کنید.";
+
+            if (serialPorts.Length == 0 && usbBridge != null)
+                return "ویندوز مبدل «" + usbBridge.Name + "» را می‌بیند، اما درگاه COM فعالی برای آن نساخته است. درایور CP210x VCP را بررسی کنید.";
+
+            if (serialPorts.Length == 0)
+                return "هیچ درگاه سریالی در ویندوز پیدا نشد. اتصال USB و نصب درایور کارت‌خوان را بررسی کنید؛ برای شناسایی خود دستگاه کارت لازم نیست.";
+
+            string availablePorts = String.Join("، ", serialPorts);
+            return "درگاه‌های " + availablePorts + " در ویندوز موجودند، اما هیچ‌کدام به فرمان شناسایی کارت‌خوان در سرعت " + baudRate + " پاسخ ندادند. کارت لازم نیست؛ درگاه درست، سرعت، کابل و روشن بودن دستگاه را بررسی کنید.";
+        }
+
+        private static IList<UsbSerialBridgeStatus> FindCp210xBridges()
+        {
+            var bridges = new List<UsbSerialBridgeStatus>();
+            try
+            {
+                using (RegistryKey usbDevices = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\USB", false))
+                {
+                    if (usbDevices == null) return bridges;
+                    foreach (string vendorDeviceName in usbDevices.GetSubKeyNames())
+                    {
+                        if (!vendorDeviceName.StartsWith("VID_10C4&PID_", StringComparison.OrdinalIgnoreCase)) continue;
+                        using (RegistryKey vendorDevice = usbDevices.OpenSubKey(vendorDeviceName, false))
+                        {
+                            if (vendorDevice == null) continue;
+                            foreach (string instanceName in vendorDevice.GetSubKeyNames())
+                            {
+                                using (RegistryKey instance = vendorDevice.OpenSubKey(instanceName, false))
+                                {
+                                    if (instance == null) continue;
+                                    string name = Convert.ToString(instance.GetValue("FriendlyName", null));
+                                    if (String.IsNullOrWhiteSpace(name)) name = Convert.ToString(instance.GetValue("DeviceDesc", null));
+                                    if (String.IsNullOrWhiteSpace(name)) name = "مبدل USB به سریال CP210x";
+                                    if (name.IndexOf("CP210", StringComparison.OrdinalIgnoreCase) < 0 &&
+                                        name.IndexOf("USB to UART Bridge", StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+                                    string portName = null;
+                                    using (RegistryKey parameters = instance.OpenSubKey("Device Parameters", false))
+                                        if (parameters != null) portName = Convert.ToString(parameters.GetValue("PortName", null));
+
+                                    int errorCode = 0;
+                                    object rawFlags = instance.GetValue("ConfigFlags", null);
+                                    if (rawFlags != null && (Convert.ToInt32(rawFlags, System.Globalization.CultureInfo.InvariantCulture) & 0x40) != 0)
+                                        errorCode = 28;
+                                    bridges.Add(new UsbSerialBridgeStatus { Name = name, PortName = portName, ConfigurationErrorCode = errorCode });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException) { }
+            catch (System.Security.SecurityException) { }
+            catch (IOException) { }
+            return bridges;
+        }
+
+        private static UsbSerialBridgeStatus FindCp210xBridge()
+        {
+            return FindCp210xBridges().FirstOrDefault();
         }
 
         public static IList<string> DetectPosPorts(out string message)

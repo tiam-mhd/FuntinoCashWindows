@@ -47,8 +47,10 @@ These rules apply to every current and future change in this repository.
 ## Card operations landing and device ports
 
 - After sign-in, the first page is the card operations hub. Give card top-up and card balance the strongest visual priority, with shortcuts to the card-related operations available to the signed-in user.
-- Port settings must show only ports that pass the relevant device test. With one successful port, select it automatically; with several, let the user choose; with none, show a clear Persian message and keep the list empty.
-- A serial port that opens and closes successfully is only known to be available to Windows. Do not describe that result as proof that the card reader responded or that card reading works. Use a device-specific handshake when the hardware supports one, and state the test boundary in Persian.
+- Detecting the reader must not require a card. Identify supported USB reader bridges from their hardware identity and map them to their COM ports; for other readers, use a device-specific handshake that does not read card data. Never mistake a motherboard COM port for a reader just because Windows lists it.
+- Port settings must show only ports that pass the relevant hardware identity or device-response check. With one recognized port, select it automatically; with several, let the user choose; with none, show the detected device/driver problem in clear Persian and keep the list empty.
+- A serial port that opens and closes successfully is only known to be available to Windows. Do not describe that result as proof that the card reader responded or that card reading works. State whether the displayed reader was identified by its USB hardware identity or by a device-specific handshake.
+- Do not poll for cards while idle. Read card presence or data only after the user explicitly invokes a card operation; distinguish a missing card from a missing driver, unavailable COM port, and an unresponsive reader.
 - POS port detection must initialize the installed SDK and accept only its documented success response. Missing SDKs or unsuccessful responses must never appear in the successful-port list.
 
 <!-- gitnexus:start -->

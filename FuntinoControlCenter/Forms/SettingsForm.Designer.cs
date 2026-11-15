@@ -369,7 +369,7 @@ namespace FuntinoControlCenter.Forms
             this.lblReaderPortState.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblReaderPortState.Size = new System.Drawing.Size(1008, 25);
             this.lblReaderPortState.TabIndex = 9;
-            this.lblReaderPortState.Text = "برای شناسایی کارت‌خوان، کارت را روی دستگاه بگذارید و پویش را انتخاب کنید.";
+            this.lblReaderPortState.Text = "برای شناسایی کارت‌خوان به کارت نیاز نیست؛ پویش فقط خود دستگاه را بررسی می‌کند.";
             this.lblReaderPortState.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblPos.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9F, System.Drawing.FontStyle.Bold);
             this.lblPos.Location = new System.Drawing.Point(926, 155);
