@@ -8,6 +8,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblBrand, lblNavCaption, lblUser, lblTitle, lblSubtitle;
         private System.Windows.Forms.Label lblBalanceTitle, lblBalanceValue, lblBalanceHint, lblTableCountValue, lblTableCountCaption;
         private System.Windows.Forms.Label lblMainStatus, lblDeviceStatus, lblPorts, lblBusinessSummary, lblSummaryCaption, lblQuickActions;
+        private global::FuntinoControlCenter.UI.AppLoadingIndicator loadingDashboard;
         private FuntinoControlCenter.UI.RoundedButton btnTables, btnReports, btnDevices, btnSettings, btnOperations, btnPassword, btnAccess, btnLogout;
         private FuntinoControlCenter.UI.RoundedButton btnRecharge, btnTickets, btnPos, btnCardReader;
         private System.Windows.Forms.Timer authorizationTimer;
@@ -43,6 +44,7 @@ namespace FuntinoControlCenter.Forms
             this.lblDeviceStatus = new System.Windows.Forms.Label();
             this.lblPorts = new System.Windows.Forms.Label();
             this.lblBusinessSummary = new System.Windows.Forms.Label();
+            this.loadingDashboard = new global::FuntinoControlCenter.UI.AppLoadingIndicator();
             this.lblSummaryCaption = new System.Windows.Forms.Label();
             this.lblQuickActions = new System.Windows.Forms.Label();
             this.btnTables = new FuntinoControlCenter.UI.RoundedButton();
@@ -451,6 +453,11 @@ namespace FuntinoControlCenter.Forms
             this.lblBusinessSummary.TabIndex = 8;
             this.lblBusinessSummary.Text = "سوابق شارژ، بلیت و پرداخت‌های پایانه";
             this.lblBusinessSummary.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.loadingDashboard.Location = new System.Drawing.Point(42, 631);
+            this.loadingDashboard.Name = "loadingDashboard";
+            this.loadingDashboard.Size = new System.Drawing.Size(1094, 40);
+            this.loadingDashboard.TabIndex = 10;
+            this.loadingDashboard.Visible = false;
             this.lblQuickActions.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 13F, System.Drawing.FontStyle.Bold);
             this.lblQuickActions.ForeColor = System.Drawing.Color.FromArgb(20, 55, 58);
             this.lblQuickActions.Location = new System.Drawing.Point(42, 683);
@@ -509,6 +516,7 @@ namespace FuntinoControlCenter.Forms
             this.Controls.Add(this.pnlCardPorts);
             this.Controls.Add(this.lblSummaryCaption);
             this.Controls.Add(this.lblBusinessSummary);
+            this.Controls.Add(this.loadingDashboard);
             this.Controls.Add(this.lblQuickActions);
             this.Controls.Add(this.btnTickets);
             this.Controls.Add(this.btnPos);

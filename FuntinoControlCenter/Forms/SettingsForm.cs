@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
@@ -17,6 +18,15 @@ namespace FuntinoControlCenter.Forms
         private bool canUpdateHardware;
         private bool canTestDatabase;
         private bool canTestDevices;
+        private bool isDeviceScanRunning;
+        private bool isDatabaseTestRunning;
+        private bool initialScanStarted;
+
+        private sealed class PortScanResult
+        {
+            public IList<string> Ports { get; set; }
+            public string Message { get; set; }
+        }
 
         public SettingsForm() : this(false) { }
 
@@ -28,10 +38,10 @@ namespace FuntinoControlCenter.Forms
 
         private void WindowsAuth_CheckedChanged(object sender, EventArgs e) { UpdateAuthenticationFields(); }
         private void BtnClose_Click(object sender, EventArgs e) { Close(); }
-        private void TestMain_Click(object sender, EventArgs e) { TestDatabase(false); }
-        private void TestDevice_Click(object sender, EventArgs e) { TestDatabase(true); }
-        private void RescanReaderPorts_Click(object sender, EventArgs e) { ScanReaderPorts(true); }
-        private void RescanPosPorts_Click(object sender, EventArgs e) { ScanPosPorts(true); }
+        private async void TestMain_Click(object sender, EventArgs e) { await TestDatabaseAsync(false); }
+        private async void TestDevice_Click(object sender, EventArgs e) { await TestDatabaseAsync(true); }
+        private async void RescanReaderPorts_Click(object sender, EventArgs e) { await ScanPortsAsync(true, true, false); }
+        private async void RescanPosPorts_Click(object sender, EventArgs e) { await ScanPortsAsync(true, false, true); }
 
         private void ImportReaderKey_Click(object sender, EventArgs e)
         {
@@ -119,9 +129,8 @@ namespace FuntinoControlCenter.Forms
                     cmbReaderPort.Visible = cmbPosPort.Visible = canTestDevices;
                     if (canTestDevices)
                     {
-                        lblReaderPortState.Text = "برای شناسایی کارت‌خوان به کارت نیاز نیست؛ پویش فقط خود دستگاه را بررسی می‌کند.";
-                        ScanReaderPorts(false);
-                        ScanPosPorts(false);
+                        lblReaderPortState.Text = "در حال آماده‌سازی برای شناسایی کارت‌خوان…";
+                        lblPosPortState.Text = "در حال آماده‌سازی برای شناسایی پایانه‌ی فروش…";
                     }
                     else
                     {
@@ -147,6 +156,13 @@ namespace FuntinoControlCenter.Forms
                     });
             }
             catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "تنظیمات", MessageBoxButtons.OK, MessageBoxIcon.Warning); Close(); }
+        }
+
+        private async void SettingsForm_Shown(object sender, EventArgs e)
+        {
+            if (!canTestDevices || initialScanStarted) return;
+            initialScanStarted = true;
+            await ScanPortsAsync(false, true, true);
         }
 
         private void UpdateAuthenticationFields() { txtSqlUser.Enabled = canUpdateDatabase && !chkWindowsAuth.Checked; txtSqlPassword.Enabled = canUpdateDatabase && !chkWindowsAuth.Checked; }
@@ -189,66 +205,128 @@ namespace FuntinoControlCenter.Forms
             AppSettings.Current.ReaderBaud = readerBaud; AppSettings.Current.PosBaud = posBaud;
         }
 
-        private void ScanReaderPorts(bool showCompletion)
+        private async Task ScanPortsAsync(bool showCompletion, bool scanReader, bool scanPos)
         {
             if (!canTestDevices) { AuthorizationGuard.Require("devices.test"); return; }
+            if (isDeviceScanRunning) return;
+
+            isDeviceScanRunning = true;
+            btnRescanReader.Enabled = btnRescanPos.Enabled = false;
+            btnSave.Enabled = false;
             try
             {
                 AuthorizationGuard.RequireAny("settings.hardware.view", "settings.hardware.update");
                 AuthorizationGuard.Require("devices.test");
-                string preferred = Convert.ToString(cmbReaderPort.SelectedItem);
-                if (String.IsNullOrWhiteSpace(preferred)) preferred = AppSettings.Current.ReaderPort;
-                string message;
-                var ports = HardwareService.DetectReaderPorts(ReadBaud(cmbReaderBaud, AppSettings.Current.ReaderBaud), out message);
-                BindSuccessfulPorts(cmbReaderPort, ports, preferred);
-                if (ports.Count == 1 && canUpdateHardware && !String.Equals(AppSettings.Current.ReaderPort, ports[0], StringComparison.OrdinalIgnoreCase))
-                {
-                    AppSettings.Current.ReaderPort = ports[0];
-                    AppSettings.Current.Save();
-                }
-                lblReaderPortState.Text = BuildPortStatus(message, ports.Count, cmbReaderPort.SelectedItem != null);
-                cmbReaderPort.Enabled = canUpdateHardware && ports.Count > 0;
-                btnRescanReader.Enabled = true;
-                if (showCompletion && ports.Count == 0)
-                    MessageBox.Show(this, message, "کارت‌خوان پیدا نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (scanReader) await ScanReaderPortsCoreAsync(showCompletion);
+                if (scanPos && !IsDisposed && !Disposing) await ScanPosPortsCoreAsync(showCompletion);
             }
             catch (Exception)
             {
-                cmbReaderPort.Items.Clear();
-                cmbReaderPort.Enabled = false;
-                lblReaderPortState.Text = "پویش کارت‌خوان کامل نشد. برای شناسایی دستگاه کارت لازم نیست؛ اتصال، درگاه و سرعت ارتباط را بررسی کنید.";
-                if (showCompletion) MessageBox.Show(this, lblReaderPortState.Text, "بررسی کارت‌خوان", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!IsDisposed && !Disposing)
+                    MessageBox.Show(this, "بررسی دستگاه‌ها کامل نشد. اتصال دستگاه‌ها را بررسی کنید و دوباره تلاش کنید.", "بررسی دستگاه‌ها", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                isDeviceScanRunning = false;
+                if (!IsDisposed && !Disposing)
+                {
+                    btnRescanReader.Enabled = btnRescanPos.Enabled = canTestDevices;
+                    btnSave.Enabled = (canUpdateDatabase || canUpdateHardware) && !isDatabaseTestRunning;
+                    cmbReaderBaud.Enabled = cmbPosBaud.Enabled = canUpdateHardware;
+                    cmbReaderPort.Enabled = canUpdateHardware && cmbReaderPort.Items.Count > 0;
+                    cmbPosPort.Enabled = canUpdateHardware && cmbPosPort.Items.Count > 0;
+                }
             }
         }
 
-        private void ScanPosPorts(bool showCompletion)
+        private async Task ScanReaderPortsCoreAsync(bool showCompletion)
         {
-            if (!canTestDevices) { AuthorizationGuard.Require("devices.test"); return; }
+            string preferred = Convert.ToString(cmbReaderPort.SelectedItem);
+            if (String.IsNullOrWhiteSpace(preferred)) preferred = AppSettings.Current.ReaderPort;
+            int baudRate = ReadBaud(cmbReaderBaud, AppSettings.Current.ReaderBaud);
+            loadingReader.BeginLoading("در حال پیدا کردن کارت‌خوان…", Properties.Resources.CardReader);
+            lblReaderPortState.Visible = false;
+            cmbReaderPort.Enabled = cmbReaderBaud.Enabled = false;
             try
             {
-                AuthorizationGuard.RequireAny("settings.hardware.view", "settings.hardware.update");
-                AuthorizationGuard.Require("devices.test");
-                string preferred = Convert.ToString(cmbPosPort.SelectedItem);
-                if (String.IsNullOrWhiteSpace(preferred)) preferred = AppSettings.Current.PosPort;
-                string message;
-                var ports = HardwareService.DetectPosPorts(out message);
-                BindSuccessfulPorts(cmbPosPort, ports, preferred);
-                if (ports.Count == 1 && canUpdateHardware && !String.Equals(AppSettings.Current.PosPort, ports[0], StringComparison.OrdinalIgnoreCase))
+                await Task.Yield();
+                PortScanResult result = await Task.Run(delegate
                 {
-                    AppSettings.Current.PosPort = ports[0];
+                    string message;
+                    IList<string> ports = HardwareService.DetectReaderPorts(baudRate, out message);
+                    return new PortScanResult { Ports = ports, Message = message };
+                });
+                if (IsDisposed || Disposing) return;
+
+                BindSuccessfulPorts(cmbReaderPort, result.Ports, preferred);
+                if (result.Ports.Count == 1 && canUpdateHardware && !String.Equals(AppSettings.Current.ReaderPort, result.Ports[0], StringComparison.OrdinalIgnoreCase))
+                {
+                    AppSettings.Current.ReaderPort = result.Ports[0];
                     AppSettings.Current.Save();
                 }
-                lblPosPortState.Text = BuildPortStatus(message, ports.Count, cmbPosPort.SelectedItem != null);
-                cmbPosPort.Enabled = canUpdateHardware && ports.Count > 0;
-                btnRescanPos.Enabled = true;
-                if (showCompletion && ports.Count == 0)
-                    MessageBox.Show(this, message, "پایانه‌ی فروش پیدا نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                lblReaderPortState.Text = BuildPortStatus(result.Message, result.Ports.Count, cmbReaderPort.SelectedItem != null);
+                if (showCompletion && result.Ports.Count == 0)
+                    MessageBox.Show(this, result.Message, "کارت‌خوان پیدا نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                if (IsDisposed || Disposing) return;
+                cmbReaderPort.Items.Clear();
+                lblReaderPortState.Text = "کارت‌خوان پیدا نشد. اتصال دستگاه و تنظیمات ارتباط را بررسی کنید و دوباره بزنید.";
+                if (showCompletion) MessageBox.Show(this, lblReaderPortState.Text, "بررسی کارت‌خوان", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                if (!IsDisposed && !Disposing)
+                {
+                    loadingReader.EndLoading();
+                    lblReaderPortState.Visible = true;
+                }
+            }
+        }
+
+        private async Task ScanPosPortsCoreAsync(bool showCompletion)
+        {
+            string preferred = Convert.ToString(cmbPosPort.SelectedItem);
+            if (String.IsNullOrWhiteSpace(preferred)) preferred = AppSettings.Current.PosPort;
+            loadingPos.BeginLoading("در حال پیدا کردن پایانه‌ی فروش…", Properties.Resources.PointOfSale);
+            lblPosPortState.Visible = false;
+            cmbPosPort.Enabled = cmbPosBaud.Enabled = false;
+            try
+            {
+                await Task.Yield();
+                PortScanResult result = await Task.Run(delegate
+                {
+                    string message;
+                    IList<string> ports = HardwareService.DetectPosPorts(out message);
+                    return new PortScanResult { Ports = ports, Message = message };
+                });
+                if (IsDisposed || Disposing) return;
+
+                BindSuccessfulPorts(cmbPosPort, result.Ports, preferred);
+                if (result.Ports.Count == 1 && canUpdateHardware && !String.Equals(AppSettings.Current.PosPort, result.Ports[0], StringComparison.OrdinalIgnoreCase))
+                {
+                    AppSettings.Current.PosPort = result.Ports[0];
+                    AppSettings.Current.Save();
+                }
+                lblPosPortState.Text = BuildPortStatus(result.Message, result.Ports.Count, cmbPosPort.SelectedItem != null);
+                if (showCompletion && result.Ports.Count == 0)
+                    MessageBox.Show(this, result.Message, "پایانه‌ی فروش پیدا نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (Exception)
+            {
+                if (IsDisposed || Disposing) return;
                 cmbPosPort.Items.Clear();
-                lblPosPortState.Text = "بررسی پایانه‌ی فروش انجام نشد: " + DatabaseManager.SafeMessage(ex);
+                lblPosPortState.Text = "پایانه‌ی فروش پیدا نشد. اتصال دستگاه و تنظیمات ارتباط را بررسی کنید و دوباره بزنید.";
                 if (showCompletion) MessageBox.Show(this, lblPosPortState.Text, "بررسی پایانه‌ی فروش", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                if (!IsDisposed && !Disposing)
+                {
+                    loadingPos.EndLoading();
+                    lblPosPortState.Visible = true;
+                }
             }
         }
 
@@ -279,17 +357,45 @@ namespace FuntinoControlCenter.Forms
             return Int32.TryParse(combo.Text, out baudRate) && baudRate >= 1200 ? baudRate : fallback;
         }
 
-        private void TestDatabase(bool device)
+        private async Task TestDatabaseAsync(bool device)
         {
+            if (isDatabaseTestRunning) return;
             try
             {
                 if (!bootstrapMode) AuthorizationGuard.Require("settings.database.test");
                 if (canUpdateDatabase) ReadDatabaseControls();
-                string message;
-                bool success = DatabaseManager.TestConnection(device, out message, bootstrapMode);
-                MessageBox.Show(message, success ? "اتصال برقرار است" : "اتصال ناموفق", MessageBoxButtons.OK, success ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+
+                isDatabaseTestRunning = true;
+                btnTestMain.Enabled = btnTestDevice.Enabled = btnSave.Enabled = false;
+                lblDbHint.Visible = false;
+                loadingDatabase.BeginLoading(device ? "در حال بررسی ارتباط با پایگاه دستگاه‌ها…" : "در حال بررسی ارتباط با پایگاه اصلی…", Properties.Resources.ConnectionSettings);
+                await Task.Yield();
+
+                var result = await Task.Run(delegate
+                {
+                    string message;
+                    bool success = DatabaseManager.TestConnection(device, out message, bootstrapMode);
+                    return new Tuple<bool, string>(success, message);
+                });
+                if (IsDisposed || Disposing) return;
+                MessageBox.Show(this, result.Item2, result.Item1 ? "ارتباط برقرار است" : "ارتباط برقرار نشد", MessageBoxButtons.OK,
+                    result.Item1 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message, "بررسی تنظیمات", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            catch (Exception ex)
+            {
+                if (!IsDisposed && !Disposing) MessageBox.Show(this, ex.Message, "بررسی تنظیمات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                isDatabaseTestRunning = false;
+                if (!IsDisposed && !Disposing)
+                {
+                    loadingDatabase.EndLoading();
+                    lblDbHint.Visible = true;
+                    btnTestMain.Enabled = btnTestDevice.Enabled = canTestDatabase;
+                    btnSave.Enabled = (canUpdateDatabase || canUpdateHardware) && !isDeviceScanRunning;
+                }
+            }
         }
 
         private void BtnSave_Click(object sender, EventArgs e)

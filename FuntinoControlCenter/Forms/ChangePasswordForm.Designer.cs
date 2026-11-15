@@ -18,6 +18,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.TextBox txtConfirmPassword;
         private global::FuntinoControlCenter.UI.RoundedButton btnSave;
         private global::FuntinoControlCenter.UI.RoundedButton btnCancel;
+        private global::FuntinoControlCenter.UI.AppLoadingIndicator loadingSave;
 
         protected override void Dispose(bool disposing)
         {
@@ -42,6 +43,7 @@ namespace FuntinoControlCenter.Forms
             this.txtConfirmPassword = new System.Windows.Forms.TextBox();
             this.btnSave = new global::FuntinoControlCenter.UI.RoundedButton();
             this.btnCancel = new global::FuntinoControlCenter.UI.RoundedButton();
+            this.loadingSave = new global::FuntinoControlCenter.UI.AppLoadingIndicator();
             this.pnlCard.SuspendLayout();
             this.SuspendLayout();
             //
@@ -59,6 +61,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlCard.Controls.Add(this.lblHint);
             this.pnlCard.Controls.Add(this.btnSave);
             this.pnlCard.Controls.Add(this.btnCancel);
+            this.pnlCard.Controls.Add(this.loadingSave);
             this.pnlCard.Location = new System.Drawing.Point(390, 35);
             this.pnlCard.Name = "pnlCard";
             this.pnlCard.Size = new System.Drawing.Size(570, 578);
@@ -256,6 +259,11 @@ namespace FuntinoControlCenter.Forms
             this.btnCancel.Text = "بازگشت";
             this.btnCancel.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnCancel.UseVisualStyleBackColor = false;
+            this.loadingSave.Location = new System.Drawing.Point(40, 539);
+            this.loadingSave.Name = "loadingSave";
+            this.loadingSave.Size = new System.Drawing.Size(490, 34);
+            this.loadingSave.TabIndex = 6;
+            this.loadingSave.Visible = false;
             //
             // ChangePasswordForm
             //

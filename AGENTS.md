@@ -42,6 +42,9 @@ These rules apply to every current and future change in this repository.
 - Route each create, read, update, or delete operation to a dedicated page or form. If a requested screen contains a table, implement real search, filters, pagination, and useful table states along with a polished, usable table design; do not add decorative or nonfunctional controls.
 - Buttons with white or light backgrounds must have a visible border so their labels and icons read as part of the button; use rounded corners for buttons where the control supports them.
 - Text boxes must use a background coordinated with their containing card or page and have rounded, bordered edges so they remain visually distinct and readable.
+- Every operation that may take noticeable time must show a clear Persian waiting message, a suitable existing operation icon, and visible animation. Keep database, device, and file work off the UI thread so the window can still repaint and respond.
+- For work tied to one action or section, show the loading indicator beside that action and disable only the controls that could conflict with it. Keep unrelated parts of the page usable. Use a dimmed or blurred page overlay only when the whole page truly has to pause, and remove it as soon as the work ends.
+- Apply the same waiting feedback to every previously redesigned screen whenever its initial load or an operation takes time. Do not leave a redesigned screen looking frozen or silently busy; always restore controls and hide the indicator after success, failure, or cancellation.
 - Keep all WinForms visual construction, layout, fixed styling, captions, and designer-managed event hookups in `.Designer.cs`, in accordance with the WinForms design-file rules above. Keep runtime behavior in `.cs` files.
 
 ## Card operations landing and device ports

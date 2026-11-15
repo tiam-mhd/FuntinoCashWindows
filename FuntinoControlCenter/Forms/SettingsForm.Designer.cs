@@ -12,6 +12,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.CheckBox chkWindowsAuth;
         private System.Windows.Forms.ComboBox cmbReaderPort, cmbPosPort, cmbReaderBaud, cmbPosBaud;
         private FuntinoControlCenter.UI.RoundedButton btnTestMain, btnTestDevice, btnSave, btnClose, btnRescanReader, btnRescanPos, btnImportReaderKey;
+        private FuntinoControlCenter.UI.AppLoadingIndicator loadingDatabase, loadingReader, loadingPos;
 
         protected override void Dispose(bool disposing)
         {
@@ -62,6 +63,9 @@ namespace FuntinoControlCenter.Forms
             this.btnRescanReader = new FuntinoControlCenter.UI.RoundedButton();
             this.btnRescanPos = new FuntinoControlCenter.UI.RoundedButton();
             this.btnImportReaderKey = new FuntinoControlCenter.UI.RoundedButton();
+            this.loadingDatabase = new FuntinoControlCenter.UI.AppLoadingIndicator();
+            this.loadingReader = new FuntinoControlCenter.UI.AppLoadingIndicator();
+            this.loadingPos = new FuntinoControlCenter.UI.AppLoadingIndicator();
             this.pnlHeader.SuspendLayout();
             this.pnlDatabase.SuspendLayout();
             this.pnlHardware.SuspendLayout();
@@ -107,6 +111,12 @@ namespace FuntinoControlCenter.Forms
             this.pnlDatabase.Controls.Add(this.lblDbHint);
             this.pnlDatabase.Controls.Add(this.btnTestMain);
             this.pnlDatabase.Controls.Add(this.btnTestDevice);
+            this.pnlDatabase.Controls.Add(this.loadingDatabase);
+            this.loadingDatabase.Location = new System.Drawing.Point(24, 251);
+            this.loadingDatabase.Name = "loadingDatabase";
+            this.loadingDatabase.Size = new System.Drawing.Size(1010, 37);
+            this.loadingDatabase.TabIndex = 10;
+            this.loadingDatabase.Visible = false;
             this.pnlDatabase.Location = new System.Drawing.Point(30, 122);
             this.pnlDatabase.Name = "pnlDatabase";
             this.pnlDatabase.Size = new System.Drawing.Size(1060, 350);
@@ -280,6 +290,18 @@ namespace FuntinoControlCenter.Forms
             this.pnlHardware.Controls.Add(this.lblPosPortState);
             this.pnlHardware.Controls.Add(this.lblReaderKeyState);
             this.pnlHardware.Controls.Add(this.btnImportReaderKey);
+            this.pnlHardware.Controls.Add(this.loadingReader);
+            this.pnlHardware.Controls.Add(this.loadingPos);
+            this.loadingReader.Location = new System.Drawing.Point(24, 120);
+            this.loadingReader.Name = "loadingReader";
+            this.loadingReader.Size = new System.Drawing.Size(1008, 33);
+            this.loadingReader.TabIndex = 14;
+            this.loadingReader.Visible = false;
+            this.loadingPos.Location = new System.Drawing.Point(24, 219);
+            this.loadingPos.Name = "loadingPos";
+            this.loadingPos.Size = new System.Drawing.Size(1008, 33);
+            this.loadingPos.TabIndex = 15;
+            this.loadingPos.Visible = false;
             this.pnlHardware.Location = new System.Drawing.Point(30, 492);
             this.pnlHardware.Name = "pnlHardware";
             this.pnlHardware.Size = new System.Drawing.Size(1060, 305);
@@ -533,6 +555,7 @@ namespace FuntinoControlCenter.Forms
             this.AcceptButton = this.btnSave;
             this.CancelButton = this.btnClose;
             this.Load += new System.EventHandler(this.SettingsForm_Load);
+            this.Shown += new System.EventHandler(this.SettingsForm_Shown);
             this.chkWindowsAuth.CheckedChanged += new System.EventHandler(this.WindowsAuth_CheckedChanged);
             this.btnSave.Click += new System.EventHandler(this.BtnSave_Click);
             this.btnClose.Click += new System.EventHandler(this.BtnClose_Click);

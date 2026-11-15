@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
@@ -58,22 +59,15 @@ namespace FuntinoControlCenter.Forms
             InitializeComponent();
         }
 
-        private void CardOperationsForm_Load(object sender, EventArgs e)
+        private async void CardOperationsForm_Load(object sender, EventArgs e)
         {
             try
             {
                 SetBusy(false);
-                if (AuthorizationGuard.Has("cards.recharge") &&
+                bool canLoadRecharge = AuthorizationGuard.Has("cards.recharge") &&
                     AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) &&
-                    AuthorizationGuard.Has("operations.recharge_terms.view"))
-                {
-                    try { LoadRechargeSetup(); }
-                    catch (Exception ex)
-                    {
-                        rechargeSetup = null;
-                        AppMessageService.ShowWarning(this, DisplayRechargeSetupError(ex), "شارژ در دسترس نیست");
-                    }
-                }
+                    AuthorizationGuard.Has("operations.recharge_terms.view");
+
                 ApplyPermissions();
                 if (!HasAnyCardOperationAccess())
                 {
@@ -81,10 +75,42 @@ namespace FuntinoControlCenter.Forms
                     Close();
                     return;
                 }
+
+                Exception rechargeSetupError = null;
+                if (canLoadRecharge)
+                {
+                    SetStatus("در حال آماده‌سازی شرایط شارژ کارت…");
+                    SetBusy(true);
+                    await Task.Yield();
+                    try
+                    {
+                        RechargeOperationSetup setup = await Task.Run(delegate { return BusinessManagementRepository.LoadRechargeOperationSetup(); });
+                        if (IsDisposed || Disposing) return;
+                        ApplyRechargeSetup(setup);
+                    }
+                    catch (Exception ex)
+                    {
+                        rechargeSetup = null;
+                        rechargeSetupError = ex;
+                    }
+                    finally
+                    {
+                        if (!IsDisposed && !Disposing) SetBusy(false);
+                    }
+                }
+
+                if (IsDisposed || Disposing) return;
+                ApplyPermissions();
+                if (rechargeSetupError != null)
+                {
+                    AppMessageService.ShowWarning(this, DisplayRechargeSetupError(rechargeSetupError), "شارژ در دسترس نیست");
+                    if (!HasAnyCardReadAccess()) { Close(); return; }
+                }
                 AuthorizationMonitor.Attach(this, HasAnyCardOperationAccess);
                 authorizationTimer.Start();
                 SetStatus(CardReaderService.GetConfiguredPortStatus());
                 ShowCardHistoryPanel();
+                FocusDefaultAction();
             }
             catch (Exception ex)
             {
@@ -94,6 +120,11 @@ namespace FuntinoControlCenter.Forms
         }
 
         private void CardOperationsForm_Shown(object sender, EventArgs e)
+        {
+            FocusDefaultAction();
+        }
+
+        private void FocusDefaultAction()
         {
             if (btnRecharge.Visible && txtAmount.Enabled)
             {
@@ -221,9 +252,9 @@ namespace FuntinoControlCenter.Forms
             UpdateRechargeTermsDisplay();
         }
 
-        private void LoadRechargeSetup()
+        private void ApplyRechargeSetup(RechargeOperationSetup setup)
         {
-            rechargeSetup = BusinessManagementRepository.LoadRechargeOperationSetup();
+            rechargeSetup = setup;
             var choices = new System.Collections.Generic.List<RechargePromotionOption>
             {
                 new RechargePromotionOption { Code = -1, Name = "بدون جشنواره", DiscountPercent = 0 }
@@ -303,8 +334,9 @@ namespace FuntinoControlCenter.Forms
             bool canBalance = AuthorizationGuard.Has("cards.balance.view");
             bool canRemainder = AuthorizationGuard.Has("cards.remainder.view");
             bool canHistory = AuthorizationGuard.Has("cards.history.view");
-            bool canRecharge = rechargeSetup != null && AuthorizationGuard.Has("cards.recharge") &&
+            bool canRechargePermission = AuthorizationGuard.Has("cards.recharge") &&
                 AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view");
+            bool canRecharge = rechargeSetup != null && canRechargePermission;
             bool canDatabaseHistory = canHistory && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "view"));
             if (showingDatabaseHistory && !canDatabaseHistory) showingDatabaseHistory = false;
 
@@ -330,7 +362,7 @@ namespace FuntinoControlCenter.Forms
             UpdateShortcutHint(canRecharge, canInformation, canBalance, canHistory, canRemainder, canDatabaseHistory);
             UpdateRechargeTermsDisplay();
 
-            bool hasActions = canInformation || canBalance || canRemainder || canHistory || canRecharge;
+            bool hasActions = canInformation || canBalance || canRemainder || canHistory || canRechargePermission;
             pnlActions.Visible = hasActions;
             if (!hasActions) Close();
         }
@@ -375,8 +407,13 @@ namespace FuntinoControlCenter.Forms
         private bool HasAnyCardOperationAccess()
         {
             return AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") ||
-                (rechargeSetup != null && AuthorizationGuard.Has("cards.recharge") &&
+                (AuthorizationGuard.Has("cards.recharge") &&
                  AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view"));
+        }
+
+        private static bool HasAnyCardReadAccess()
+        {
+            return AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view");
         }
 
         private void ReadInfo_Click(object sender, EventArgs e)
@@ -810,12 +847,19 @@ namespace FuntinoControlCenter.Forms
             cmbHistoryFilter.Enabled = !busy;
             txtAmount.Enabled = !busy;
             txtHistorySearch.Enabled = !busy;
-            UseWaitCursor = busy;
+            cmbPromotion.Enabled = !busy;
+            lblOperationStatus.Visible = !busy;
+            if (busy)
+                loadingOperation.BeginLoading(lblOperationStatus.Text, Properties.Resources.CardScan);
+            else
+                loadingOperation.EndLoading();
         }
 
         private void SetStatus(string message)
         {
             lblOperationStatus.Text = message ?? String.Empty;
+            if (loadingOperation.Visible)
+                loadingOperation.BeginLoading(lblOperationStatus.Text, Properties.Resources.CardScan);
         }
 
         private bool RequirePermission(string permission)

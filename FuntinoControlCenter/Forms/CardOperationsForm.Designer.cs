@@ -19,6 +19,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.FlowLayoutPanel flpHistoryTabs;
         private System.Windows.Forms.Label lblAmountHint, lblPromotionCaption, lblRechargeTerms;
         private System.Windows.Forms.ComboBox cmbPromotion;
+        private FuntinoControlCenter.UI.AppLoadingIndicator loadingOperation;
 
         protected override void Dispose(bool disposing)
         {
@@ -53,6 +54,7 @@ namespace FuntinoControlCenter.Forms
             this.lblPromotionCaption = new System.Windows.Forms.Label();
             this.lblRechargeTerms = new System.Windows.Forms.Label();
             this.cmbPromotion = new System.Windows.Forms.ComboBox();
+            this.loadingOperation = new FuntinoControlCenter.UI.AppLoadingIndicator();
             this.btnReadInfo = new FuntinoControlCenter.UI.RoundedButton();
             this.btnReadBalance = new FuntinoControlCenter.UI.RoundedButton();
             this.btnReadRemainder = new FuntinoControlCenter.UI.RoundedButton();
@@ -394,6 +396,12 @@ namespace FuntinoControlCenter.Forms
             this.tlpSummary.Controls.Add(this.lblDiscountValue, 3, 1);
             this.tlpSummary.Controls.Add(this.lblExpirationValue, 4, 1);
             this.tlpSummary.Controls.Add(this.lblOperationStatus, 0, 2);
+            this.tlpSummary.SetColumnSpan(this.loadingOperation, 5);
+            this.loadingOperation.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.loadingOperation.Name = "loadingOperation";
+            this.loadingOperation.TabIndex = 11;
+            this.loadingOperation.Visible = false;
+            this.tlpSummary.Controls.Add(this.loadingOperation, 0, 2);
             this.tlpSummary.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tlpSummary.Location = new System.Drawing.Point(12, 6);
             this.tlpSummary.Name = "tlpSummary";

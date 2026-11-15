@@ -50,6 +50,12 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="UI\AppFontManager.cs" />
+    <Compile Include="UI\AppLoadingIndicator.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\AppLoadingIndicator.Designer.cs">
+      <DependentUpon>AppLoadingIndicator.cs</DependentUpon>
+    </Compile>
     <Compile Include="UI\RoundedControls.cs">
       <SubType>Component</SubType>
     </Compile>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
@@ -12,6 +13,21 @@ namespace FuntinoControlCenter.Forms
     public partial class MainForm : Form
     {
         private bool initialCardOperationsShown;
+        private bool dashboardRefreshRunning;
+        private bool dashboardRefreshQueued;
+
+        private sealed class DashboardRefreshSnapshot
+        {
+            public string RechargeCount { get; set; }
+            public bool MainDatabaseReady { get; set; }
+            public List<string> Summaries { get; private set; }
+
+            public DashboardRefreshSnapshot()
+            {
+                MainDatabaseReady = true;
+                Summaries = new List<string>();
+            }
+        }
         public MainForm() { InitializeComponent(); }
 
         private void OpenTables_Click(object sender, EventArgs e) { using (var form = new TableBrowserForm()) form.ShowDialog(this); RefreshDashboard(); }
@@ -117,43 +133,97 @@ namespace FuntinoControlCenter.Forms
                 BusinessManagementRepository.HasAccess(BusinessManagementArea.Tickets, "view");
         }
 
-        private void RefreshDashboard()
+        private async void RefreshDashboard()
         {
-            if (!AuthorizationGuard.Has("dashboard.view")) return;
+            if (dashboardRefreshRunning)
+            {
+                dashboardRefreshQueued = true;
+                return;
+            }
+
+            dashboardRefreshRunning = true;
+            bool summaryWasVisible = lblBusinessSummary.Visible;
+            bool loadingStarted = false;
             try
             {
+                if (!AuthorizationGuard.Has("dashboard.view")) return;
                 bool canViewRecharge = AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "view"));
-                lblTableCountValue.Text = canViewRecharge ? DeviceDiagnostics.CountRows("finance.RechargeTransaction").ToString("N0") : "—";
-                lblTableCountCaption.Text = canViewRecharge ? "تراکنش شارژ ثبت‌شده" : "دسترسی مشاهده‌ی سوابق شارژ ندارید";
-                lblMainStatus.Text = "پایگاه اصلی آماده است";
-                lblDeviceStatus.Text = "پایگاه دستگاه‌ها آماده است";
-                lblPorts.Text = "درگاه انتخاب‌شده ـ کارت‌خوان: " + DisplayPort(AppSettings.Current.ReaderPort) + "   |   پایانه: " + DisplayPort(AppSettings.Current.PosPort);
+                bool canViewTickets = AuthorizationGuard.Has(PermissionCatalog.TableCode("ticket", "view"));
+                bool canViewPos = AuthorizationGuard.Has(PermissionCatalog.TableCode("payments", "view"));
+                string readerPort = DisplayPort(AppSettings.Current.ReaderPort);
+                string posPort = DisplayPort(AppSettings.Current.PosPort);
+                loadingStarted = true;
+                lblBusinessSummary.Visible = false;
+                loadingDashboard.BeginLoading("در حال به‌روزرسانی نمای کلی سامانه…", Properties.Resources.ConnectionSettings);
+                await Task.Yield();
+                DashboardRefreshSnapshot snapshot = await Task.Run(delegate
+                {
+                    var result = new DashboardRefreshSnapshot();
+                    if (canViewRecharge)
+                    {
+                        result.RechargeCount = ReadDashboardCount("finance.RechargeTransaction", result);
+                        result.Summaries.Add("سوابق شارژ: " + result.RechargeCount);
+                    }
+                    else result.RechargeCount = "—";
 
-                var summaries = new List<string>();
-                AddSummaryIfPermitted(summaries, "finance", "finance.RechargeTransaction", "سوابق شارژ");
-                AddSummaryIfPermitted(summaries, "ticket", "ticket.TicketTransaction", "سوابق بلیت");
-                AddSummaryIfPermitted(summaries, "payments", "payments.PointOfSaleTransaction", "تراکنش‌های پایانه");
-                lblBusinessSummary.Text = summaries.Count == 0
+                    if (canViewTickets) result.Summaries.Add("سوابق بلیت: " + ReadDashboardCount("ticket.TicketTransaction", result));
+                    if (canViewPos) result.Summaries.Add("تراکنش‌های پایانه: " + ReadDashboardCount("payments.PointOfSaleTransaction", result));
+                    return result;
+                });
+                if (IsDisposed || Disposing) return;
+
+                lblTableCountValue.Text = snapshot.RechargeCount;
+                lblTableCountCaption.Text = canViewRecharge ? "تراکنش شارژ ثبت‌شده" : "دسترسی مشاهده‌ی سوابق شارژ ندارید";
+                lblMainStatus.Text = snapshot.MainDatabaseReady ? "پایگاه اصلی آماده است" : "ارتباط با پایگاه اصلی نیاز به بررسی دارد";
+                lblDeviceStatus.Text = "پایگاه دستگاه‌ها آماده است";
+                lblPorts.Text = "درگاه انتخاب‌شده ـ کارت‌خوان: " + readerPort + "   |   پایانه: " + posPort;
+                lblBusinessSummary.Text = snapshot.Summaries.Count == 0
                     ? "از بخش‌های مجاز در فهرست کناری برای مشاهده‌ی سوابق استفاده کنید."
-                    : String.Join("     •     ", summaries);
+                    : String.Join("     •     ", snapshot.Summaries.ToArray());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                if (IsDisposed || Disposing) return;
                 if (AppSession.Current == null) { Close(); return; }
-                lblMainStatus.Text = "اتصال پایگاه بررسی نشد"; lblBusinessSummary.Text = DatabaseManager.SafeMessage(ex);
+                lblMainStatus.Text = "ارتباط با اطلاعات سامانه برقرار نشد";
+                lblBusinessSummary.Text = "اتصال شبکه و وضعیت سرویس پایگاه داده را بررسی کنید و دوباره تلاش کنید.";
+            }
+            finally
+            {
+                dashboardRefreshRunning = false;
+                if (!IsDisposed && !Disposing)
+                {
+                    if (loadingStarted)
+                    {
+                        loadingDashboard.EndLoading();
+                        try { lblBusinessSummary.Visible = summaryWasVisible && AuthorizationGuard.Has("dashboard.view"); }
+                        catch { lblBusinessSummary.Visible = false; }
+                    }
+                    if (dashboardRefreshQueued)
+                    {
+                        dashboardRefreshQueued = false;
+                        RefreshDashboard();
+                    }
+                }
+            }
+        }
+
+        private static string ReadDashboardCount(string table, DashboardRefreshSnapshot snapshot)
+        {
+            try
+            {
+                return DeviceDiagnostics.CountRows(table).ToString("N0");
+            }
+            catch
+            {
+                snapshot.MainDatabaseReady = false;
+                return "در دسترس نیست";
             }
         }
 
         private static string DisplayPort(string port)
         {
             return String.IsNullOrWhiteSpace(port) ? "انتخاب نشده" : port;
-        }
-
-        private static void AddSummaryIfPermitted(ICollection<string> summaries, string schema, string table, string caption)
-        {
-            if (!AuthorizationGuard.Has(PermissionCatalog.TableCode(schema, "view"))) return;
-            try { summaries.Add(caption + ": " + DeviceDiagnostics.CountRows(table).ToString("N0")); }
-            catch { summaries.Add(caption + ": در دسترس نیست"); }
         }
 
         private void OpenTable(string tableName)

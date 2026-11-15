@@ -19,6 +19,7 @@ namespace FuntinoControlCenter.Forms
         private global::FuntinoControlCenter.UI.RoundedButton btnExit;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblDatabases;
+        private global::FuntinoControlCenter.UI.AppLoadingIndicator loadingStatus;
 
         protected override void Dispose(bool disposing)
         {
@@ -44,6 +45,7 @@ namespace FuntinoControlCenter.Forms
             this.btnExit = new global::FuntinoControlCenter.UI.RoundedButton();
             this.lblStatus = new System.Windows.Forms.Label();
             this.lblDatabases = new System.Windows.Forms.Label();
+            this.loadingStatus = new global::FuntinoControlCenter.UI.AppLoadingIndicator();
             this.pnlCard.SuspendLayout();
             this.pnlStatus.SuspendLayout();
             this.SuspendLayout();
@@ -185,6 +187,7 @@ namespace FuntinoControlCenter.Forms
             //
             this.pnlStatus.BackColor = System.Drawing.Color.FromArgb(237, 245, 242);
             this.pnlStatus.Controls.Add(this.lblStatus);
+            this.pnlStatus.Controls.Add(this.loadingStatus);
             this.pnlStatus.Location = new System.Drawing.Point(35, 391);
             this.pnlStatus.Name = "pnlStatus";
             this.pnlStatus.Size = new System.Drawing.Size(490, 70);
@@ -201,6 +204,11 @@ namespace FuntinoControlCenter.Forms
             this.lblStatus.TabIndex = 0;
             this.lblStatus.Text = "در حال آماده‌سازی اطلاعات برنامه…";
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.loadingStatus.Location = new System.Drawing.Point(10, 18);
+            this.loadingStatus.Name = "loadingStatus";
+            this.loadingStatus.Size = new System.Drawing.Size(470, 34);
+            this.loadingStatus.TabIndex = 1;
+            this.loadingStatus.Visible = false;
             //
             // btnLogin
             //
