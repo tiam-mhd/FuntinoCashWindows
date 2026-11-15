@@ -18,6 +18,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblUserSearch;
         private FuntinoControlCenter.UI.RoundedBorderPanel userSearchHost;
         private System.Windows.Forms.TextBox txtUserSearch;
+        private System.Windows.Forms.PictureBox picUserSearch;
         private System.Windows.Forms.ComboBox cmbUserStatus;
         private FuntinoControlCenter.UI.RoundedButton btnCreateUser;
         private FuntinoControlCenter.UI.RoundedBorderPanel usersGridHost;
@@ -44,6 +45,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblRoleSearch;
         private FuntinoControlCenter.UI.RoundedBorderPanel roleSearchHost;
         private System.Windows.Forms.TextBox txtRoleSearch;
+        private System.Windows.Forms.PictureBox picRoleSearch;
         private System.Windows.Forms.ComboBox cmbRoleType;
         private FuntinoControlCenter.UI.RoundedButton btnCreateRole;
         private System.Windows.Forms.TableLayoutPanel rolesContentLayout;
@@ -90,6 +92,7 @@ namespace FuntinoControlCenter.Forms
             this.lblUserSearch = new System.Windows.Forms.Label();
             this.userSearchHost = new FuntinoControlCenter.UI.RoundedBorderPanel();
             this.txtUserSearch = new System.Windows.Forms.TextBox();
+            this.picUserSearch = new System.Windows.Forms.PictureBox();
             this.cmbUserStatus = new System.Windows.Forms.ComboBox();
             this.btnCreateUser = new FuntinoControlCenter.UI.RoundedButton();
             this.usersGridHost = new FuntinoControlCenter.UI.RoundedBorderPanel();
@@ -117,6 +120,7 @@ namespace FuntinoControlCenter.Forms
             this.lblRoleSearch = new System.Windows.Forms.Label();
             this.roleSearchHost = new FuntinoControlCenter.UI.RoundedBorderPanel();
             this.txtRoleSearch = new System.Windows.Forms.TextBox();
+            this.picRoleSearch = new System.Windows.Forms.PictureBox();
             this.cmbRoleType = new System.Windows.Forms.ComboBox();
             this.btnCreateRole = new FuntinoControlCenter.UI.RoundedButton();
             this.rolesContentLayout = new System.Windows.Forms.TableLayoutPanel();
@@ -147,6 +151,7 @@ namespace FuntinoControlCenter.Forms
             this.usersLayout.SuspendLayout();
             this.usersToolbar.SuspendLayout();
             this.usersToolbarLayout.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picUserSearch)).BeginInit();
             this.userSearchHost.SuspendLayout();
             this.usersGridHost.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.usersGrid)).BeginInit();
@@ -158,6 +163,7 @@ namespace FuntinoControlCenter.Forms
             this.rolesLayout.SuspendLayout();
             this.rolesToolbar.SuspendLayout();
             this.rolesToolbarLayout.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picRoleSearch)).BeginInit();
             this.roleSearchHost.SuspendLayout();
             this.rolesContentLayout.SuspendLayout();
             this.rolesGridHost.SuspendLayout();
@@ -256,12 +262,11 @@ namespace FuntinoControlCenter.Forms
             this.usersToolbar.Controls.Add(this.usersToolbarLayout);
             this.usersToolbar.Dock = System.Windows.Forms.DockStyle.Fill;
             this.usersToolbar.Name = "usersToolbar";
-            this.usersToolbarLayout.ColumnCount = 5;
+            this.usersToolbarLayout.ColumnCount = 4;
             this.usersToolbarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 178F));
             this.usersToolbarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 170F));
             this.usersToolbarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
             this.usersToolbarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.usersToolbarLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 70F));
             this.usersToolbarLayout.Controls.Add(this.btnCreateUser, 0, 0);
             this.usersToolbarLayout.Controls.Add(this.cmbUserStatus, 1, 0);
             this.usersToolbarLayout.Controls.Add(this.lblUserSearch, 2, 0);
@@ -272,6 +277,9 @@ namespace FuntinoControlCenter.Forms
             this.usersToolbarLayout.RowCount = 1;
             this.usersToolbarLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.usersToolbarLayout.Name = "usersToolbarLayout";
+            ConfigureButton(this.btnCreateUser, "حساب تازه", FuntinoControlCenter.Properties.AccessManagementVisualAssets.UserAdd, System.Drawing.Color.FromArgb(21, 102, 88), 178, 42);
+            this.btnCreateUser.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.btnCreateUser.Name = "btnCreateUser";
             this.lblUserSearch.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lblUserSearch.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8.5F, System.Drawing.FontStyle.Bold);
             this.lblUserSearch.ForeColor = System.Drawing.Color.FromArgb(43, 78, 68);
@@ -283,9 +291,10 @@ namespace FuntinoControlCenter.Forms
             this.userSearchHost.BorderSize = 1;
             this.userSearchHost.CornerRadius = 10;
             this.userSearchHost.Controls.Add(this.txtUserSearch);
+            this.userSearchHost.Controls.Add(this.picUserSearch);
             this.userSearchHost.Dock = System.Windows.Forms.DockStyle.Fill;
             this.userSearchHost.Margin = new System.Windows.Forms.Padding(3, 5, 3, 3);
-            this.userSearchHost.Padding = new System.Windows.Forms.Padding(9, 5, 9, 5);
+            this.userSearchHost.Padding = new System.Windows.Forms.Padding(6, 3, 6, 3);
             this.userSearchHost.Name = "userSearchHost";
             this.txtUserSearch.Dock = System.Windows.Forms.DockStyle.Fill;
             this.txtUserSearch.BackColor = System.Drawing.Color.FromArgb(246, 250, 248);
@@ -293,9 +302,15 @@ namespace FuntinoControlCenter.Forms
             this.txtUserSearch.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9F);
             this.txtUserSearch.ForeColor = System.Drawing.Color.FromArgb(35, 67, 60);
             this.txtUserSearch.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.txtUserSearch.Margin = new System.Windows.Forms.Padding(3, 6, 3, 4);
+            this.txtUserSearch.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.txtUserSearch.Name = "txtUserSearch";
             this.txtUserSearch.AccessibleName = "جست‌وجوی کاربران";
+            this.picUserSearch.Dock = System.Windows.Forms.DockStyle.Right;
+            this.picUserSearch.Image = FuntinoControlCenter.Properties.AccessManagementVisualAssets.Search;
+            this.picUserSearch.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.picUserSearch.Size = new System.Drawing.Size(22, 22);
+            this.picUserSearch.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.picUserSearch.Name = "picUserSearch";
             this.cmbUserStatus.Dock = System.Windows.Forms.DockStyle.Fill;
             this.cmbUserStatus.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbUserStatus.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8F);
@@ -390,9 +405,9 @@ namespace FuntinoControlCenter.Forms
             this.userDetailsEmpty.Name = "userDetailsEmpty";
             // usersFooter
             this.usersFooter.ColumnCount = 5;
-            this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 190F));
+            this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 88F));
+            this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 128F));
+            this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 88F));
             this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.usersFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 160F));
             this.usersFooter.Controls.Add(this.btnUsersPrevious, 0, 0);
@@ -494,9 +509,10 @@ namespace FuntinoControlCenter.Forms
             this.roleSearchHost.BorderSize = 1;
             this.roleSearchHost.CornerRadius = 10;
             this.roleSearchHost.Controls.Add(this.txtRoleSearch);
+            this.roleSearchHost.Controls.Add(this.picRoleSearch);
             this.roleSearchHost.Dock = System.Windows.Forms.DockStyle.Fill;
             this.roleSearchHost.Margin = new System.Windows.Forms.Padding(3, 5, 3, 3);
-            this.roleSearchHost.Padding = new System.Windows.Forms.Padding(9, 5, 9, 5);
+            this.roleSearchHost.Padding = new System.Windows.Forms.Padding(6, 3, 6, 3);
             this.roleSearchHost.Name = "roleSearchHost";
             this.txtRoleSearch.Dock = System.Windows.Forms.DockStyle.Fill;
             this.txtRoleSearch.BackColor = System.Drawing.Color.FromArgb(246, 250, 248);
@@ -504,9 +520,15 @@ namespace FuntinoControlCenter.Forms
             this.txtRoleSearch.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 9F);
             this.txtRoleSearch.ForeColor = System.Drawing.Color.FromArgb(35, 67, 60);
             this.txtRoleSearch.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.txtRoleSearch.Margin = new System.Windows.Forms.Padding(3, 6, 3, 4);
+            this.txtRoleSearch.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.txtRoleSearch.Name = "txtRoleSearch";
             this.txtRoleSearch.AccessibleName = "جست‌وجوی نقش‌ها";
+            this.picRoleSearch.Dock = System.Windows.Forms.DockStyle.Right;
+            this.picRoleSearch.Image = FuntinoControlCenter.Properties.AccessManagementVisualAssets.Search;
+            this.picRoleSearch.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.picRoleSearch.Size = new System.Drawing.Size(22, 22);
+            this.picRoleSearch.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.picRoleSearch.Name = "picRoleSearch";
             // rolesContentLayout
             this.rolesContentLayout.ColumnCount = 2;
             this.rolesContentLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 65F));
@@ -609,7 +631,7 @@ namespace FuntinoControlCenter.Forms
             this.lstRolePermissions.HorizontalScrollbar = true;
             this.lstRolePermissions.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lstRolePermissions.Name = "lstRolePermissions";
-            ConfigureButton(this.btnEditRole, "مشاهده یا ویرایش نقش", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Permission, System.Drawing.Color.FromArgb(21, 102, 88), 210, 44);
+            ConfigureButton(this.btnEditRole, "مشاهده یا ویرایش نقش", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Role, System.Drawing.Color.FromArgb(21, 102, 88), 210, 44);
             this.btnEditRole.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnEditRole.Visible = false;
             this.btnEditRole.Name = "btnEditRole";
@@ -621,9 +643,9 @@ namespace FuntinoControlCenter.Forms
             this.roleDetailsEmpty.Name = "roleDetailsEmpty";
             // rolesFooter
             this.rolesFooter.ColumnCount = 4;
-            this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 190F));
+            this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 88F));
+            this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 128F));
+            this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 88F));
             this.rolesFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.rolesFooter.Controls.Add(this.btnRolesPrevious, 0, 0);
             this.rolesFooter.Controls.Add(this.lblRolesPage, 1, 0);
@@ -692,6 +714,7 @@ namespace FuntinoControlCenter.Forms
             this.usersToolbar.ResumeLayout(false);
             this.usersToolbarLayout.ResumeLayout(false);
             this.usersToolbarLayout.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picUserSearch)).EndInit();
             this.userSearchHost.ResumeLayout(false);
             this.userSearchHost.PerformLayout();
             this.usersGridHost.ResumeLayout(false);
@@ -705,6 +728,7 @@ namespace FuntinoControlCenter.Forms
             this.rolesToolbar.ResumeLayout(false);
             this.rolesToolbarLayout.ResumeLayout(false);
             this.rolesToolbarLayout.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picRoleSearch)).EndInit();
             this.roleSearchHost.ResumeLayout(false);
             this.roleSearchHost.PerformLayout();
             this.rolesContentLayout.ResumeLayout(false);
@@ -758,12 +782,12 @@ namespace FuntinoControlCenter.Forms
             button.ImageList = null;
             button.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button.MinimumSize = new System.Drawing.Size(width, height);
-            button.Padding = image == null ? new System.Windows.Forms.Padding(6, 0, 6, 0) : new System.Windows.Forms.Padding(8, 0, 38, 0);
+            button.Padding = new System.Windows.Forms.Padding(10, 0, 10, 0);
             button.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             button.Size = new System.Drawing.Size(width, height);
             button.Text = text;
             button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            button.TextImageRelation = System.Windows.Forms.TextImageRelation.Overlay;
+            button.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             button.UseVisualStyleBackColor = false;
         }
     }

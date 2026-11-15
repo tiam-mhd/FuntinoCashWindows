@@ -43,6 +43,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.Label lblSelectedCount;
         private System.Windows.Forms.Label lblOperationStatus;
         private System.Windows.Forms.TableLayoutPanel footerLayout;
+        private System.Windows.Forms.FlowLayoutPanel footerActions;
         private FuntinoControlCenter.UI.RoundedButton btnSave;
         private FuntinoControlCenter.UI.RoundedButton btnDeleteRole;
         private FuntinoControlCenter.UI.RoundedButton btnCancel;
@@ -97,6 +98,7 @@ namespace FuntinoControlCenter.Forms
             this.lblSelectedCount = new System.Windows.Forms.Label();
             this.lblOperationStatus = new System.Windows.Forms.Label();
             this.footerLayout = new System.Windows.Forms.TableLayoutPanel();
+            this.footerActions = new System.Windows.Forms.FlowLayoutPanel();
             this.btnSave = new FuntinoControlCenter.UI.RoundedButton();
             this.btnDeleteRole = new FuntinoControlCenter.UI.RoundedButton();
             this.btnCancel = new FuntinoControlCenter.UI.RoundedButton();
@@ -116,6 +118,7 @@ namespace FuntinoControlCenter.Forms
             this.permissionGridHost.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.permissionsGrid)).BeginInit();
             this.permissionsFooter.SuspendLayout();
+            this.footerActions.SuspendLayout();
             this.footerLayout.SuspendLayout();
             this.SuspendLayout();
             // rootLayout
@@ -305,7 +308,7 @@ namespace FuntinoControlCenter.Forms
             this.permissionSearchHost.Controls.Add(this.picPermissionSearch);
             this.permissionSearchHost.Dock = System.Windows.Forms.DockStyle.Fill;
             this.permissionSearchHost.Margin = new System.Windows.Forms.Padding(3, 6, 3, 4);
-            this.permissionSearchHost.Padding = new System.Windows.Forms.Padding(8, 0, 34, 0);
+            this.permissionSearchHost.Padding = new System.Windows.Forms.Padding(8, 3, 8, 3);
             this.permissionSearchHost.Name = "permissionSearchHost";
             this.txtPermissionSearch.BackColor = System.Drawing.Color.FromArgb(247, 251, 249);
             this.txtPermissionSearch.BorderStyle = System.Windows.Forms.BorderStyle.None;
@@ -313,11 +316,13 @@ namespace FuntinoControlCenter.Forms
             this.txtPermissionSearch.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8F);
             this.txtPermissionSearch.ForeColor = System.Drawing.Color.FromArgb(35, 67, 60);
             this.txtPermissionSearch.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.txtPermissionSearch.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.txtPermissionSearch.Name = "txtPermissionSearch";
             this.txtPermissionSearch.AccessibleName = "جست‌وجوی دسترسی";
             this.picPermissionSearch.Dock = System.Windows.Forms.DockStyle.Right;
             this.picPermissionSearch.Image = FuntinoControlCenter.Properties.AccessManagementVisualAssets.Search;
-            this.picPermissionSearch.Size = new System.Drawing.Size(28, 54);
+            this.picPermissionSearch.Size = new System.Drawing.Size(22, 22);
+            this.picPermissionSearch.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.picPermissionSearch.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.picPermissionSearch.Name = "picPermissionSearch";
             this.cmbPermissionCategory.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -336,7 +341,7 @@ namespace FuntinoControlCenter.Forms
             ConfigureButton(this.btnGrantResults, "انتخاب نتایج", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Permission, System.Drawing.Color.FromArgb(250, 253, 251), 185, 42);
             this.btnGrantResults.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnGrantResults.Name = "btnGrantResults";
-            ConfigureButton(this.btnClearResults, "پاک‌کردن انتخاب", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Delete, System.Drawing.Color.FromArgb(250, 253, 251), 185, 42);
+            ConfigureButton(this.btnClearResults, "پاک‌کردن انتخاب", FuntinoControlCenter.Properties.AccessManagementVisualAssets.SelectionClear, System.Drawing.Color.FromArgb(250, 253, 251), 185, 42);
             this.btnClearResults.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnClearResults.Name = "btnClearResults";
             // permissionGridHost
@@ -410,11 +415,11 @@ namespace FuntinoControlCenter.Forms
             this.lblPermissionsEmpty.Name = "lblPermissionsEmpty";
             // permissionsFooter
             this.permissionsFooter.ColumnCount = 5;
-            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 180F));
+            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 88F));
+            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 128F));
+            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 88F));
             this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 150F));
+            this.permissionsFooter.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 250F));
             this.permissionsFooter.Controls.Add(this.btnPermissionPrevious, 0, 0);
             this.permissionsFooter.Controls.Add(this.lblPermissionPage, 1, 0);
             this.permissionsFooter.Controls.Add(this.btnPermissionNext, 2, 0);
@@ -450,29 +455,33 @@ namespace FuntinoControlCenter.Forms
             this.lblOperationStatus.Visible = false;
             this.lblOperationStatus.Name = "lblOperationStatus";
             // footerLayout
-            this.footerLayout.ColumnCount = 5;
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 155F));
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 155F));
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 155F));
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.footerLayout.ColumnCount = 2;
             this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 500F));
-            this.footerLayout.Controls.Add(this.btnSave, 0, 0);
-            this.footerLayout.Controls.Add(this.btnDeleteRole, 1, 0);
-            this.footerLayout.Controls.Add(this.btnCancel, 2, 0);
-            this.footerLayout.Controls.Add(this.loadingIndicator, 4, 0);
+            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.footerLayout.Controls.Add(this.footerActions, 0, 0);
+            this.footerLayout.Controls.Add(this.loadingIndicator, 1, 0);
             this.footerLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.footerLayout.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.footerLayout.Name = "footerLayout";
             this.footerLayout.RowCount = 1;
             this.footerLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.footerActions.AutoSize = true;
+            this.footerActions.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.footerActions.Controls.Add(this.btnSave);
+            this.footerActions.Controls.Add(this.btnDeleteRole);
+            this.footerActions.Controls.Add(this.btnCancel);
+            this.footerActions.Dock = System.Windows.Forms.DockStyle.Right;
+            this.footerActions.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
+            this.footerActions.Margin = new System.Windows.Forms.Padding(0);
+            this.footerActions.Name = "footerActions";
+            this.footerActions.Padding = new System.Windows.Forms.Padding(0);
+            this.footerActions.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.footerActions.WrapContents = false;
             ConfigureButton(this.btnSave, "ذخیره", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Save, System.Drawing.Color.FromArgb(21, 102, 88), 145, 46);
-            this.btnSave.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnSave.Name = "btnSave";
             ConfigureButton(this.btnDeleteRole, "حذف نقش", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Delete, System.Drawing.Color.FromArgb(250, 253, 251), 145, 46);
-            this.btnDeleteRole.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnDeleteRole.Name = "btnDeleteRole";
             ConfigureButton(this.btnCancel, "بازگشت", null, System.Drawing.Color.FromArgb(250, 253, 251), 145, 46);
-            this.btnCancel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnCancel.Name = "btnCancel";
             this.loadingIndicator.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.loadingIndicator.Name = "loadingIndicator";
@@ -520,6 +529,8 @@ namespace FuntinoControlCenter.Forms
             this.permissionGridHost.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.permissionsGrid)).EndInit();
             this.permissionsFooter.ResumeLayout(false);
+            this.footerActions.ResumeLayout(false);
+            this.footerActions.PerformLayout();
             this.footerLayout.ResumeLayout(false);
             this.ResumeLayout(false);
         }
@@ -538,12 +549,12 @@ namespace FuntinoControlCenter.Forms
             button.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
             button.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button.MinimumSize = new System.Drawing.Size(width, height);
-            button.Padding = image == null ? new System.Windows.Forms.Padding(6, 0, 6, 0) : new System.Windows.Forms.Padding(8, 0, 38, 0);
+            button.Padding = new System.Windows.Forms.Padding(10, 0, 10, 0);
             button.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             button.Size = new System.Drawing.Size(width, height);
             button.Text = text;
             button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            button.TextImageRelation = System.Windows.Forms.TextImageRelation.Overlay;
+            button.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             button.UseVisualStyleBackColor = false;
         }
     }

@@ -19,6 +19,7 @@ namespace FuntinoControlCenter.Properties
         public static System.Drawing.Bitmap Save { get { return GetBitmap("Save"); } }
         public static System.Drawing.Bitmap Delete { get { return GetBitmap("Delete"); } }
         public static System.Drawing.Bitmap Search { get { return GetBitmap("Search"); } }
+        public static System.Drawing.Bitmap SelectionClear { get { return GetBitmap("SelectionClear"); } }
 
         private static System.Drawing.Bitmap GetBitmap(string name)
         {

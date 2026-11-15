@@ -34,6 +34,7 @@ namespace FuntinoControlCenter.Forms
         private System.Windows.Forms.CheckedListBox clbRoles;
         private System.Windows.Forms.Label lblNoRoles;
         private System.Windows.Forms.TableLayoutPanel footerLayout;
+        private System.Windows.Forms.FlowLayoutPanel footerActions;
         private FuntinoControlCenter.UI.RoundedButton btnSave;
         private FuntinoControlCenter.UI.RoundedButton btnCancel;
         private FuntinoControlCenter.UI.AppLoadingIndicator loadingIndicator;
@@ -78,6 +79,7 @@ namespace FuntinoControlCenter.Forms
             this.clbRoles = new System.Windows.Forms.CheckedListBox();
             this.lblNoRoles = new System.Windows.Forms.Label();
             this.footerLayout = new System.Windows.Forms.TableLayoutPanel();
+            this.footerActions = new System.Windows.Forms.FlowLayoutPanel();
             this.btnSave = new FuntinoControlCenter.UI.RoundedButton();
             this.btnCancel = new FuntinoControlCenter.UI.RoundedButton();
             this.loadingIndicator = new FuntinoControlCenter.UI.AppLoadingIndicator();
@@ -96,6 +98,7 @@ namespace FuntinoControlCenter.Forms
             this.roleSearchHost.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picRoleSearch)).BeginInit();
             this.footerLayout.SuspendLayout();
+            this.footerActions.SuspendLayout();
             this.SuspendLayout();
             // rootLayout
             this.rootLayout.ColumnCount = 1;
@@ -311,19 +314,21 @@ namespace FuntinoControlCenter.Forms
             this.roleSearchHost.Controls.Add(this.picRoleSearch);
             this.roleSearchHost.Dock = System.Windows.Forms.DockStyle.Fill;
             this.roleSearchHost.Margin = new System.Windows.Forms.Padding(2, 3, 2, 5);
+            this.roleSearchHost.Padding = new System.Windows.Forms.Padding(6, 2, 6, 2);
             this.roleSearchHost.Name = "roleSearchHost";
             this.txtRoleSearch.BackColor = System.Drawing.Color.FromArgb(247, 251, 249);
             this.txtRoleSearch.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtRoleSearch.Dock = System.Windows.Forms.DockStyle.Fill;
             this.txtRoleSearch.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8.5F);
             this.txtRoleSearch.ForeColor = System.Drawing.Color.FromArgb(35, 67, 60);
-            this.txtRoleSearch.Margin = new System.Windows.Forms.Padding(8, 7, 34, 7);
+            this.txtRoleSearch.Margin = new System.Windows.Forms.Padding(5, 5, 5, 5);
             this.txtRoleSearch.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.txtRoleSearch.Name = "txtRoleSearch";
             this.txtRoleSearch.AccessibleName = "جست‌وجوی نقش";
             this.picRoleSearch.Dock = System.Windows.Forms.DockStyle.Right;
             this.picRoleSearch.Image = FuntinoControlCenter.Properties.AccessManagementVisualAssets.Search;
-            this.picRoleSearch.Size = new System.Drawing.Size(30, 42);
+            this.picRoleSearch.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.picRoleSearch.Size = new System.Drawing.Size(22, 22);
             this.picRoleSearch.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.picRoleSearch.Name = "picRoleSearch";
             this.clbRoles.CheckOnClick = true;
@@ -349,24 +354,30 @@ namespace FuntinoControlCenter.Forms
             this.lblRoleCount.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblRoleCount.Name = "lblRoleCount";
             // footerLayout
-            this.footerLayout.ColumnCount = 4;
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 160F));
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 160F));
+            this.footerLayout.ColumnCount = 2;
+            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 320F));
             this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.footerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 500F));
-            this.footerLayout.Controls.Add(this.btnSave, 0, 0);
-            this.footerLayout.Controls.Add(this.btnCancel, 1, 0);
-            this.footerLayout.Controls.Add(this.loadingIndicator, 3, 0);
+            this.footerLayout.Controls.Add(this.footerActions, 0, 0);
+            this.footerLayout.Controls.Add(this.loadingIndicator, 1, 0);
             this.footerLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.footerLayout.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.footerLayout.Name = "footerLayout";
             this.footerLayout.RowCount = 1;
             this.footerLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.footerActions.AutoSize = true;
+            this.footerActions.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.footerActions.Controls.Add(this.btnSave);
+            this.footerActions.Controls.Add(this.btnCancel);
+            this.footerActions.Dock = System.Windows.Forms.DockStyle.Right;
+            this.footerActions.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
+            this.footerActions.Margin = new System.Windows.Forms.Padding(0);
+            this.footerActions.Name = "footerActions";
+            this.footerActions.Padding = new System.Windows.Forms.Padding(0);
+            this.footerActions.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.footerActions.WrapContents = false;
             ConfigureButton(this.btnSave, "ذخیره", FuntinoControlCenter.Properties.AccessManagementVisualAssets.Save, System.Drawing.Color.FromArgb(21, 102, 88), 150, 46);
-            this.btnSave.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnSave.Name = "btnSave";
             ConfigureButton(this.btnCancel, "بازگشت", null, System.Drawing.Color.FromArgb(250, 253, 251), 150, 46);
-            this.btnCancel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.btnCancel.Name = "btnCancel";
             this.loadingIndicator.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.loadingIndicator.Name = "loadingIndicator";
@@ -409,6 +420,8 @@ namespace FuntinoControlCenter.Forms
             this.roleSearchHost.ResumeLayout(false);
             this.roleSearchHost.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picRoleSearch)).EndInit();
+            this.footerActions.ResumeLayout(false);
+            this.footerActions.PerformLayout();
             this.footerLayout.ResumeLayout(false);
             this.ResumeLayout(false);
         }
@@ -427,12 +440,12 @@ namespace FuntinoControlCenter.Forms
             button.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
             button.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button.MinimumSize = new System.Drawing.Size(width, height);
-            button.Padding = image == null ? new System.Windows.Forms.Padding(6, 0, 6, 0) : new System.Windows.Forms.Padding(8, 0, 38, 0);
+            button.Padding = new System.Windows.Forms.Padding(10, 0, 10, 0);
             button.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             button.Size = new System.Drawing.Size(width, height);
             button.Text = text;
             button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            button.TextImageRelation = System.Windows.Forms.TextImageRelation.Overlay;
+            button.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             button.UseVisualStyleBackColor = false;
         }
     }

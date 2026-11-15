@@ -14,4 +14,5 @@
   <data name="Save" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Save.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="Delete" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Delete.png;System.Drawing.Bitmap, System.Drawing</value></data>
   <data name="Search" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Search.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="SelectionClear" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/SelectionClear.png;System.Drawing.Bitmap, System.Drawing</value></data>
 </root>
