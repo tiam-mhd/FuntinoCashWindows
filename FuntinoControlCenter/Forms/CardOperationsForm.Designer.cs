@@ -1029,7 +1029,7 @@ namespace FuntinoControlCenter.Forms
             this.btnCardHistoryTab.Location = new System.Drawing.Point(4, 3);
             this.btnCardHistoryTab.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.btnCardHistoryTab.Name = "btnCardHistoryTab";
-            this.btnCardHistoryTab.Size = new System.Drawing.Size(220, 36);
+            this.btnCardHistoryTab.Size = new System.Drawing.Size(220, 46);
             this.btnCardHistoryTab.TabIndex = 3;
             this.btnCardHistoryTab.Text = "نمایش سوابق کارت   F6";
             this.btnCardHistoryTab.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -1053,7 +1053,7 @@ namespace FuntinoControlCenter.Forms
             this.btnDatabaseHistoryTab.Location = new System.Drawing.Point(202, 3);
             this.btnDatabaseHistoryTab.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.btnDatabaseHistoryTab.Name = "btnDatabaseHistoryTab";
-            this.btnDatabaseHistoryTab.Size = new System.Drawing.Size(215, 36);
+            this.btnDatabaseHistoryTab.Size = new System.Drawing.Size(215, 46);
             this.btnDatabaseHistoryTab.TabIndex = 4;
             this.btnDatabaseHistoryTab.Text = "سوابق سامانه   F5";
             this.btnDatabaseHistoryTab.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -1079,7 +1079,7 @@ namespace FuntinoControlCenter.Forms
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 68F));
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 116F));
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 260F));
-            this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 44F));
+            this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
             this.tlpRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpRoot.Size = new System.Drawing.Size(1200, 772);
             this.tlpRoot.TabIndex = 0;
@@ -1094,7 +1094,7 @@ namespace FuntinoControlCenter.Forms
             this.flpHistoryTabs.Location = new System.Drawing.Point(22, 416);
             this.flpHistoryTabs.Margin = new System.Windows.Forms.Padding(0);
             this.flpHistoryTabs.Name = "flpHistoryTabs";
-            this.flpHistoryTabs.Size = new System.Drawing.Size(1156, 44);
+            this.flpHistoryTabs.Size = new System.Drawing.Size(1156, 52);
             this.flpHistoryTabs.TabIndex = 3;
             this.flpHistoryTabs.WrapContents = false;
             //
