@@ -19,6 +19,7 @@ namespace FuntinoControlCenter.Services
         CardDataUnavailable,
         ReaderUnavailable,
         ReaderNotResponding,
+        ReaderResponseInvalid,
         CardWriteRejected,
         RechargeResultUnknown
     }
@@ -88,6 +89,7 @@ namespace FuntinoControlCenter.Services
         private static readonly object OperationLock = new object();
         private static readonly byte[] RequestCard = { 2, 0, 2, 49, 82, 97 };
         private static readonly byte[] RequestCardReply = { 2, 4, 2, 0, 4 };
+        private static readonly byte[] RequestCardNoCardReply = { 2, 4, 1, 1, 4 };
         private static readonly byte[] Anticollision = { 2, 0, 2, 50, 147, 163 };
         private static readonly byte[] AnticollisionReply = { 2, 4, 5, 0 };
         private static readonly byte[] SelectCard = { 2, 0, 6, 51, 147 };
@@ -152,6 +154,11 @@ namespace FuntinoControlCenter.Services
                             message = "کارت‌خوان روی درگاه " + portName + " به فرمان شناسایی پاسخ داد. این آزمون حضور کارت را بررسی نمی‌کند.";
                             return true;
                         }
+                        if (MatchesResponse(response, RequestCardNoCardReply))
+                        {
+                            message = "کارت‌خوان روی درگاه " + portName + " پاسخ داد و آماده است؛ کارتی روی آن شناسایی نشد. برای شناسایی دستگاه، کارت لازم نیست.";
+                            return true;
+                        }
                     }
                 }
 
@@ -188,6 +195,14 @@ namespace FuntinoControlCenter.Services
             {
                 if (value != expected[index++]) return false;
             }
+            return true;
+        }
+
+        private static bool MatchesFrame(byte[] response, byte[] expected)
+        {
+            if (response == null || response.Length != expected.Length) return false;
+            for (int index = 0; index < expected.Length; index++)
+                if (response[index] != expected[index]) return false;
             return true;
         }
 
@@ -507,8 +522,6 @@ namespace FuntinoControlCenter.Services
                 if (String.IsNullOrWhiteSpace(portName))
                     throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "درگاه کارت‌خوان تنظیم نشده است. از تنظیمات سخت‌افزار، درگاه کارت‌خوان را انتخاب و بررسی کنید.");
                 byte[] key = AppSettings.Current.GetReaderCardKey();
-                if (key == null)
-                    throw new CardReaderException(CardReaderFailureKind.CardKeyRejected, "کلید امنیتی کارت تنظیم نشده است. از تنظیمات، فایل کلید کارت را درون‌ریزی کنید.");
 
                 SerialPort serialPort = null;
                 try
@@ -522,7 +535,7 @@ namespace FuntinoControlCenter.Services
                 catch (Exception ex)
                 {
                     if (serialPort != null) serialPort.Dispose();
-                    Array.Clear(key, 0, key.Length);
+                    if (key != null) Array.Clear(key, 0, key.Length);
                     if (ex is UnauthorizedAccessException)
                         throw new CardReaderException(CardReaderFailureKind.ReaderUnavailable, "درگاه " + portName + " در اختیار برنامه‌ی دیگری است یا دسترسی ویندوز به آن ممکن نیست. برنامه‌ی دیگر را ببندید یا درگاه کارت‌خوان را در تنظیمات تغییر دهید.", ex);
                     if (ex is System.IO.IOException)
@@ -543,7 +556,7 @@ namespace FuntinoControlCenter.Services
                 try { serialPort.Dispose(); }
                 finally
                 {
-                    Array.Clear(key, 0, key.Length);
+                    if (key != null) Array.Clear(key, 0, key.Length);
                     if (session.Uid != null) Array.Clear(session.Uid, 0, session.Uid.Length);
                 }
                 throw;
@@ -653,8 +666,14 @@ namespace FuntinoControlCenter.Services
             private void SelectAndLoadKey()
             {
                 Send(RequestCard);
-                ReadFrame(RequestCardReply, RequestCardReply.Length, TimeSpan.FromSeconds(7), CardReaderFailureKind.ReaderNotResponding,
+                byte[] requestReply = ReadFrame(new byte[] { 2, 4 }, RequestCardReply.Length, TimeSpan.FromSeconds(7), CardReaderFailureKind.ReaderNotResponding,
                     "کارت‌خوان به فرمان آغاز خواندن پاسخ نداد. اتصال دستگاه، درگاه انتخاب‌شده و سرعت ارتباط را بررسی کنید.");
+                if (MatchesFrame(requestReply, RequestCardNoCardReply))
+                    throw new CardReaderException(CardReaderFailureKind.NoCardDetected,
+                        "کارت‌خوان روی درگاه " + port.PortName + " آماده است، اما کارتی روی آن شناسایی نشد. کارت را در مرکز دستگاه بگذارید و دوباره تلاش کنید.");
+                if (!MatchesFrame(requestReply, RequestCardReply))
+                    throw new CardReaderException(CardReaderFailureKind.ReaderResponseInvalid,
+                        "کارت‌خوان روی درگاه " + port.PortName + " پاسخ داد، اما پاسخ آغاز خواندن معتبر نبود. سرعت ارتباط و سازگاری دستگاه را بررسی کنید.");
 
                 Send(Anticollision);
                 byte[] collideResponse = ReadFrame(AnticollisionReply, 8, TimeSpan.FromSeconds(3), CardReaderFailureKind.NoCardDetected,
@@ -669,6 +688,10 @@ namespace FuntinoControlCenter.Services
                 Send(selectFrame);
                 ReadFrame(SelectCardReply, SelectCardReply.Length, TimeSpan.FromSeconds(3), CardReaderFailureKind.CardSelectionFailed,
                     "شناسه‌ی کارت دریافت شد، اما ارتباط با خود کارت کامل نشد. کارت را روی کارت‌خوان ثابت بگذارید و دوباره تلاش کنید.");
+
+                if (key == null)
+                    throw new CardReaderException(CardReaderFailureKind.CardKeyRejected,
+                        "کارت روی کارت‌خوان شناسایی شد، اما کلید امنیتی کارت در تنظیمات این حساب ویندوز ثبت نشده است. فایل کلید کارت را از تنظیمات درون‌ریزی کنید.");
 
                 var keyFrame = new byte[11];
                 Array.Copy(LoadKey, keyFrame, LoadKey.Length);

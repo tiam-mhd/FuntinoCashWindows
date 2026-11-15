@@ -71,7 +71,7 @@ namespace FuntinoControlCenter.Forms
                     catch (Exception ex)
                     {
                         rechargeSetup = null;
-                        AppMessageService.ShowWarning(this, DisplayError(ex), "شرایط شارژ در دسترس نیست");
+                        AppMessageService.ShowWarning(this, DisplayRechargeSetupError(ex), "بارگذاری شرایط شارژ انجام نشد");
                     }
                 }
                 ApplyPermissions();
@@ -839,16 +839,42 @@ namespace FuntinoControlCenter.Forms
             if (readerException != null) return readerException.Message;
             var sqlException = exception as SqlException;
             if (sqlException != null)
+            {
+                if (sqlException.Number == 0 &&
+                    (sqlException.Message.IndexOf("SSPI context", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     sqlException.Message.IndexOf("principal name is incorrect", StringComparison.OrdinalIgnoreCase) >= 0))
+                    return "ورود به پایگاه داده با حساب ویندوز برقرار نشد. نام سرور و دسترسی همین حساب ویندوز به پایگاه را بررسی کنید.";
                 return "خواندن یا ثبت اطلاعات در پایگاه انجام نشد. اتصال و دسترسی پایگاه را بررسی کنید. کد خطا: " + sqlException.Number.ToString(CultureInfo.InvariantCulture);
+            }
             var unauthorized = exception as UnauthorizedAccessException;
             if (unauthorized != null) return unauthorized.Message;
             var invalidOperation = exception as InvalidOperationException;
             if (invalidOperation != null) return invalidOperation.Message;
+            if (exception is InvalidCastException || exception is FormatException || exception is OverflowException || exception is DataException)
+                return "قالب یکی از مقدارهای دریافت‌شده از پایگاه یا کارت معتبر نیست. تنظیمات تخفیف و اطلاعات کارت را بررسی کنید.";
             if (exception is TimeoutException)
                 return "کارت‌خوان پاسخ نداد. کارت را روی دستگاه بگذارید و اتصال و درگاه انتخاب‌شده را بررسی کنید.";
             if (exception is System.IO.IOException)
                 return "ارتباط با کارت‌خوان قطع شد. اتصال کابل و درگاه انتخاب‌شده را بررسی کنید.";
-            return "عملیات انجام نشد. اتصال کارت‌خوان و تنظیمات را بررسی کنید و دوباره تلاش کنید.";
+            return "عملیات کارت تکمیل نشد. علت خطا در دسته‌ی خطاهای شناخته‌شده‌ی کارت‌خوان یا پایگاه نیست؛ وضعیت پایگاه و تنظیمات عملیات را بررسی کنید.";
+        }
+
+        private static string DisplayRechargeSetupError(Exception exception)
+        {
+            exception = UnwrapException(exception);
+            if (exception is SqlException)
+                return "شرایط شارژ از پایگاه داده دریافت نشد. این مرحله پیش از ارتباط با کارت‌خوان انجام می‌شود. " + DisplayError(exception);
+
+            var invalidOperation = exception as InvalidOperationException;
+            if (invalidOperation != null) return invalidOperation.Message;
+
+            if (exception is InvalidCastException || exception is FormatException || exception is OverflowException || exception is DataException)
+                return "یکی از عددهای سقف شارژ یا تخفیف‌ها در پایگاه قالب معتبر ندارد. اطلاعات سقف، تخفیف روزانه و جشنواره‌ها را در بخش مدیریت بررسی کنید.";
+
+            var unauthorized = exception as UnauthorizedAccessException;
+            if (unauthorized != null) return unauthorized.Message;
+
+            return "شرایط شارژ از پایگاه دریافت نشد. این خطا پیش از ارتباط با کارت‌خوان رخ می‌دهد؛ اطلاعات سقف شارژ، تخفیف‌ها و جشنواره‌ها را بررسی کنید.";
         }
 
         private void ShowOperationFailure(Exception exception)
@@ -862,6 +888,7 @@ namespace FuntinoControlCenter.Forms
                 string title = GetReaderFailureTitle(readerException.FailureKind);
                 if (readerException.FailureKind == CardReaderFailureKind.ReaderUnavailable ||
                     readerException.FailureKind == CardReaderFailureKind.ReaderNotResponding ||
+                    readerException.FailureKind == CardReaderFailureKind.ReaderResponseInvalid ||
                     readerException.FailureKind == CardReaderFailureKind.RechargeResultUnknown)
                     AppMessageService.ShowError(this, message, title);
                 else
@@ -883,6 +910,7 @@ namespace FuntinoControlCenter.Forms
                 case CardReaderFailureKind.NoCardDetected: return "کارتی روی کارت‌خوان پیدا نشد";
                 case CardReaderFailureKind.ReaderUnavailable: return "کارت‌خوان در دسترس نیست";
                 case CardReaderFailureKind.ReaderNotResponding: return "پاسخی از کارت‌خوان نرسید";
+                case CardReaderFailureKind.ReaderResponseInvalid: return "پاسخ کارت‌خوان معتبر نیست";
                 case CardReaderFailureKind.CardKeyRejected: return "خواندن اطلاعات کارت ممکن نشد";
                 case CardReaderFailureKind.RechargeResultUnknown: return "وضعیت شارژ مشخص نیست";
                 case CardReaderFailureKind.CardIdentifierUnavailable:

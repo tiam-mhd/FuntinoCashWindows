@@ -183,9 +183,9 @@ ORDER BY p.StartsAt,p.PromotionCode;", connection))
                         {
                             result.Promotions.Add(new RechargePromotionOption
                             {
-                                Code = reader.GetInt32(0),
+                                Code = ReadInt32(reader, 0, "کد جشنواره"),
                                 Name = reader.GetString(1),
-                                DiscountPercent = reader.GetInt32(2),
+                                DiscountPercent = ReadInt32(reader, 2, "درصد تخفیف جشنواره"),
                                 StartsAt = reader.GetDateTime(3),
                                 EndsAt = reader.GetDateTime(4)
                             });
@@ -209,11 +209,11 @@ ORDER BY (p.MaximumPrice-p.MinimumPrice),p.MinimumPrice DESC,p.DiscountPolicyId;
                         {
                             result.Discounts.Add(new RechargeDiscountBand
                             {
-                                PolicyId = reader.GetInt32(0),
-                                TierId = reader.GetInt32(1),
-                                DiscountPercent = reader.GetInt32(2),
-                                Minimum = reader.GetInt64(3),
-                                Maximum = reader.GetInt64(4)
+                                PolicyId = ReadInt32(reader, 0, "شناسه‌ی قانون تخفیف"),
+                                TierId = ReadInt32(reader, 1, "شناسه‌ی سطح تخفیف"),
+                                DiscountPercent = ReadInt32(reader, 2, "درصد تخفیف روزانه"),
+                                Minimum = ReadInteger(reader, 3, "حداقل مبلغ تخفیف"),
+                                Maximum = ReadInteger(reader, 4, "حداکثر مبلغ تخفیف")
                             });
                         }
                     }
@@ -221,6 +221,43 @@ ORDER BY (p.MaximumPrice-p.MinimumPrice),p.MinimumPrice DESC,p.DiscountPolicyId;
             }
 
             return result;
+        }
+
+        private static int ReadInt32(SqlDataReader reader, int ordinal, string fieldName)
+        {
+            long value = ReadInteger(reader, ordinal, fieldName);
+            if (value < Int32.MinValue || value > Int32.MaxValue)
+                throw new InvalidOperationException("مقدار «" + fieldName + "» در پایگاه از محدوده‌ی مجاز بیشتر است.");
+            return (int)value;
+        }
+
+        private static long ReadInteger(SqlDataReader reader, int ordinal, string fieldName)
+        {
+            if (reader.IsDBNull(ordinal))
+                throw new InvalidOperationException("مقدار «" + fieldName + "» در پایگاه ثبت نشده است.");
+
+            decimal value;
+            try
+            {
+                value = Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("مقدار «" + fieldName + "» در پایگاه عدد معتبر نیست.");
+            }
+            catch (InvalidCastException)
+            {
+                throw new InvalidOperationException("مقدار «" + fieldName + "» در پایگاه عدد معتبر نیست.");
+            }
+            catch (OverflowException)
+            {
+                throw new InvalidOperationException("مقدار «" + fieldName + "» از محدوده‌ی مجاز بیشتر است.");
+            }
+
+            if (value != Decimal.Truncate(value) || value < Int64.MinValue || value > Int64.MaxValue)
+                throw new InvalidOperationException("مقدار «" + fieldName + "» باید یک عدد صحیح در محدوده‌ی مجاز باشد.");
+
+            return Decimal.ToInt64(value);
         }
 
         public static RechargeOperationTerms ResolveRechargeTerms(long amount, int promotionCode)
