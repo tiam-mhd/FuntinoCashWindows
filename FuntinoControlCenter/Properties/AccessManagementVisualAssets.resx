@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Background" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Background.jpg;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="UserAdd" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/UserAdd.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="UserEdit" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/UserEdit.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="PasswordReset" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/PasswordReset.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="UserStatus" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/UserStatus.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Role" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Role.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Permission" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Permission.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Save" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Save.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Delete" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Delete.png;System.Drawing.Bitmap, System.Drawing</value></data>
+  <data name="Search" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>../Assets/AccessManagement/Icons/Search.png;System.Drawing.Bitmap, System.Drawing</value></data>
+</root>

@@ -1,446 +1,534 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Database;
+using FuntinoControlCenter.Properties;
 using FuntinoControlCenter.Security;
+using FuntinoControlCenter.UI;
+using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 
 namespace FuntinoControlCenter.Forms
 {
     internal sealed partial class AccessManagementForm : Form
     {
-        private readonly Dictionary<string, CheckedListBox> permissionLists = new Dictionary<string, CheckedListBox>(StringComparer.OrdinalIgnoreCase);
-        private readonly List<RoleChoice> assignableRoles = new List<RoleChoice>();
+        private const int DefaultPageSize = 20;
+        private DataTable usersTable;
         private DataTable rolesTable;
         private bool loading;
+        private bool usersBusy;
+        private bool rolesBusy;
+        private int usersPageIndex;
+        private int rolesPageIndex;
         private int selectedUserId;
         private int selectedRoleId;
         private bool selectedUserIsActive;
+        private bool selectedRoleIsSystem;
 
         public AccessManagementForm()
         {
+            AppFontManager.EnsureVazirmatnLoaded();
             InitializeComponent();
-            InitializePermissionLists();
         }
 
-        private void InitializePermissionLists()
-        {
-            permissionLists.Add("داشبورد", clbDashboardPermissions);
-            permissionLists.Add("گزارش‌ها", clbReportPermissions);
-            permissionLists.Add("دستگاه‌ها", clbDevicePermissions);
-            permissionLists.Add("تنظیمات", clbSettingsPermissions);
-            permissionLists.Add("کاربران", clbUserPermissions);
-            permissionLists.Add("نقش‌ها", clbRolePermissions);
-            permissionLists.Add("تراکنش‌های مالی", clbFinancePermissions);
-            permissionLists.Add("قیمت‌گذاری و تعرفه", clbPricingPermissions);
-            permissionLists.Add("پرداخت و پایانه", clbPaymentsPermissions);
-            permissionLists.Add("بلیت و ورود", clbTicketPermissions);
-            permissionLists.Add("اطلاعات پایه", clbReferencePermissions);
-            permissionLists.Add("داده‌های دستگاه‌ها", clbDeviceDataPermissions);
-            permissionLists.Add("امنیت و حساب‌های قدیمی", clbSecurityDataPermissions);
-            permissionLists.Add("پیکربندی", clbConfigurationPermissions);
-            permissionLists.Add("مدیریت کسب‌وکار", clbBusinessPermissions);
-            permissionLists.Add("مدیریت دستگاه‌های تفریحی", clbAttractionsPermissions);
-            permissionLists.Add("مدیریت کنترل‌گرها", clbControllerDevicesPermissions);
-            permissionLists.Add("جشنواره‌ها و تخفیف‌ها", clbPromotionsPermissions);
-            permissionLists.Add("قوانین تخفیف", clbDiscountRulesPermissions);
-            permissionLists.Add("تنظیمات شارژ", clbRechargeSettingsPermissions);
-            permissionLists.Add("تنظیمات بلیت", clbTicketSettingsPermissions);
-            permissionLists.Add("عملیات کارت", clbCardOperationsPermissions);
-            permissionLists.Add("سایر مجوزها", clbOtherPermissions);
-
-            foreach (var group in PermissionCatalog.All.GroupBy(p => p.Category))
-            {
-                CheckedListBox list;
-                if (!permissionLists.TryGetValue(group.Key, out list))
-                {
-                    list = clbOtherPermissions;
-                    gbOtherPermissions.Visible = true;
-                }
-                foreach (var permission in group.OrderBy(p => p.DisplayOrder))
-                {
-                    string caption = list == clbOtherPermissions
-                        ? group.Key + " — " + permission.Name + " — " + permission.Description
-                        : permission.Name + " — " + permission.Description;
-                    list.Items.Add(new PermissionChoice(permission.Code, caption), false);
-                }
-            }
-        }
-
-        private void UsersGrid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
-        {
-            if (e.ColumnIndex < 0 || e.ColumnIndex >= usersGrid.Columns.Count) return;
-            string columnName = usersGrid.Columns[e.ColumnIndex].Name;
-            if ((columnName == "IsActive" || columnName == "MustChangePassword") && e.Value != null && e.Value != DBNull.Value)
-            {
-                bool value = Convert.ToBoolean(e.Value);
-                if (usersGrid.Columns[e.ColumnIndex] is DataGridViewCheckBoxColumn)
-                    e.Value = value;
-                else
-                    e.Value = value ? "بله" : "خیر";
-                e.FormattingApplied = true;
-            }
-        }
-
-        private void AccessManagementForm_Load(object sender, EventArgs e)
+        private async void AccessManagementForm_Load(object sender, EventArgs e)
         {
             try
             {
                 bool canSeeUsers = AuthorizationGuard.HasAny("users.view", "users.create", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate");
                 bool canSeeRoles = AuthorizationGuard.HasAny("roles.view", "roles.create", "roles.update", "roles.assign_permissions", "roles.delete");
+                bool canBrowseUsers = AuthorizationGuard.HasAny("users.view", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate");
+                bool canBrowseRoles = AuthorizationGuard.HasAny("roles.view", "roles.update", "roles.assign_permissions", "roles.delete");
                 tabs.TabPages.Clear();
                 if (canSeeUsers) tabs.TabPages.Add(usersPage);
                 if (canSeeRoles) tabs.TabPages.Add(rolesPage);
                 if (tabs.TabPages.Count == 0)
                 {
-                    MessageBox.Show(this, "برای مدیریت حساب‌ها یا نقش‌ها مجوز ندارید.", "دسترسی مجاز نیست", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(this, "برای مدیریت حساب‌ها یا نقش‌ها مجوز لازم را ندارید.", "دسترسی مجاز نیست", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     Close();
                     return;
                 }
+
                 AuthorizationMonitor.Attach(this, delegate
                 {
                     return AuthorizationGuard.HasAny("users.view", "users.create", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate", "roles.view", "roles.create", "roles.update", "roles.assign_permissions", "roles.delete");
                 });
-                if (canSeeUsers)
-                {
-                    createGroup.Visible = AuthorizationGuard.Has("users.create");
-                    selectedGroup.Visible = AuthorizationGuard.HasAny("users.update", "users.assign_roles", "users.reset_password", "users.deactivate");
-                    usersGrid.Visible = AuthorizationGuard.HasAny("users.view", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate");
-                    if (AuthorizationGuard.Has("users.view") || AuthorizationGuard.HasAny("users.update", "users.reset_password", "users.assign_roles", "users.deactivate"))
-                        LoadUsers();
-                    bool canAssign = AuthorizationGuard.Has("users.assign_roles");
-                    clbNewUserRoles.Visible = canAssign;
-                    clbUserRoles.Visible = canAssign;
-                    SetNamedControlVisible(clbNewUserRoles.Parent, "lblNewUserRoles", canAssign);
-                    SetNamedControlVisible(clbUserRoles.Parent, "lblSelectedUserRoles", canAssign);
-                    if (canAssign) LoadAssignableRoles();
-                    btnCreateUser.Visible = AuthorizationGuard.Has("users.create");
-                    btnSaveDisplayName.Visible = AuthorizationGuard.Has("users.update");
-                    btnAssignUserRoles.Visible = canAssign;
-                    btnResetPassword.Visible = AuthorizationGuard.Has("users.reset_password");
-                    btnToggleUser.Visible = AuthorizationGuard.Has("users.deactivate");
-                    bool showDisplayName = AuthorizationGuard.Has("users.update");
-                    txtDisplayName.Visible = showDisplayName;
-                    SetNamedControlVisible(txtDisplayName.Parent, "lblSelectedDisplayName", showDisplayName);
-                }
+
+                btnCreateUser.Visible = AuthorizationGuard.Has("users.create");
+                cmbUserStatus.Visible = AuthorizationGuard.Has("users.view");
                 btnCreateRole.Visible = AuthorizationGuard.Has("roles.create");
-                roleMetadata.Visible = AuthorizationGuard.Has("roles.create");
-                rolesList.Visible = canSeeRoles && AuthorizationGuard.HasAny("roles.view", "roles.update", "roles.assign_permissions", "roles.delete");
+                lblUserSearch.Visible = canBrowseUsers;
+                userSearchHost.Visible = canBrowseUsers;
+                usersGridHost.Visible = canBrowseUsers;
+                usersFooter.Visible = canBrowseUsers;
+                userDetailsHost.Visible = canBrowseUsers;
+                lblRoleSearch.Visible = canBrowseRoles;
+                roleSearchHost.Visible = canBrowseRoles;
+                cmbRoleType.Visible = canBrowseRoles;
+                rolesContentLayout.Visible = canBrowseRoles;
+                rolesFooter.Visible = canBrowseRoles;
+
+                var loads = new List<Task>();
+                if (canSeeUsers && AuthorizationGuard.HasAny("users.view", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate"))
+                    loads.Add(LoadUsersAsync());
                 if (canSeeRoles && AuthorizationGuard.HasAny("roles.view", "roles.update", "roles.assign_permissions", "roles.delete"))
-                    LoadRoles();
-                permissionPanel.Visible = false;
-                assignedPermissions.Visible = false;
+                    loads.Add(LoadRolesAsync());
+                await Task.WhenAll(loads);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "مدیریت دسترسی‌ها", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "باز کردن مدیریت دسترسی‌ها انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Close();
             }
         }
 
-        private void LoadUsers()
+        private async Task LoadUsersAsync()
         {
+            if (usersBusy) return;
+            usersBusy = true;
             loading = true;
-            usersGrid.DataSource = AccessControlRepository.GetUsers();
-            HideColumn(usersGrid, "ApplicationUserId", "AuthorizationVersion");
-            SetHeader(usersGrid, "UserName", "نام ورود");
-            SetHeader(usersGrid, "DisplayName", "نام نمایشی");
-            SetHeader(usersGrid, "IsActive", "فعال");
-            SetHeader(usersGrid, "MustChangePassword", "تغییر گذرواژه لازم است");
-            SetHeader(usersGrid, "CreatedAt", "تاریخ ساخت");
-            SetHeader(usersGrid, "LastLoginAt", "آخرین ورود");
-            SetHeader(usersGrid, "RoleNames", "نقش‌ها");
+            usersGrid.Enabled = false;
+            btnCreateUser.Enabled = false;
+            usersLoading.BeginLoading("در حال دریافت فهرست حساب‌ها…", AccessManagementVisualAssets.UserAdd);
+            try
+            {
+                usersTable = await Task.Run(() => AccessControlRepository.GetUsers());
+                usersPageIndex = 0;
+                ApplyUserFilter();
+            }
+            catch (Exception ex)
+            {
+                usersTable = null;
+                usersGrid.DataSource = null;
+                lblUsersEmpty.Text = "فهرست حساب‌ها بارگذاری نشد. دوباره تلاش کنید.";
+                lblUsersEmpty.Visible = true;
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "دریافت فهرست حساب‌ها انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                usersLoading.EndLoading();
+                usersGrid.Enabled = true;
+                btnCreateUser.Enabled = AuthorizationGuard.Has("users.create");
+                usersBusy = false;
+                loading = false;
+            }
+        }
+
+        private async Task LoadRolesAsync()
+        {
+            if (rolesBusy) return;
+            rolesBusy = true;
+            loading = true;
+            rolesGrid.Enabled = false;
+            btnCreateRole.Enabled = false;
+            rolesLoading.BeginLoading("در حال دریافت فهرست نقش‌ها…", AccessManagementVisualAssets.Role);
+            try
+            {
+                rolesTable = await Task.Run(() => AccessControlRepository.GetRoles());
+                rolesPageIndex = 0;
+                ApplyRoleFilter();
+            }
+            catch (Exception ex)
+            {
+                rolesTable = null;
+                rolesGrid.DataSource = null;
+                lblRolesEmpty.Text = "فهرست نقش‌ها بارگذاری نشد. دوباره تلاش کنید.";
+                lblRolesEmpty.Visible = true;
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "دریافت فهرست نقش‌ها انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                rolesLoading.EndLoading();
+                rolesGrid.Enabled = true;
+                btnCreateRole.Enabled = AuthorizationGuard.Has("roles.create");
+                rolesBusy = false;
+                loading = false;
+            }
+        }
+
+        private void ApplyUserFilter()
+        {
+            if (usersTable == null) return;
+            IEnumerable<DataRow> rows = usersTable.Rows.Cast<DataRow>();
+            string search = (txtUserSearch.Text ?? string.Empty).Trim();
+            if (search.Length > 0)
+            {
+                rows = rows.Where(row => Contains(row, "UserName", search) || Contains(row, "DisplayName", search) || Contains(row, "RoleNames", search));
+            }
+            if (AuthorizationGuard.Has("users.view") && cmbUserStatus.SelectedIndex == 1)
+                rows = rows.Where(row => !row.IsNull("IsActive") && Convert.ToBoolean(row["IsActive"]));
+            else if (AuthorizationGuard.Has("users.view") && cmbUserStatus.SelectedIndex == 2)
+                rows = rows.Where(row => !row.IsNull("IsActive") && !Convert.ToBoolean(row["IsActive"]));
+
+            List<DataRow> filtered = rows.ToList();
+            int pageSize = SelectedPageSize(cmbUserPageSize, DefaultPageSize);
+            int pageCount = Math.Max(1, (int)Math.Ceiling(filtered.Count / (double)pageSize));
+            usersPageIndex = Math.Max(0, Math.Min(usersPageIndex, pageCount - 1));
+            DataTable page = usersTable.Clone();
+            foreach (DataRow row in filtered.Skip(usersPageIndex * pageSize).Take(pageSize)) page.ImportRow(row);
+
+            loading = true;
+            usersGrid.DataSource = page;
+            ConfigureUsersGrid();
             usersGrid.ClearSelection();
             selectedUserId = 0;
-            txtDisplayName.Clear();
-            clbUserRoles.Items.Clear();
-            lblUserSelection.Text = "برای مدیریت، یک حساب را از فهرست انتخاب کنید.";
-            btnToggleUser.Visible = btnResetPassword.Visible = btnAssignUserRoles.Visible = btnSaveDisplayName.Visible = false;
+            lblUsersEmpty.Visible = filtered.Count == 0;
+            if (filtered.Count == 0)
+                lblUsersEmpty.Text = usersTable.Rows.Count == 0 ? "هنوز حسابی ساخته نشده است." : "حسابی با این جست‌وجو یا فیلتر پیدا نشد.";
+            lblUserCount.Text = filtered.Count.ToString("N0") + " حساب";
+            lblUsersPage.Text = "صفحه " + (usersPageIndex + 1).ToString("N0") + " از " + pageCount.ToString("N0");
+            btnUsersPrevious.Enabled = usersPageIndex > 0;
+            btnUsersNext.Enabled = usersPageIndex + 1 < pageCount;
+            SetUserDetails(null);
             loading = false;
         }
 
-        private void LoadAssignableRoles()
+        private void ConfigureUsersGrid()
         {
-            assignableRoles.Clear();
-            DataTable table = AccessControlRepository.GetAssignableRoles();
-            foreach (DataRow row in table.Rows)
-                assignableRoles.Add(new RoleChoice(Convert.ToInt32(row["RoleId"]), Convert.ToString(row["DisplayName"]), false));
-            FillRoleChecklist(clbNewUserRoles, new int[0]);
-            FillRoleChecklist(clbUserRoles, new int[0]);
+            HideColumn(usersGrid, "ApplicationUserId", "AuthorizationVersion");
+            SetHeader(usersGrid, "UserName", "نام ورود");
+            SetHeader(usersGrid, "DisplayName", "نام نمایشی");
+            SetHeader(usersGrid, "IsActive", "وضعیت حساب");
+            SetHeader(usersGrid, "MustChangePassword", "تغییر گذرواژه در ورود بعدی");
+            SetHeader(usersGrid, "CreatedAt", "تاریخ ساخت");
+            SetHeader(usersGrid, "LastLoginAt", "آخرین ورود");
+            SetHeader(usersGrid, "RoleNames", "نقش‌ها");
+            if (usersGrid.Columns.Contains("IsActive")) usersGrid.Columns["IsActive"].FillWeight = 65;
+            if (usersGrid.Columns.Contains("UserName")) usersGrid.Columns["UserName"].FillWeight = 90;
+            if (usersGrid.Columns.Contains("DisplayName")) usersGrid.Columns["DisplayName"].FillWeight = 110;
+            if (usersGrid.Columns.Contains("RoleNames")) usersGrid.Columns["RoleNames"].FillWeight = 130;
+            if (usersGrid.Columns.Contains("CreatedAt")) usersGrid.Columns["CreatedAt"].FillWeight = 95;
+            if (usersGrid.Columns.Contains("LastLoginAt")) usersGrid.Columns["LastLoginAt"].FillWeight = 95;
         }
 
-        private void FillRoleChecklist(CheckedListBox list, IEnumerable<int> selected)
+        private void UsersGrid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            var ids = new HashSet<int>(selected ?? Enumerable.Empty<int>());
-            list.Items.Clear();
-            foreach (RoleChoice role in assignableRoles)
-                list.Items.Add(role, ids.Contains(role.Id));
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            string column = usersGrid.Columns[e.ColumnIndex].Name;
+            if (column == "MustChangePassword" && e.Value != null && e.Value != DBNull.Value)
+            {
+                e.Value = Convert.ToBoolean(e.Value);
+                e.FormattingApplied = true;
+            }
+            else if ((column == "CreatedAt" || column == "LastLoginAt") && e.Value is DateTime)
+            {
+                e.Value = ((DateTime)e.Value).ToString("yyyy/MM/dd  HH:mm");
+                e.FormattingApplied = true;
+            }
         }
 
         private void UsersGrid_SelectionChanged(object sender, EventArgs e)
         {
-            if (loading || usersGrid.CurrentRow == null || !usersGrid.Columns.Contains("ApplicationUserId")) return;
+            if (loading || usersGrid.CurrentRow == null || usersGrid.CurrentRow.DataBoundItem == null) return;
+            var row = usersGrid.CurrentRow.DataBoundItem as DataRowView;
+            if (row == null) return;
             try
             {
-                var row = usersGrid.CurrentRow;
-                selectedUserId = Convert.ToInt32(row.Cells["ApplicationUserId"].Value);
-                selectedUserIsActive = Convert.ToBoolean(row.Cells["IsActive"].Value);
-                string name = Convert.ToString(row.Cells["UserName"].Value);
-                string display = usersGrid.Columns.Contains("DisplayName") ? Convert.ToString(row.Cells["DisplayName"].Value) : "";
-                bool mustChange = usersGrid.Columns.Contains("MustChangePassword") && Convert.ToBoolean(row.Cells["MustChangePassword"].Value);
-                lblUserSelection.Text = "حساب انتخاب‌شده: " + name + (mustChange ? "  |  گذرواژه‌ی موقت باید تغییر کند" : "");
-                txtDisplayName.Text = display;
-                btnToggleUser.Text = selectedUserIsActive ? "غیرفعال‌کردن حساب" : "فعال‌کردن حساب";
-                bool canChangeOtherUser = AppSession.Current != null && selectedUserId != AppSession.Current.ApplicationUserId;
-                btnToggleUser.Visible = AuthorizationGuard.Has("users.deactivate") && canChangeOtherUser;
-                btnResetPassword.Visible = AuthorizationGuard.Has("users.reset_password") && canChangeOtherUser;
-                btnSaveDisplayName.Visible = AuthorizationGuard.Has("users.update");
-                btnAssignUserRoles.Visible = AuthorizationGuard.Has("users.assign_roles");
-                if (AuthorizationGuard.Has("users.assign_roles"))
-                    FillRoleChecklist(clbUserRoles, AccessControlRepository.GetUserRoleIds(selectedUserId));
+                selectedUserId = Convert.ToInt32(row["ApplicationUserId"]);
+                selectedUserIsActive = Convert.ToBoolean(row["IsActive"]);
+                SetUserDetails(row.Row);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "انتخاب کاربر", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                selectedUserId = 0;
+                SetUserDetails(null);
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "نمایش حساب انتخاب‌شده انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
-        private void CreateUser_Click(object sender, EventArgs e)
+        private void SetUserDetails(DataRow row)
         {
-            try
-            {
-                var roles = AuthorizationGuard.Has("users.assign_roles") ? CheckedRoleIds(clbNewUserRoles) : new List<int>();
-                GeneratedCredential credential = AccessControlRepository.CreateUser(txtNewUserName.Text, txtNewDisplayName.Text, roles);
-                LoadUsersIfPermitted();
-                using (var dialog = new InitialCredentialDialog(credential.UserName, credential.Password)) dialog.ShowDialog(this);
-                txtNewUserName.Clear();
-                txtNewDisplayName.Clear();
-                FillRoleChecklist(clbNewUserRoles, new int[0]);
-            }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "ساخت کاربر انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            bool hasSelection = row != null && selectedUserId != 0;
+            userDetailsPanel.Visible = hasSelection;
+            userDetailsEmpty.Visible = !hasSelection;
+            btnEditUser.Visible = hasSelection && AuthorizationGuard.HasAny("users.update", "users.assign_roles", "users.reset_password", "users.deactivate");
+            if (!hasSelection) return;
+
+            string userName = Convert.ToString(row["UserName"]);
+            string displayName = row.Table.Columns.Contains("DisplayName") ? Convert.ToString(row["DisplayName"]) : string.Empty;
+            bool mustChange = row.Table.Columns.Contains("MustChangePassword") && !row.IsNull("MustChangePassword") && Convert.ToBoolean(row["MustChangePassword"]);
+            string roles = row.Table.Columns.Contains("RoleNames") ? Convert.ToString(row["RoleNames"]) : "";
+            lblSelectedUserTitle.Text = String.IsNullOrWhiteSpace(displayName) ? userName : displayName;
+            lblSelectedUserSummary.Text = "نام ورود: " + userName + "   |   " + (selectedUserIsActive ? "حساب فعال" : "حساب غیرفعال") +
+                (mustChange ? "   |   تغییر گذرواژه در ورود بعدی لازم است" : "");
+            lblSelectedUserRoles.Text = roles.Length == 0 ? "نقش‌ها: اطلاعاتی برای نمایش در دسترس نیست." : "نقش‌ها: " + roles;
         }
 
-        private void SaveUserDisplayName_Click(object sender, EventArgs e)
+        private void ApplyRoleFilter()
         {
-            try { AccessControlRepository.UpdateUserDisplayName(selectedUserId, txtDisplayName.Text); LoadUsersIfPermitted(); }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "ذخیره‌ی نام انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
+            if (rolesTable == null) return;
+            IEnumerable<DataRow> rows = rolesTable.Rows.Cast<DataRow>();
+            string search = (txtRoleSearch.Text ?? string.Empty).Trim();
+            if (search.Length > 0)
+                rows = rows.Where(row => Contains(row, "DisplayName", search) || Contains(row, "Description", search));
+            if (cmbRoleType.SelectedIndex == 1)
+                rows = rows.Where(row => Convert.ToBoolean(row["IsSystem"]));
+            else if (cmbRoleType.SelectedIndex == 2)
+                rows = rows.Where(row => !Convert.ToBoolean(row["IsSystem"]));
 
-        private void AssignUserRoles_Click(object sender, EventArgs e)
-        {
-            try { AccessControlRepository.SetUserRoles(selectedUserId, CheckedRoleIds(clbUserRoles)); LoadUsersIfPermitted(); }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "تخصیص نقش انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
+            List<DataRow> filtered = rows.ToList();
+            const int pageSize = DefaultPageSize;
+            int pageCount = Math.Max(1, (int)Math.Ceiling(filtered.Count / (double)pageSize));
+            rolesPageIndex = Math.Max(0, Math.Min(rolesPageIndex, pageCount - 1));
+            DataTable page = rolesTable.Clone();
+            foreach (DataRow row in filtered.Skip(rolesPageIndex * pageSize).Take(pageSize)) page.ImportRow(row);
 
-        private void ResetPassword_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                string userName = Convert.ToString(usersGrid.CurrentRow.Cells["UserName"].Value);
-                string password = AccessControlRepository.ResetPassword(selectedUserId);
-                LoadUsersIfPermitted();
-                using (var dialog = new InitialCredentialDialog(userName, password))
-                    dialog.ShowDialog(this);
-            }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "صدور گذرواژه انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
-
-        private void ToggleUser_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                AccessControlRepository.SetUserActive(selectedUserId, !selectedUserIsActive);
-                LoadUsersIfPermitted();
-            }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "تغییر وضعیت انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
-
-        private void LoadUsersIfPermitted()
-        {
-            if (AuthorizationGuard.HasAny("users.view", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate")) LoadUsers();
-        }
-
-        private void LoadRoles()
-        {
             loading = true;
-            rolesTable = AccessControlRepository.GetRoles();
-            rolesList.Items.Clear();
-            foreach (DataRow row in rolesTable.Rows)
-                rolesList.Items.Add(new RoleChoice(Convert.ToInt32(row["RoleId"]), Convert.ToString(row["DisplayName"]), Convert.ToBoolean(row["IsSystem"])));
+            rolesGrid.DataSource = page;
+            HideColumn(rolesGrid, "RoleId");
+            SetHeader(rolesGrid, "DisplayName", "نام نقش");
+            SetHeader(rolesGrid, "IsSystem", "نقش پایه");
+            SetHeader(rolesGrid, "Description", "توضیح کوتاه");
+            rolesGrid.ClearSelection();
             selectedRoleId = 0;
+            lblRolesEmpty.Visible = filtered.Count == 0;
+            if (filtered.Count == 0)
+                lblRolesEmpty.Text = rolesTable.Rows.Count == 0 ? "هنوز نقشی ساخته نشده است." : "نقشی با این جست‌وجو یا فیلتر پیدا نشد.";
+            lblRoleCount.Text = filtered.Count.ToString("N0") + " نقش";
+            lblRolesPage.Text = "صفحه " + (rolesPageIndex + 1).ToString("N0") + " از " + pageCount.ToString("N0");
+            btnRolesPrevious.Enabled = rolesPageIndex > 0;
+            btnRolesNext.Enabled = rolesPageIndex + 1 < pageCount;
+            SetRoleDetails(null, null);
             loading = false;
-            ClearRoleEditor();
         }
 
-        private void RolesList_SelectedIndexChanged(object sender, EventArgs e)
+        private async void RolesGrid_SelectionChanged(object sender, EventArgs e)
         {
-            if (loading) return;
-            var role = rolesList.SelectedItem as RoleChoice;
-            if (role == null) { selectedRoleId = 0; ClearRoleEditor(); return; }
-            selectedRoleId = role.Id;
-            DataRow row = FindRoleRow(role.Id);
-            bool canView = AuthorizationGuard.Has("roles.view");
-            bool canEditMetadata = AuthorizationGuard.Has("roles.update") && !role.IsSystem;
-            bool canAssignPermissions = AuthorizationGuard.Has("roles.assign_permissions") && !role.IsSystem;
-            bool canReadDetails = canView || canEditMetadata;
-            roleMetadata.Visible = canEditMetadata || AuthorizationGuard.Has("roles.create");
-            roleDetails.Visible = !canEditMetadata && canReadDetails;
-            roleDetails.Text = role.Name + Environment.NewLine + (row == null || !row.Table.Columns.Contains("Description") || row.IsNull("Description") ? "" : Convert.ToString(row["Description"]));
-            if (canEditMetadata)
+            if (loading || rolesBusy || rolesGrid.CurrentRow == null || rolesGrid.CurrentRow.DataBoundItem == null) return;
+            var row = rolesGrid.CurrentRow.DataBoundItem as DataRowView;
+            if (row == null) return;
+            try
             {
-                txtRoleName.Text = row == null ? role.Name : Convert.ToString(row["DisplayName"]);
-                txtRoleDescription.Text = row == null || row.IsNull("Description") ? "" : Convert.ToString(row["Description"]);
+                selectedRoleId = Convert.ToInt32(row["RoleId"]);
+                int requestedRoleId = selectedRoleId;
+                selectedRoleIsSystem = Convert.ToBoolean(row["IsSystem"]);
+                SetRoleDetails(row.Row, null);
+                if (!AuthorizationGuard.HasAny("roles.view", "roles.assign_permissions")) return;
+                rolesBusy = true;
+                rolesLoading.BeginLoading("در حال دریافت دسترسی‌های این نقش…", AccessManagementVisualAssets.Permission);
+                rolesGrid.Enabled = false;
+                List<string> codes = await Task.Run(() => AccessControlRepository.GetRolePermissionCodes(requestedRoleId));
+                if (selectedRoleId != requestedRoleId) return;
+                SetRoleDetails(row.Row, codes);
             }
-            btnCreateRole.Visible = AuthorizationGuard.Has("roles.create");
-            btnSaveRole.Visible = canEditMetadata;
-            btnSavePermissions.Visible = canAssignPermissions;
-            btnDeleteRole.Visible = !role.IsSystem && AuthorizationGuard.Has("roles.delete");
-            var selected = AuthorizationGuard.HasAny("roles.view", "roles.assign_permissions")
-                ? new HashSet<string>(AccessControlRepository.GetRolePermissionCodes(role.Id), StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            permissionPanel.Visible = canAssignPermissions;
-            assignedPermissions.Visible = canView && !canAssignPermissions;
-            assignedPermissions.Items.Clear();
-            if (assignedPermissions.Visible)
+            catch (Exception ex)
             {
-                var selectedDefinitions = PermissionCatalog.All.Where(p => selected.Contains(p.Code)).OrderBy(p => p.DisplayOrder).ToList();
-                if (selectedDefinitions.Count == 0) assignedPermissions.Items.Add("برای این نقش مجوزی ثبت نشده است.");
-                foreach (var permission in selectedDefinitions)
-                    assignedPermissions.Items.Add(permission.Category + " | " + permission.Name + " — " + permission.Description);
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "نمایش دسترسی‌های نقش انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            foreach (var pair in permissionLists)
+            finally
             {
-                for (int i = 0; i < pair.Value.Items.Count; i++)
+                rolesLoading.EndLoading();
+                rolesGrid.Enabled = true;
+                rolesBusy = false;
+            }
+        }
+
+        private void SetRoleDetails(DataRow row, IList<string> permissionCodes)
+        {
+            bool hasSelection = row != null && selectedRoleId != 0;
+            roleDetailsPanel.Visible = hasSelection;
+            roleDetailsEmpty.Visible = !hasSelection;
+            btnEditRole.Visible = hasSelection && AuthorizationGuard.HasAny("roles.view", "roles.update", "roles.assign_permissions", "roles.delete");
+            if (!hasSelection) return;
+
+            string name = Convert.ToString(row["DisplayName"]);
+            string description = row.Table.Columns.Contains("Description") ? Convert.ToString(row["Description"]) : "";
+            lblSelectedRoleTitle.Text = name;
+            lblSelectedRoleKind.Text = selectedRoleIsSystem ? "نقش پایهٔ سامانه · محافظت‌شده" : "نقش اختصاصی";
+            lblSelectedRoleDescription.Text = String.IsNullOrWhiteSpace(description) ? "برای این نقش توضیحی ثبت نشده است." : description;
+            lstRolePermissions.Items.Clear();
+            bool canReadPermissions = AuthorizationGuard.HasAny("roles.view", "roles.assign_permissions");
+            lstRolePermissions.Visible = canReadPermissions;
+            lblRolePermissionCount.Visible = canReadPermissions;
+            if (!canReadPermissions) return;
+            if (permissionCodes == null)
+            {
+                lblRolePermissionCount.Text = "در حال آماده‌سازی فهرست دسترسی‌ها…";
+                return;
+            }
+            var selected = new HashSet<string>(permissionCodes, StringComparer.OrdinalIgnoreCase);
+            var definitions = PermissionCatalog.All.Where(p => selected.Contains(p.Code)).OrderBy(p => p.DisplayOrder).ToList();
+            lblRolePermissionCount.Text = definitions.Count.ToString("N0") + " دسترسی برای این نقش";
+            if (definitions.Count == 0) lstRolePermissions.Items.Add("برای این نقش دسترسی‌ای ثبت نشده است.");
+            foreach (var permission in definitions)
+                lstRolePermissions.Items.Add(permission.Category + "  ·  " + permission.Name);
+        }
+
+        private async void CreateUser_Click(object sender, EventArgs e) { await OpenUserEditorAsync(true); }
+        private async void EditUser_Click(object sender, EventArgs e) { await OpenUserEditorAsync(false); }
+        private async void CreateRole_Click(object sender, EventArgs e) { await OpenRoleEditorAsync(true); }
+        private async void EditRole_Click(object sender, EventArgs e) { await OpenRoleEditorAsync(false); }
+
+        private async Task OpenUserEditorAsync(bool create)
+        {
+            if (!create && selectedUserId == 0) return;
+            bool canAssign = AuthorizationGuard.Has("users.assign_roles");
+            if (create) AuthorizationGuard.Require("users.create");
+            else AuthorizationGuard.RequireAny("users.update", "users.assign_roles", "users.reset_password", "users.deactivate");
+
+            int userId = create ? 0 : selectedUserId;
+            string userName = create ? "" : GetSelectedUserValue("UserName");
+            string displayName = create ? "" : GetSelectedUserValue("DisplayName");
+            bool active = create || selectedUserIsActive;
+            bool isCurrentUser = !create && AppSession.Current != null && userId == AppSession.Current.ApplicationUserId;
+            SetUsersOperationBusy(true, "در حال آماده‌کردن صفحهٔ حساب…", AccessManagementVisualAssets.UserEdit);
+            try
+            {
+                var roleOptions = new List<AccessRoleOption>();
+                List<int> selectedRoles = new List<int>();
+                if (canAssign)
                 {
-                    var item = pair.Value.Items[i] as PermissionChoice;
-                    pair.Value.SetItemChecked(i, canAssignPermissions && item != null && selected.Contains(item.Code));
+                    var data = await Task.Run(() => AccessControlRepository.GetAssignableRoles());
+                    foreach (DataRow row in data.Rows)
+                        roleOptions.Add(new AccessRoleOption(Convert.ToInt32(row["RoleId"]), Convert.ToString(row["DisplayName"])));
+                    if (!create) selectedRoles = await Task.Run(() => AccessControlRepository.GetUserRoleIds(userId));
+                }
+
+                bool mustChange = !create && GetSelectedUserBoolean("MustChangePassword");
+                using (var dialog = new UserEditorForm(userId, userName, displayName, active, mustChange,
+                    create, create || AuthorizationGuard.Has("users.update"), canAssign,
+                    AuthorizationGuard.Has("users.reset_password") && !isCurrentUser,
+                    AuthorizationGuard.Has("users.deactivate") && !isCurrentUser, roleOptions, selectedRoles))
+                {
+                    if (dialog.ShowDialog(this) == DialogResult.OK) await LoadUsersAsync();
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "باز کردن صفحهٔ حساب انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally { SetUsersOperationBusy(false, null, null); }
+        }
+
+        private async Task OpenRoleEditorAsync(bool create)
+        {
+            if (!create && selectedRoleId == 0) return;
+            if (create) AuthorizationGuard.Require("roles.create");
+            else AuthorizationGuard.RequireAny("roles.view", "roles.update", "roles.assign_permissions", "roles.delete");
+
+            int roleId = create ? 0 : selectedRoleId;
+            DataRow row = create ? null : FindRoleRow(roleId);
+            if (!create && row == null) return;
+            string name = create ? "" : Convert.ToString(row["DisplayName"]);
+            string description = !create && row.Table.Columns.Contains("Description") ? Convert.ToString(row["Description"]) : "";
+            bool isSystem = !create && Convert.ToBoolean(row["IsSystem"]);
+            bool canView = AuthorizationGuard.Has("roles.view");
+            bool canEditMetadata = !isSystem && (create ? AuthorizationGuard.Has("roles.create") : AuthorizationGuard.Has("roles.update"));
+            bool canAssign = !isSystem && AuthorizationGuard.Has("roles.assign_permissions");
+            bool canDelete = !create && !isSystem && AuthorizationGuard.Has("roles.delete");
+
+            SetRolesOperationBusy(true, "در حال آماده‌کردن صفحهٔ نقش…", AccessManagementVisualAssets.Permission);
+            try
+            {
+                List<string> codes = new List<string>();
+                if (!create && AuthorizationGuard.HasAny("roles.view", "roles.assign_permissions"))
+                    codes = await Task.Run(() => AccessControlRepository.GetRolePermissionCodes(roleId));
+
+                using (var dialog = new RoleEditorForm(roleId, name, description, isSystem, canView, canEditMetadata,
+                    canAssign, canDelete, codes))
+                {
+                    if (dialog.ShowDialog(this) == DialogResult.OK) await LoadRolesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "باز کردن صفحهٔ نقش انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally { SetRolesOperationBusy(false, null, null); }
+        }
+
+        private void SetUsersOperationBusy(bool busy, string message, Image icon)
+        {
+            if (busy) usersLoading.BeginLoading(message, icon);
+            else usersLoading.EndLoading();
+            txtUserSearch.Enabled = !busy;
+            cmbUserStatus.Enabled = !busy;
+            btnCreateUser.Enabled = !busy && AuthorizationGuard.Has("users.create");
+            usersGrid.Enabled = !busy;
+            btnEditUser.Enabled = !busy;
+        }
+
+        private void SetRolesOperationBusy(bool busy, string message, Image icon)
+        {
+            if (busy) rolesLoading.BeginLoading(message, icon);
+            else rolesLoading.EndLoading();
+            txtRoleSearch.Enabled = !busy;
+            cmbRoleType.Enabled = !busy;
+            btnCreateRole.Enabled = !busy && AuthorizationGuard.Has("roles.create");
+            rolesGrid.Enabled = !busy;
+            btnEditRole.Enabled = !busy;
+        }
+
+        private string GetSelectedUserValue(string column)
+        {
+            if (usersGrid.CurrentRow == null || !usersGrid.Columns.Contains(column)) return string.Empty;
+            return Convert.ToString(usersGrid.CurrentRow.Cells[column].Value);
+        }
+
+        private bool GetSelectedUserBoolean(string column)
+        {
+            if (usersGrid.CurrentRow == null || !usersGrid.Columns.Contains(column)) return false;
+            object value = usersGrid.CurrentRow.Cells[column].Value;
+            return value != null && value != DBNull.Value && Convert.ToBoolean(value);
         }
 
         private DataRow FindRoleRow(int roleId)
         {
             if (rolesTable == null) return null;
-            foreach (DataRow row in rolesTable.Rows) if (Convert.ToInt32(row["RoleId"]) == roleId) return row;
+            foreach (DataRow row in rolesTable.Rows)
+                if (Convert.ToInt32(row["RoleId"]) == roleId) return row;
             return null;
         }
 
-        private void CreateRole_Click(object sender, EventArgs e)
+        private void UserSearch_TextChanged(object sender, EventArgs e) { usersPageIndex = 0; ApplyUserFilter(); }
+        private void UserStatus_SelectedIndexChanged(object sender, EventArgs e) { usersPageIndex = 0; ApplyUserFilter(); }
+        private void UserPageSize_SelectedIndexChanged(object sender, EventArgs e) { usersPageIndex = 0; ApplyUserFilter(); }
+        private void UsersPrevious_Click(object sender, EventArgs e) { usersPageIndex--; ApplyUserFilter(); }
+        private void UsersNext_Click(object sender, EventArgs e) { usersPageIndex++; ApplyUserFilter(); }
+        private void RoleSearch_TextChanged(object sender, EventArgs e) { rolesPageIndex = 0; ApplyRoleFilter(); }
+        private void RoleType_SelectedIndexChanged(object sender, EventArgs e) { rolesPageIndex = 0; ApplyRoleFilter(); }
+        private void RolesPrevious_Click(object sender, EventArgs e) { rolesPageIndex--; ApplyRoleFilter(); }
+        private void RolesNext_Click(object sender, EventArgs e) { rolesPageIndex++; ApplyRoleFilter(); }
+        private void Close_Click(object sender, EventArgs e) { Close(); }
+
+        private static int SelectedPageSize(ComboBox combo, int fallback)
         {
-            try
-            {
-                int roleId = AccessControlRepository.CreateRole(txtRoleName.Text, txtRoleDescription.Text);
-                if (AuthorizationGuard.HasAny("roles.view", "roles.update", "roles.assign_permissions", "roles.delete"))
-                {
-                    LoadRoles();
-                    for (int i = 0; i < rolesList.Items.Count; i++)
-                        if (((RoleChoice)rolesList.Items[i]).Id == roleId) { rolesList.SelectedIndex = i; break; }
-                }
-                else
-                {
-                    selectedRoleId = 0;
-                    ClearRoleEditor();
-                }
-            }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "ساخت نقش انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            int value;
+            return combo != null && Int32.TryParse(Convert.ToString(combo.SelectedItem), out value) && value > 0 ? value : fallback;
         }
 
-        private void SaveRole_Click(object sender, EventArgs e)
+        private static bool Contains(DataRow row, string column, string search)
         {
-            try
-            {
-                AccessControlRepository.UpdateRoleMetadata(selectedRoleId, txtRoleName.Text, txtRoleDescription.Text);
-                if (AuthorizationGuard.Has("roles.view")) LoadRoles();
-            }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "ذخیره‌ی نقش انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
-
-        private void SaveRolePermissions_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                var codes = new List<string>();
-                foreach (var list in permissionLists.Values)
-                    foreach (PermissionChoice choice in list.CheckedItems) codes.Add(choice.Code);
-                AccessControlRepository.SetRolePermissions(selectedRoleId, codes);
-                if (AuthorizationGuard.Has("roles.view")) LoadRoles();
-                MessageBox.Show(this, "مجوزهای نقش ذخیره شد. نشست کاربران متأثر، مجوز تازه را پیش از عملیات بعدی دریافت می‌کند.", "ذخیره‌ی دسترسی‌ها", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "ذخیره‌ی مجوزها انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
-
-        private void DeleteRole_Click(object sender, EventArgs e)
-        {
-            if (selectedRoleId == 0 || MessageBox.Show(this, "نقش انتخاب‌شده حذف شود؟", "تأیید حذف نقش", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-            try { AccessControlRepository.DeleteRole(selectedRoleId); LoadRoles(); }
-            catch (Exception ex) { MessageBox.Show(this, DatabaseManager.SafeMessage(ex), "حذف نقش انجام نشد", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-        }
-
-        private void ClearRoleEditor()
-        {
-            bool canCreate = AuthorizationGuard.Has("roles.create");
-            txtRoleName.Clear();
-            txtRoleDescription.Clear();
-            roleMetadata.Visible = canCreate;
-            roleDetails.Visible = false;
-            roleDetails.Text = "";
-            btnCreateRole.Visible = canCreate;
-            btnSaveRole.Visible = false;
-            btnSavePermissions.Visible = false;
-            btnDeleteRole.Visible = false;
-            permissionPanel.Visible = false;
-            assignedPermissions.Visible = false;
-            assignedPermissions.Items.Clear();
-            foreach (var list in permissionLists.Values)
-            {
-                for (int i = 0; i < list.Items.Count; i++) list.SetItemChecked(i, false);
-            }
-        }
-
-        private static List<int> CheckedRoleIds(CheckedListBox list)
-        {
-            var result = new List<int>();
-            foreach (RoleChoice choice in list.CheckedItems) result.Add(choice.Id);
-            return result;
+            return row.Table.Columns.Contains(column) && !row.IsNull(column) &&
+                Convert.ToString(row[column]).IndexOf(search, StringComparison.CurrentCultureIgnoreCase) >= 0;
         }
 
         private static void HideColumn(DataGridView grid, params string[] names)
         {
-            foreach (string name in names) if (grid.Columns.Contains(name)) grid.Columns[name].Visible = false;
+            foreach (string name in names)
+                if (grid.Columns.Contains(name)) grid.Columns[name].Visible = false;
         }
 
         private static void SetHeader(DataGridView grid, string name, string header)
         {
             if (grid.Columns.Contains(name)) grid.Columns[name].HeaderText = header;
         }
+    }
 
-        private static void SetNamedControlVisible(Control parent, string name, bool visible)
+    internal sealed class AccessRoleOption
+    {
+        public int Id { get; private set; }
+        public string Name { get; private set; }
+
+        public AccessRoleOption(int id, string name)
         {
-            if (parent == null) return;
-            foreach (Control control in parent.Controls)
-            {
-                if (String.Equals(control.Name, name, StringComparison.Ordinal)) control.Visible = visible;
-                SetNamedControlVisible(control, name, visible);
-            }
+            Id = id;
+            Name = name ?? string.Empty;
         }
 
-        private sealed class RoleChoice
-        {
-            public int Id { get; private set; }
-            public string Name { get; private set; }
-            public bool IsSystem { get; private set; }
-            public RoleChoice(int id, string name, bool isSystem) { Id = id; Name = name; IsSystem = isSystem; }
-            public override string ToString() { return Name + (IsSystem ? " (سیستمی)" : ""); }
-        }
-
-        private sealed class PermissionChoice
-        {
-            public string Code { get; private set; }
-            private readonly string display;
-            public PermissionChoice(string code, string display) { Code = code; this.display = display; }
-            public override string ToString() { return display; }
-        }
+        public override string ToString() { return Name; }
     }
 }
