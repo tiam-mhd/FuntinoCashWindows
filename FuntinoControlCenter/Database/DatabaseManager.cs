@@ -1,4 +1,5 @@
 using System;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using FuntinoControlCenter.Security;
@@ -8,8 +9,8 @@ namespace FuntinoControlCenter.Database
 {
     internal static class DatabaseManager
     {
-        public const string MainCatalog = "FuntinoParkOperations";
-        public const string DeviceCatalog = "FuntinoDeviceOperations";
+        public static readonly string MainCatalog = GetCatalog("MainDatabaseCatalog", "FuntinoParkOperations");
+        public static readonly string DeviceCatalog = GetCatalog("DeviceDatabaseCatalog", "FuntinoDeviceOperations");
 
         public static SqlConnection CreateMainConnection() { return new SqlConnection(BuildConnectionString(MainCatalog)); }
         public static SqlConnection CreateDeviceConnection() { return new SqlConnection(BuildConnectionString(DeviceCatalog)); }
@@ -31,6 +32,34 @@ namespace FuntinoControlCenter.Database
             if (AppSettings.Current.IntegratedSecurity) builder.IntegratedSecurity = true;
             else { builder.UserID = AppSettings.Current.SqlUser ?? ""; builder.Password = AppSettings.Current.SqlPassword ?? ""; }
             return builder.ConnectionString;
+        }
+
+        private static string GetCatalog(string settingName, string fallback)
+        {
+            string configured = ConfigurationManager.AppSettings[settingName];
+            if (String.IsNullOrWhiteSpace(configured)) configured = fallback;
+            configured = configured.Trim();
+            if (configured.Length > 128 || !IsSafeCatalogName(configured))
+                throw new ConfigurationErrorsException("نام پایگاه داده در پیکربندی برنامه معتبر نیست.");
+            return configured;
+        }
+
+        private static bool IsSafeCatalogName(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value) || !(Char.IsLetter(value[0]) || value[0] == '_')) return false;
+            for (int index = 1; index < value.Length; index++)
+                if (!Char.IsLetterOrDigit(value[index]) && value[index] != '_') return false;
+            return true;
+        }
+
+        public static string ResolveCatalogReferences(string commandText)
+        {
+            if (commandText == null) return null;
+            return commandText
+                .Replace("[FuntinoParkOperations].", "[" + MainCatalog + "].")
+                .Replace("[FuntinoDeviceOperations].", "[" + DeviceCatalog + "].")
+                .Replace("FuntinoParkOperations.", MainCatalog + ".")
+                .Replace("FuntinoDeviceOperations.", DeviceCatalog + ".");
         }
 
         public static bool TestConnection(bool deviceDatabase, out string message, bool bootstrapMode = false)
@@ -55,14 +84,14 @@ namespace FuntinoControlCenter.Database
             {
                 var sql = (SqlException)ex;
                 if (sql.Number == 4060 || sql.Number == 18456 || sql.Number == 53 || sql.Number == -1)
-                    return "ارتباط برقرار نشد. اجرای سرویس FuntinoSqlServer و وجود پایگاه‌های FuntinoParkOperations و FuntinoDeviceOperations را بررسی کنید. جزئیات: " + ex.Message;
+                    return "ارتباط برقرار نشد. اجرای سرویس FuntinoSqlServer و وجود پایگاه‌های عملیاتی جدید را بررسی کنید. جزئیات: " + ex.Message;
             }
             return ex.Message;
         }
 
         public static DataTable Query(SqlConnection connection, string sql, params SqlParameter[] parameters)
         {
-            using (var command = new SqlCommand(sql, connection))
+            using (var command = new SqlCommand(ResolveCatalogReferences(sql), connection))
             {
                 if (parameters != null) command.Parameters.AddRange(parameters);
                 using (var adapter = new SqlDataAdapter(command))
@@ -74,7 +103,7 @@ namespace FuntinoControlCenter.Database
 
         public static object Scalar(SqlConnection connection, string sql, params SqlParameter[] parameters)
         {
-            using (var command = new SqlCommand(sql, connection))
+            using (var command = new SqlCommand(ResolveCatalogReferences(sql), connection))
             {
                 if (parameters != null) command.Parameters.AddRange(parameters);
                 return command.ExecuteScalar();

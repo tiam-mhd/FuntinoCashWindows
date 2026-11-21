@@ -224,7 +224,7 @@ namespace FuntinoControlCenter.Forms
             this.lblDatabaseNames.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblDatabaseNames.Size = new System.Drawing.Size(1010, 28);
             this.lblDatabaseNames.TabIndex = 8;
-            this.lblDatabaseNames.Text = "پایگاه‌های فعال: FuntinoParkOperations و FuntinoDeviceOperations";
+            this.lblDatabaseNames.Text = "پایگاه‌های عملیاتی از تنظیمات برنامه خوانده می‌شوند.";
             this.lblDatabaseNames.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblDbHint.Font = new System.Drawing.Font(FuntinoControlCenter.UI.AppFontManager.VazirmatnFamily, 8.5F);
             this.lblDbHint.ForeColor = System.Drawing.Color.FromArgb(99, 116, 110);

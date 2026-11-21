@@ -163,7 +163,7 @@ namespace FuntinoControlCenter.Database
                     result.MaximumAmount = Convert.ToInt64(value, CultureInfo.InvariantCulture);
                 }
 
-                using (var command = new SqlCommand(@"
+                using (var command = CreateCommand(@"
 SELECT p.PromotionCode,p.PromotionName,p.DiscountPercent,p.StartsAt,p.EndsAt
 FROM pricing.PromotionEvent p
 WHERE p.StartsAt<=@now AND p.EndsAt>=@now
@@ -367,7 +367,7 @@ ORDER BY (p.MaximumPrice-p.MinimumPrice),p.MinimumPrice DESC,p.DiscountPolicyId;
                 case BusinessManagementArea.ControllerDevices:
                     if (isNew)
                     {
-                        using (var command = new SqlCommand("FuntinoDeviceOperations.device.usp_FuntinoDevice_CreateDevice", connection, transaction))
+                        using (var command = CreateCommand("FuntinoDeviceOperations.device.usp_FuntinoDevice_CreateDevice", connection, transaction))
                         {
                             command.CommandType = CommandType.StoredProcedure;
                             command.Parameters.Add("@Code", SqlDbType.Int).Value = record.Code;
@@ -376,7 +376,7 @@ ORDER BY (p.MaximumPrice-p.MinimumPrice),p.MinimumPrice DESC,p.DiscountPolicyId;
                             command.Parameters.Add("@PriceType", SqlDbType.Bit).Value = record.PricingType != 0;
                             command.ExecuteNonQuery();
                         }
-                        using (var command = new SqlCommand(@"
+                        using (var command = CreateCommand(@"
 UPDATE FuntinoDeviceOperations.device.Device
 SET IsActive=@active,IsHalfPrice=@halfPrice,Duration=@duration
 WHERE ControllerDeviceId=@code;
@@ -391,7 +391,7 @@ IF @@ROWCOUNT<>1 RAISERROR(N'دستگاه ساخته شد اما تنظیمات 
                     }
                     else
                     {
-                        using (var command = new SqlCommand(@"
+                        using (var command = CreateCommand(@"
 UPDATE FuntinoDeviceOperations.device.Device
 SET ControllerDeviceId=@code,DeviceName=@name,PricingType=@pricingType,BasePrice=@price,IsActive=@active,
     IsHalfPrice=@halfPrice,Duration=@duration
@@ -516,7 +516,7 @@ UPDATE pricing.HourlyRechargePlan SET RechargeAmount=@amount,IsActive=@active WH
         {
             if (isNew)
             {
-                using (var command = new SqlCommand(@"
+                using (var command = CreateCommand(@"
 IF EXISTS(SELECT 1 FROM pricing.PromotionEvent WHERE PromotionCode=@code)
  OR EXISTS(SELECT 1 FROM FuntinoDeviceOperations.reference.PromotionEvent WHERE PromotionCode=@code)
 BEGIN
@@ -542,7 +542,7 @@ VALUES(@code,@name,@startsAt,@endsAt,@percent);", connection, transaction))
                 if (value == null || value == DBNull.Value) throw new InvalidOperationException("جشنواره برای ویرایش پیدا نشد.");
                 oldCode = Convert.ToInt32(value, CultureInfo.InvariantCulture);
             }
-            using (var command = new SqlCommand(@"
+            using (var command = CreateCommand(@"
 IF @oldCode<>@code AND (EXISTS(SELECT 1 FROM pricing.PromotionEvent WHERE PromotionCode=@code)
  OR EXISTS(SELECT 1 FROM FuntinoDeviceOperations.reference.PromotionEvent WHERE PromotionCode=@code))
 BEGIN
@@ -587,7 +587,7 @@ END;", connection, transaction))
         {
             int deviceId = record.Extra1;
             int promotionCode = record.Extra2;
-            using (var command = new SqlCommand(@"
+            using (var command = CreateCommand(@"
 DECLARE @devicePromotionId int;
 IF NOT EXISTS(SELECT 1 FROM FuntinoDeviceOperations.device.Device WHERE DeviceId=@deviceId AND IsActive=1)
 BEGIN
@@ -645,7 +645,7 @@ END;", connection, transaction))
                     break;
                 case BusinessManagementArea.Promotions:
                     int code = record.Code;
-                    using (var command = new SqlCommand(@"
+                    using (var command = CreateCommand(@"
 UPDATE pricing.PromotionEvent SET EndsAt=CASE WHEN EndsAt>GETDATE() THEN DATEADD(second,-1,GETDATE()) ELSE EndsAt END WHERE PromotionEventId=@id;
 IF @@ROWCOUNT<>1
 BEGIN
@@ -679,7 +679,7 @@ END;", connection, transaction))
                 default:
                     throw new InvalidOperationException("این نوع تنظیم حذف‌پذیر نیست.");
             }
-            using (var command = new SqlCommand(sql, connection, transaction))
+            using (var command = CreateCommand(sql, connection, transaction))
             {
                 command.Parameters.Add("@id", SqlDbType.Int).Value = record.Id;
                 command.ExecuteNonQuery();
@@ -719,6 +719,16 @@ ON d.PromotionCode=p.PromotionCode ORDER BY p.StartsAt DESC,p.PromotionCode";
                     return "SELECT dp.DevicePromotionId AS RecordId,d.ControllerDeviceId AS Code,d.DeviceName AS Name,CONVERT(bigint,NULL) AS Amount,pe.DiscountPercent AS [Percent],CONVERT(datetime,NULL) AS StartsAt,CONVERT(datetime,NULL) AS EndsAt,CONVERT(int,NULL) AS Weekday,CONVERT(bigint,NULL) AS Minimum,CONVERT(bigint,NULL) AS Maximum,dp.IsActive AS Active,CAST(pe.PromotionName+N' | تخفیف '+CONVERT(nvarchar(10),pe.DiscountPercent)+N'٪' AS nvarchar(300)) AS Detail,dp.DeviceId AS Extra1,pe.PromotionCode AS Extra2 FROM FuntinoDeviceOperations.device.DevicePromotion dp JOIN FuntinoDeviceOperations.device.Device d ON d.DeviceId=dp.DeviceId JOIN FuntinoDeviceOperations.reference.PromotionEvent pe ON pe.PromotionEventId=dp.PromotionEventId ORDER BY d.DeviceName,pe.PromotionName";
                 default: throw new ArgumentOutOfRangeException("area");
             }
+        }
+
+        private static SqlCommand CreateCommand(string commandText, SqlConnection connection)
+        {
+            return new SqlCommand(DatabaseManager.ResolveCatalogReferences(commandText), connection);
+        }
+
+        private static SqlCommand CreateCommand(string commandText, SqlConnection connection, SqlTransaction transaction)
+        {
+            return new SqlCommand(DatabaseManager.ResolveCatalogReferences(commandText), connection, transaction);
         }
 
         private static void ValidateRecord(BusinessManagementArea area, BusinessManagementRecord record)

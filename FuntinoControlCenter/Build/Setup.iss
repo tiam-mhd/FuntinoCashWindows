@@ -35,6 +35,8 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 [Files]
 Source: "..\bin\Release\*"; DestDir: "{app}"; Excludes: "*.pdb"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "Install-Prerequisites.ps1"; DestDir: "{tmp}"; DestName: "Install-Funtino-Prerequisites.ps1"; Flags: dontcopy
+Source: "Register-EdgeSyncTask.ps1"; DestDir: "{tmp}"; DestName: "Register-Funtino-EdgeSyncTask.ps1"; Flags: dontcopy
+Source: "..\bin\Release\FuntinoControlCenter.exe.config"; DestDir: "{tmp}"; DestName: "FuntinoAppCatalogs.config"; Flags: dontcopy
 Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\SharjReportDB0216.mdf"; DestDir: "{tmp}"; DestName: "FuntinoParkOperations-seed.mdf"; Flags: dontcopy
 Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\SharjReportDB0216_log.ldf"; DestDir: "{tmp}"; DestName: "FuntinoParkOperations-seed_log.ldf"; Flags: dontcopy
 Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\DBKart.mdf"; DestDir: "{tmp}"; DestName: "FuntinoDeviceOperations-seed.mdf"; Flags: dontcopy
@@ -82,6 +84,10 @@ Name: "{autodesktop}\Funtino Control Center"; Filename: "{app}\FuntinoControlCen
 [Run]
 Filename: "{app}\FuntinoControlCenter.exe"; Description: "Launch Funtino Control Center"; Flags: nowait postinstall skipifsilent; Check: IsSelectedUserCurrent
 
+[UninstallRun]
+Filename: "{app}\FuntinoControlCenter.exe"; Parameters: "--edge-sync-stop"; Flags: runhidden waituntilterminated skipifdoesntexist
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""Funtino Control Center Edge Sync"" /F"; Flags: runhidden waituntilterminated
+
 [Code]
 var
   DatabaseUserPage: TInputQueryWizardPage;
@@ -128,6 +134,34 @@ begin
   Result := CompareText(Trim(DatabaseUserPage.Values[0]), CurrentAccount) = 0;
 end;
 
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  PowerShellPath, ScriptPath, Arguments, WindowsAccount, ApplicationPath: String;
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then begin
+    try
+      ExtractTemporaryFile('Register-Funtino-EdgeSyncTask.ps1');
+      if IsWin64 then
+        PowerShellPath := ExpandConstant('{win}\Sysnative\WindowsPowerShell\v1.0\powershell.exe')
+      else
+        PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+      ScriptPath := ExpandConstant('{tmp}\Register-Funtino-EdgeSyncTask.ps1');
+      ApplicationPath := ExpandConstant('{app}\FuntinoControlCenter.exe');
+      WindowsAccount := Trim(DatabaseUserPage.Values[0]);
+      Arguments := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' + AddQuotes(ScriptPath) +
+        ' -ApplicationPath ' + AddQuotes(ApplicationPath) +
+        ' -WindowsAccount ' + AddQuotes(WindowsAccount);
+      if not Exec(PowerShellPath, Arguments, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+        RaiseException('The background synchronization task could not be started by PowerShell.')
+      else if ResultCode <> 0 then
+        RaiseException('Background synchronization task registration failed. Review the setup log and retry the installation.');
+    except
+      RaiseException('The background synchronization task could not be registered. The application files and local databases remain installed.');
+    end;
+  end;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   PowerShellPath, Arguments, ScriptPath, WindowsAccount, TargetOSName: String;
@@ -137,6 +171,7 @@ begin
   NeedsRestart := False;
   try
     ExtractTemporaryFile('Install-Funtino-Prerequisites.ps1');
+    ExtractTemporaryFile('FuntinoAppCatalogs.config');
     ExtractTemporaryFile('FuntinoParkOperations-seed.mdf');
     ExtractTemporaryFile('FuntinoParkOperations-seed_log.ldf');
     ExtractTemporaryFile('FuntinoDeviceOperations-seed.mdf');
@@ -201,7 +236,8 @@ begin
 #endif
   Arguments := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' + AddQuotes(ScriptPath) +
     ' -TargetOS ' + AddQuotes(TargetOSName) +
-    ' -AllowedWindowsAccount ' + AddQuotes(WindowsAccount);
+    ' -AllowedWindowsAccount ' + AddQuotes(WindowsAccount) +
+    ' -ApplicationConfigPath ' + AddQuotes(ExpandConstant('{tmp}\FuntinoAppCatalogs.config'));
 
   if not Exec(PowerShellPath, Arguments, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then begin
     Result := 'Windows PowerShell could not start. Check that Windows PowerShell is enabled.';

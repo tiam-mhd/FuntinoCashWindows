@@ -281,6 +281,7 @@ namespace FuntinoControlCenter.Services
                 string uid = null;
                 bool transferSent = false;
                 bool cardWritten = false;
+                bool cardVerified = false;
                 long startingBalance = 0;
                 string warning = String.Empty;
                 bool historyRecorded = false;
@@ -295,6 +296,8 @@ namespace FuntinoControlCenter.Services
                         uint units = checked((uint)(amountToman / 100));
                         if ((ulong)startingBalance / 100UL + units > UInt32.MaxValue)
                             throw new InvalidOperationException("موجودی کارت از حد مجاز بیشتر است و نمی‌توان آن را شارژ کرد.");
+                        long expectedBalance = checked(startingBalance + amountToman);
+                        CardOperationsRepository.PrepareRecharge(operationId, reader.Uid, startingBalance, expectedBalance, terms);
 
                         AuthorizationGuard.Require("cards.recharge");
                         AuthorizationGuard.Require("data.finance.create");
@@ -308,32 +311,34 @@ namespace FuntinoControlCenter.Services
                         try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "card_written", "کارت‌خوان انتقال موجودی را تأیید کرد."); }
                         catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد، اما ثبت نتیجه‌ی آن در سوابق سامانه کامل نشد. " + FriendlyError(ex)); }
 
+                        reader.Authenticate(CardBalanceBlock);
+                        long verifiedBalance = ToToman(reader.ReadBlocks(CardBalanceBlock, 1));
+                        if (verifiedBalance != expectedBalance)
+                        {
+                            try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "unknown", "موجودی بازخوانی‌شده با مقدار مورد انتظار یکسان نیست؛ فرمان شارژ دوباره اجرا نشد."); }
+                            catch { }
+                            throw new CardReaderException(CardReaderFailureKind.RechargeResultUnknown,
+                                "موجودی کارت پس از نوشتن با مبلغ مورد انتظار هم‌خوانی ندارد. دوباره شارژ نکنید؛ ابتدا کارت را بررسی کنید.");
+                        }
+                        cardVerified = true;
+                        expectedBalance = verifiedBalance;
+                        try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "verified", "موجودی نوشته‌شده روی کارت دوباره خوانده و تأیید شد."); }
+                        catch (Exception ex) { warning = AppendWarning(warning, "موجودی کارت تأیید شد، اما نتیجه‌ی تطبیق در پایگاه محلی کامل ثبت نشد. " + FriendlyError(ex)); }
+
                         try
                         {
-                            CardOperationsRepository.RecordRecharge(reader.Uid, amountToman, terms);
+                            CardOperationsRepository.RecordRecharge(operationId, reader.Uid, amountToman, terms);
                             historyRecorded = true;
                         }
                         catch (Exception ex)
                         {
                             warning = AppendWarning(warning, "شارژ انجام شد، اما سابقه‌ی آن در سامانه ثبت نشد. " + FriendlyError(ex));
+                            try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, "unknown", "کارت نوشته و تأیید شد، اما ثبت محلی مالی و رویداد همگام‌سازی انجام نشد. " + FriendlyError(ex)); }
+                            catch { }
                         }
 
                         try { reader.SaveRechargeHistory(units); }
                         catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد، اما سوابق کارت به‌روز نشد. " + FriendlyError(ex)); }
-
-                        long expectedBalance = startingBalance + amountToman;
-                        try
-                        {
-                            reader.Authenticate(CardBalanceBlock);
-                            long verifiedBalance = ToToman(reader.ReadBlocks(CardBalanceBlock, 1));
-                            if (verifiedBalance != expectedBalance)
-                                warning = AppendWarning(warning, "موجودی کارت با مبلغ مورد انتظار همخوانی ندارد. دوباره شارژ نکنید و ابتدا موجودی را بررسی کنید.");
-                            else expectedBalance = verifiedBalance;
-                        }
-                        catch (Exception ex)
-                        {
-                            warning = AppendWarning(warning, "شارژ انجام شد، اما بررسی دوباره‌ی موجودی کامل نشد. دوباره شارژ نکنید و موجودی کارت را بررسی کنید. " + FriendlyError(ex));
-                        }
 
                         try { reader.Halt(); }
                         catch (Exception ex) { warning = AppendWarning(warning, "شارژ انجام شد. برای اطمینان، موجودی کارت را دوباره بخوانید و شارژ را تکرار نکنید. " + FriendlyError(ex)); }
@@ -354,16 +359,54 @@ namespace FuntinoControlCenter.Services
                 }
                 catch (Exception ex)
                 {
-                    string status = transferSent && !cardWritten ? "unknown" : "failed";
-                    string details = transferSent && !cardWritten
+                    bool resultUnknown = transferSent && (!cardWritten || !cardVerified);
+                    string status = resultUnknown ? "unknown" : "failed";
+                    string details = resultUnknown
                         ? "وضعیت شارژ مشخص نیست و ممکن است مبلغ به کارت اضافه شده باشد. دوباره شارژ نکنید؛ ابتدا موجودی کارت را بخوانید. " + FriendlyError(ex)
                         : FriendlyError(ex);
                     try { CardOperationsRepository.Update(operationId, CardOperationKind.Recharge, uid, status, details); }
                     catch { }
-                if (transferSent && !cardWritten)
+                    if (resultUnknown)
                         throw new CardReaderException(CardReaderFailureKind.RechargeResultUnknown,
                             "وضعیت شارژ مشخص نیست و ممکن است مبلغ به کارت اضافه شده باشد. دوباره شارژ نکنید؛ ابتدا موجودی کارت را بخوانید. اگر مشکل ادامه داشت، به مسئول سامانه اطلاع دهید.", ex);
                     throw;
+                }
+            }
+        }
+
+        public static bool ReconcileRecharge(long operationId)
+        {
+            AuthorizationGuard.Require("cards.recharge");
+            AuthorizationGuard.Require("data.finance.create");
+            AuthorizationGuard.Require("edge.events.create");
+            RechargeReconciliationCandidate candidate = CardOperationsRepository.GetRechargeForReconciliation(operationId);
+            if (candidate == null) throw new InvalidOperationException("عملیات نامشخص در همین شعبه پیدا نشد یا قبلاً تعیین تکلیف شده است.");
+            if (candidate.CardKeyHash == null || candidate.CardKeyHash.Length != 32 || !candidate.ExpectedBalanceToman.HasValue)
+            {
+                CardOperationsRepository.MarkRechargeReconciliationUnknown(operationId, "اطلاعات کافی برای تطبیق پس از راه‌اندازی دوباره ثبت نشده است؛ کارت را دوباره شارژ نکنید.");
+                return false;
+            }
+
+            lock (OperationLock)
+            {
+                using (var reader = ReaderSession.Open())
+                {
+                    byte[] uid = (byte[])reader.Uid.Clone();
+                    reader.Authenticate(CardBalanceBlock);
+                    long currentBalance = ToToman(reader.ReadBlocks(CardBalanceBlock, 1));
+                    byte[] currentHash = EdgeIntegrationRepository.GetCardKeyHash(uid);
+                    if (!FixedTimeEquals(currentHash, candidate.CardKeyHash) || currentBalance != candidate.ExpectedBalanceToman.Value)
+                    {
+                        CardOperationsRepository.MarkRechargeReconciliationUnknown(operationId,
+                            "کارت خوانده‌شده یا موجودی فعلی با عملیات ثبت‌شده تطبیق ندارد؛ هیچ فرمان نوشتنی اجرا نشد.");
+                        reader.Halt();
+                        return false;
+                    }
+
+                    CardOperationsRepository.MarkRechargeVerifiedForReconciliation(operationId, uid, candidate.CardKeyHash);
+                    CardOperationsRepository.RecordRecharge(operationId, uid, candidate.AmountToman, candidate.Terms);
+                    reader.Halt();
+                    return true;
                 }
             }
         }
@@ -423,6 +466,14 @@ namespace FuntinoControlCenter.Services
         {
             if (data == null || data.Length < 4) throw new InvalidOperationException("خواندن موجودی کارت کامل نشد. کارت را روی دستگاه ثابت نگه دارید و دوباره تلاش کنید.");
             return checked((long)BitConverter.ToUInt32(data, 0) * 100L);
+        }
+
+        private static bool FixedTimeEquals(byte[] left, byte[] right)
+        {
+            if (left == null || right == null || left.Length != right.Length) return false;
+            int difference = 0;
+            for (int i = 0; i < left.Length; i++) difference |= left[i] ^ right[i];
+            return difference == 0;
         }
 
         private static IList<CardRechargeHistoryEntry> ParseRechargeHistory(byte[] data)

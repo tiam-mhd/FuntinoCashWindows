@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using FuntinoControlCenter.Security;
 
 namespace FuntinoControlCenter.Database
@@ -42,13 +43,47 @@ namespace FuntinoControlCenter.Database
                         EnsureApplicationObjects(connection, transaction, deviceDatabase);
                         AddVersionIfMissing(connection, transaction, 2, "Funtino application identity and audit schema");
                         if (deviceDatabase)
+                        {
                             AddVersionIfMissing(connection, transaction, 3, "Funtino device diagnostics schema");
+                            EdgeSchemaMigrator.Ensure(connection, transaction, true);
+                            if (!HasVersion(connection, transaction, 4))
+                            {
+                                RewriteOperationalCatalogReferences(connection, transaction);
+                                AddVersionIfMissing(connection, transaction, 4, "Funtino edge outbox and custom catalog references");
+                            }
+                            if (!HasVersion(connection, transaction, 5))
+                            {
+                                RewriteOperationalCatalogReferences(connection, transaction);
+                                AddVersionIfMissing(connection, transaction, 5, "Funtino bracketed operational catalog references");
+                            }
+                            if (!HasVersion(connection, transaction, 6))
+                            {
+                                RewriteOperationalCatalogReferences(connection, transaction);
+                                AddVersionIfMissing(connection, transaction, 6, "Restore customized device catalog references");
+                            }
+                        }
                         else
                         {
                             EnsureAccessControlObjects(connection, transaction);
                             AddVersionIfMissing(connection, transaction, 4, "Funtino role-based access control");
                             EnsureCardOperationObjects(connection, transaction);
                             AddVersionIfMissing(connection, transaction, 5, "Funtino card operation audit");
+                            EdgeSchemaMigrator.Ensure(connection, transaction, false);
+                            if (!HasVersion(connection, transaction, 6))
+                            {
+                                RewriteOperationalCatalogReferences(connection, transaction);
+                                AddVersionIfMissing(connection, transaction, 6, "Funtino customer snapshot and edge outbox");
+                            }
+                            if (!HasVersion(connection, transaction, 7))
+                            {
+                                RewriteOperationalCatalogReferences(connection, transaction);
+                                AddVersionIfMissing(connection, transaction, 7, "Funtino bracketed operational catalog references and installation metadata");
+                            }
+                            if (!HasVersion(connection, transaction, 8))
+                            {
+                                RewriteOperationalCatalogReferences(connection, transaction);
+                                AddVersionIfMissing(connection, transaction, 8, "Restore customized park catalog references");
+                            }
                         }
                         transaction.Commit();
                     }
@@ -235,21 +270,23 @@ FROM app.ApplicationRolePermission recharge
 JOIN app.ApplicationRolePermission finance ON finance.RoleId=recharge.RoleId
 WHERE recharge.PermissionCode=N'cards.recharge'
   AND finance.PermissionCode=@financeCreate
-  AND NOT EXISTS
-  (
-   SELECT 1 FROM app.ApplicationRolePermission terms
-   WHERE terms.RoleId=recharge.RoleId AND terms.PermissionCode=@termsView
-  );", connection, transaction))
+  AND (NOT EXISTS
+       (SELECT 1 FROM app.ApplicationRolePermission terms WHERE terms.RoleId=recharge.RoleId AND terms.PermissionCode=@termsView)
+       OR NOT EXISTS
+       (SELECT 1 FROM app.ApplicationRolePermission events WHERE events.RoleId=recharge.RoleId AND events.PermissionCode=@eventsCreate));", connection, transaction))
             {
                 command.Parameters.Add("@financeCreate", SqlDbType.NVarChar, 100).Value = PermissionCatalog.TableCode("finance", "create");
                 command.Parameters.Add("@termsView", SqlDbType.NVarChar, 100).Value = "operations.recharge_terms.view";
+                command.Parameters.Add("@eventsCreate", SqlDbType.NVarChar, 100).Value = "edge.events.create";
                 var eligibleRoles = new List<int>();
                 using (var reader = command.ExecuteReader())
                     while (reader.Read()) eligibleRoles.Add(reader.GetInt32(0));
 
                 foreach (int roleId in eligibleRoles)
                 {
-                    if (!EnsureRolePermission(connection, transaction, roleId, "operations.recharge_terms.view")) continue;
+                    bool permissionChanged = EnsureRolePermission(connection, transaction, roleId, "operations.recharge_terms.view");
+                    permissionChanged |= EnsureRolePermission(connection, transaction, roleId, "edge.events.create");
+                    if (!permissionChanged) continue;
                     using (var grantVersion = new SqlCommand(@"
 UPDATE u SET AuthorizationVersion=AuthorizationVersion+1
 FROM app.ApplicationUser u
@@ -384,6 +421,63 @@ END", connection))
                 command.Parameters.Add("@version", SqlDbType.Int).Value = version;
                 command.Parameters.Add("@description", SqlDbType.NVarChar, 240).Value = description;
                 command.ExecuteNonQuery();
+            }
+        }
+
+        private static bool HasVersion(SqlConnection connection, SqlTransaction transaction, int version)
+        {
+            using (var command = new SqlCommand("SELECT CASE WHEN EXISTS(SELECT 1 FROM app.SchemaMigrationHistory WHERE MigrationVersion=@version) THEN 1 ELSE 0 END", connection, transaction))
+            {
+                command.Parameters.Add("@version", SqlDbType.Int).Value = version;
+                return Convert.ToInt32(command.ExecuteScalar()) == 1;
+            }
+        }
+
+        private static void RewriteOperationalCatalogReferences(SqlConnection connection, SqlTransaction transaction)
+        {
+            var modules = new List<Tuple<string, string>>();
+            using (var command = new SqlCommand(@"
+SELECT QUOTENAME(OBJECT_SCHEMA_NAME(o.object_id))+N'.'+QUOTENAME(o.name),m.definition
+FROM sys.sql_modules m
+JOIN sys.objects o ON o.object_id=m.object_id
+WHERE m.definition LIKE N'%FuntinoParkOperations.%'
+   OR m.definition LIKE N'%FuntinoDeviceOperations.%'
+   OR m.definition LIKE N'%FuntinoParkOperationsNew.%'
+   OR m.definition LIKE N'%FuntinoDeviceOperationsNew.%'
+   OR CHARINDEX(N'[FuntinoParkOperations].',m.definition)>0
+   OR CHARINDEX(N'[FuntinoDeviceOperations].',m.definition)>0
+   OR CHARINDEX(N'[FuntinoParkOperationsNew].',m.definition)>0
+   OR CHARINDEX(N'[FuntinoDeviceOperationsNew].',m.definition)>0;", connection, transaction))
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                    if (!reader.IsDBNull(1)) modules.Add(Tuple.Create(reader.GetString(0), reader.GetString(1)));
+            }
+
+            foreach (Tuple<string, string> module in modules)
+            {
+                string definition = module.Item2
+                    .Replace("[FuntinoParkOperationsNew].", "[" + DatabaseManager.MainCatalog + "].")
+                    .Replace("[FuntinoDeviceOperationsNew].", "[" + DatabaseManager.DeviceCatalog + "].")
+                    .Replace("FuntinoParkOperationsNew.", DatabaseManager.MainCatalog + ".")
+                    .Replace("FuntinoDeviceOperationsNew.", DatabaseManager.DeviceCatalog + ".")
+                    .Replace("[FuntinoParkOperations].", "[" + DatabaseManager.MainCatalog + "].")
+                    .Replace("[FuntinoDeviceOperations].", "[" + DatabaseManager.DeviceCatalog + "].")
+                    .Replace("FuntinoParkOperations.", DatabaseManager.MainCatalog + ".")
+                    .Replace("FuntinoDeviceOperations.", DatabaseManager.DeviceCatalog + ".");
+                if (String.Equals(definition, module.Item2, StringComparison.Ordinal)) continue;
+
+                Match create = Regex.Match(definition, @"^\s*CREATE\s+(?=(PROC(?:EDURE)?|FUNCTION|VIEW|TRIGGER)\b)", RegexOptions.IgnoreCase);
+                if (create.Success)
+                    definition = definition.Substring(0, create.Index) + "ALTER " + definition.Substring(create.Index + create.Length);
+                else if (!Regex.IsMatch(definition, @"^\s*ALTER\s+(PROC(?:EDURE)?|FUNCTION|VIEW|TRIGGER)\b", RegexOptions.IgnoreCase))
+                    throw new InvalidOperationException("ارجاع پایگاه در شیء «" + module.Item1 + "» قابل به‌روزرسانی امن نبود؛ مهاجرت لغو شد.");
+
+                using (var alter = new SqlCommand(definition, connection, transaction))
+                {
+                    alter.CommandTimeout = 180;
+                    alter.ExecuteNonQuery();
+                }
             }
         }
 

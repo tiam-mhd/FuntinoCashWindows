@@ -42,6 +42,65 @@ namespace FuntinoControlCenter.Forms
         private void OpenCardReader_Click(object sender, EventArgs e) { OpenCardOperations(); }
         private void Logout_Click(object sender, EventArgs e) { Close(); }
 
+        private void OpenCustomers_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                AuthorizationGuard.Require("customers.view");
+                using (var form = new CustomerFamilyForm()) form.ShowDialog(this);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.ShowWarning(this, "مجوز مشاهدهٔ مشتریان شعبه برای این حساب فعال نیست.", "دسترسی محدود است");
+                ApplyPermissions();
+            }
+        }
+
+        private void OpenEdgeSync_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                AuthorizationGuard.Require("edge.sync.view");
+                using (var form = new EdgeSyncStatusForm()) form.ShowDialog(this);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.ShowWarning(this, "مجوز مشاهدهٔ وضعیت همگام‌سازی برای این حساب فعال نیست.", "دسترسی محدود است");
+                ApplyPermissions();
+            }
+        }
+
+        private void OpenEdgeSettings_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                AuthorizationGuard.Require("edge.configuration.manage");
+                using (var form = new EdgeConfigurationForm()) form.ShowDialog(this);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.ShowWarning(this, "مجوز تنظیم ارتباط شعبه برای این حساب فعال نیست.", "دسترسی محدود است");
+                ApplyPermissions();
+            }
+        }
+
+        private void OpenCardRecovery_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                AuthorizationGuard.Require("cards.recharge");
+                AuthorizationGuard.Require(PermissionCatalog.TableCode("finance", "create"));
+                AuthorizationGuard.Require("operations.recharge_terms.view");
+                AuthorizationGuard.Require("edge.events.create");
+                using (var form = new CardRechargeRecoveryForm()) form.ShowDialog(this);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.ShowWarning(this, "مجوز لازم برای تطبیق عملیات شارژ برای این حساب فعال نیست.", "دسترسی محدود است");
+                ApplyPermissions();
+            }
+        }
+
         private void OpenAccess_Click(object sender, EventArgs e)
         {
             try { using (var form = new AccessManagementForm()) form.ShowDialog(this); ApplyPermissions(); RefreshDashboard(); }
@@ -98,6 +157,12 @@ namespace FuntinoControlCenter.Forms
             btnOperations.Visible = HasBusinessManagementAccess();
             btnAccess.Visible = AuthorizationGuard.HasAny("users.view", "users.create", "users.update", "users.reset_password", "users.assign_roles", "users.deactivate", "roles.view", "roles.create", "roles.update", "roles.assign_permissions", "roles.delete");
             btnPassword.Visible = AppSession.Current != null;
+            btnCustomers.Visible = AuthorizationGuard.Has("customers.view");
+            btnEdgeSync.Visible = AuthorizationGuard.Has("edge.sync.view");
+            btnEdgeSettings.Visible = AuthorizationGuard.Has("edge.configuration.manage");
+            btnCardRecovery.Visible = AuthorizationGuard.Has("cards.recharge") &&
+                AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) &&
+                AuthorizationGuard.Has("operations.recharge_terms.view") && AuthorizationGuard.Has("edge.events.create");
 
             bool canRechargeCard = AuthorizationGuard.Has("cards.recharge") && AuthorizationGuard.Has(PermissionCatalog.TableCode("finance", "create")) && AuthorizationGuard.Has("operations.recharge_terms.view");
             bool canCardOperations = AuthorizationGuard.HasAny("cards.details.view", "cards.balance.view", "cards.remainder.view", "cards.history.view") || canRechargeCard;

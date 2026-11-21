@@ -44,6 +44,7 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Security" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -64,6 +65,8 @@
     <Compile Include="Database\DatabaseManager.cs" />
     <Compile Include="Database\LegacySchemaMigrator.cs" />
     <Compile Include="Database\SchemaMigrator.cs" />
+    <Compile Include="Database\EdgeSchemaMigrator.cs" />
+    <Compile Include="Database\EdgeIntegrationRepository.cs" />
     <Compile Include="Database\TableRepository.cs" />
     <Compile Include="Database\UserRepository.cs" />
     <Compile Include="Database\CardOperationsRepository.cs" />
@@ -78,6 +81,11 @@
     <Compile Include="Services\ReportExportService.cs" />
     <Compile Include="Services\DeviceDiagnostics.cs" />
     <Compile Include="Services\CardReaderService.cs" />
+    <Compile Include="Services\EdgeContracts.cs" />
+    <Compile Include="Services\EdgeAmountConverter.cs" />
+    <Compile Include="Services\EdgeApiClient.cs" />
+    <Compile Include="Services\EdgeSyncWorker.cs" />
+    <Compile Include="Services\EdgeConfigurationService.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -121,6 +129,30 @@
     </Compile>
     <Compile Include="Forms\MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\EdgeSyncStatusForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\EdgeSyncStatusForm.Designer.cs">
+      <DependentUpon>EdgeSyncStatusForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\CustomerFamilyForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\CustomerFamilyForm.Designer.cs">
+      <DependentUpon>CustomerFamilyForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\EdgeConfigurationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\EdgeConfigurationForm.Designer.cs">
+      <DependentUpon>EdgeConfigurationForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\CardRechargeRecoveryForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\CardRechargeRecoveryForm.Designer.cs">
+      <DependentUpon>CardRechargeRecoveryForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\TableBrowserForm.cs">
       <SubType>Form</SubType>
@@ -194,6 +226,12 @@
     <EmbeddedResource Include="Forms\CardOperationsForm.resx">
       <DependentUpon>CardOperationsForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Forms\CustomerFamilyForm.resx">
+      <DependentUpon>CustomerFamilyForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\EdgeConfigurationForm.resx">
+      <DependentUpon>EdgeConfigurationForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -253,6 +291,7 @@
       <_FuntinoVersionLine Include="[assembly: System.Reflection.AssemblyVersionAttribute(&quot;$(FuntinoAssemblyVersion)&quot;)]" />
       <_FuntinoVersionLine Include="[assembly: System.Reflection.AssemblyFileVersionAttribute(&quot;$(FuntinoAssemblyVersion)&quot;)]" />
       <_FuntinoVersionLine Include="[assembly: System.Reflection.AssemblyInformationalVersionAttribute(&quot;$(FuntinoProductVersion)&quot;)]" />
+      <_FuntinoVersionLine Include="[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute(&quot;FuntinoControlCenter.Tests&quot;)]" />
     </ItemGroup>
     <WriteLinesToFile File="$(FuntinoVersionInfoFile)" Lines="@(_FuntinoVersionLine)" Overwrite="true" />
     <ItemGroup>

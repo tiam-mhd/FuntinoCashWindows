@@ -17,8 +17,15 @@ namespace FuntinoControlCenter
         public string PosPort { get; set; }
         public int ReaderBaud { get; set; }
         public int PosBaud { get; set; }
+        public string EdgeApiBaseUrl { get; set; }
+        public string EdgeCredentialId { get; set; }
+        public string EdgeOrganizationId { get; set; }
+        public string EdgeBranchId { get; set; }
+        public string EdgeSourceInstanceId { get; set; }
         private byte[] readerCardKey;
         public bool ReaderCardKeyConfigured { get; private set; }
+        private byte[] edgeSecret;
+        public bool EdgeSecretConfigured { get; private set; }
 
         public byte[] GetReaderCardKey()
         {
@@ -32,6 +39,27 @@ namespace FuntinoControlCenter
             if (readerCardKey != null) Array.Clear(readerCardKey, 0, readerCardKey.Length);
             readerCardKey = (byte[])value.Clone();
             ReaderCardKeyConfigured = true;
+        }
+
+        public byte[] GetEdgeSecret()
+        {
+            return edgeSecret == null ? null : (byte[])edgeSecret.Clone();
+        }
+
+        public void SetEdgeSecret(byte[] value)
+        {
+            if (value == null || value.Length < 32)
+                throw new ArgumentException("کلید همگام‌سازی باید دست‌کم ۳۲ بایت باشد.", "value");
+            if (edgeSecret != null) Array.Clear(edgeSecret, 0, edgeSecret.Length);
+            edgeSecret = (byte[])value.Clone();
+            EdgeSecretConfigured = true;
+        }
+
+        public void ClearEdgeSecret()
+        {
+            if (edgeSecret != null) Array.Clear(edgeSecret, 0, edgeSecret.Length);
+            edgeSecret = null;
+            EdgeSecretConfigured = false;
         }
 
         public static AppSettings Current { get; private set; }
@@ -79,17 +107,39 @@ namespace FuntinoControlCenter
                 }
                 catch { readerKey = null; }
             }
+            byte[] syncSecret = null;
+            string protectedEdgeSecret = Get(values, "EdgeSecretProtected", "");
+            if (!String.IsNullOrEmpty(protectedEdgeSecret))
+            {
+                try
+                {
+                    syncSecret = ProtectedData.Unprotect(Convert.FromBase64String(protectedEdgeSecret), null, DataProtectionScope.CurrentUser);
+                    if (syncSecret.Length < 32) { Array.Clear(syncSecret, 0, syncSecret.Length); syncSecret = null; }
+                }
+                catch { syncSecret = null; }
+            }
+            string sourceInstanceId = Get(values, "EdgeSourceInstanceId", "");
+            bool createSourceInstanceId = String.IsNullOrWhiteSpace(sourceInstanceId);
+            if (createSourceInstanceId) sourceInstanceId = Guid.NewGuid().ToString("D");
             var settings = new AppSettings
             {
                 SqlServer = Get(values, "SqlServer", @".\FuntinoSqlServer"),
                 IntegratedSecurity = String.Equals(Get(values, "IntegratedSecurity", "true"), "true", StringComparison.OrdinalIgnoreCase),
                 SqlUser = Get(values, "SqlUser", ""), SqlPassword = password,
                 ReaderPort = Get(values, "ReaderPort", "COM11"), PosPort = Get(values, "PosPort", "COM21"),
-                ReaderBaud = ParseInt(Get(values, "ReaderBaud", "9600"), 9600), PosBaud = ParseInt(Get(values, "PosBaud", "9600"), 9600)
+                ReaderBaud = ParseInt(Get(values, "ReaderBaud", "9600"), 9600), PosBaud = ParseInt(Get(values, "PosBaud", "9600"), 9600),
+                EdgeApiBaseUrl = Get(values, "EdgeApiBaseUrl", ""),
+                EdgeCredentialId = Get(values, "EdgeCredentialId", ""),
+                EdgeOrganizationId = Get(values, "EdgeOrganizationId", ""),
+                EdgeBranchId = Get(values, "EdgeBranchId", ""),
+                EdgeSourceInstanceId = sourceInstanceId
             };
             settings.readerCardKey = readerKey;
             settings.ReaderCardKeyConfigured = readerKey != null;
+            settings.edgeSecret = syncSecret;
+            settings.EdgeSecretConfigured = syncSecret != null;
             Current = settings;
+            if (createSourceInstanceId) settings.Save();
             return settings;
         }
 
@@ -102,11 +152,17 @@ namespace FuntinoControlCenter
             string protectedReaderKey = "";
             if (ReaderCardKeyConfigured && readerCardKey != null)
                 protectedReaderKey = Convert.ToBase64String(ProtectedData.Protect(readerCardKey, null, DataProtectionScope.CurrentUser));
+            string protectedEdgeSecret = "";
+            if (EdgeSecretConfigured && edgeSecret != null)
+                protectedEdgeSecret = Convert.ToBase64String(ProtectedData.Protect(edgeSecret, null, DataProtectionScope.CurrentUser));
             var values = new Dictionary<string, string>
             {
                 { "SqlServer", SqlServer ?? "" }, { "IntegratedSecurity", IntegratedSecurity ? "true" : "false" },
                 { "SqlUser", SqlUser ?? "" }, { "SqlPasswordProtected", protectedPassword },
                 { "ReaderCardKeyProtected", protectedReaderKey },
+                { "EdgeApiBaseUrl", EdgeApiBaseUrl ?? "" }, { "EdgeCredentialId", EdgeCredentialId ?? "" },
+                { "EdgeOrganizationId", EdgeOrganizationId ?? "" }, { "EdgeBranchId", EdgeBranchId ?? "" },
+                { "EdgeSourceInstanceId", EdgeSourceInstanceId ?? "" }, { "EdgeSecretProtected", protectedEdgeSecret },
                 { "ReaderPort", ReaderPort ?? "COM11" }, { "PosPort", PosPort ?? "COM21" },
                 { "ReaderBaud", ReaderBaud.ToString() }, { "PosBaud", PosBaud.ToString() }
             };

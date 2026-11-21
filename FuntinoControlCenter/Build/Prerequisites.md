@@ -52,11 +52,28 @@ All installations use the named SQL instance `FuntinoSqlServer`. Windows 7 uses 
 
 On Windows 7, setup installs the servicing stack and SHA-2 update matching the package architecture. On Windows 8.1, setup applies KB2919442 and then KB2919355. If an update requests a restart, restart the computer and launch the same installer again; completed steps are skipped or treated as installed.
 
-The installer requires these local reference files under `FuntinoControlCenter/LocalOnly/WorkspaceRoot/Reference/Databases/`:
+The installer requires these immutable seed inputs under `FuntinoControlCenter/LocalOnly/WorkspaceRoot/Reference/Databases/`:
 
 - `SharjReportDB0216.mdf` and `SharjReportDB0216_log.ldf`
 - `DBKart.mdf` and `DBKart_log.ldf`
 
-They are embedded in each offline installer, copied into SQL Server's data directory, and attached as `FuntinoParkOperations` and `FuntinoDeviceOperations`. The source files are included as private installer inputs and are never attached or changed in place. On first launch, the application validates the expected legacy schema, captures table row counts, then renames schemas, tables, columns, procedures, and functions inside one transaction. Legacy procedures retain their old table/column contract through `compat.Legacy*` views. The migration validates that all rows remain, records version 1 in `app.SchemaMigrationHistory`, and skips the migration on later launches. A failed migration rolls back its DDL and leaves the installed database eligible for retry. Internal application tables use the `app` schema.
+The names `FuntinoParkOperations` and `FuntinoDeviceOperations` are the default operational catalogs; `App.config` can set different custom catalog names. The installer leaves an existing catalog and its files untouched. If a catalog is missing, it copies the immutable reference MDF/LDF into SQL Server's data directory and attaches that private copy under the configured name. It never renames an existing catalog or creates a `New` catalog. A partial pair of detached operational files stops setup instead of being overwritten.
+
+On first application startup, additive, numbered migrations run against the operational copies only. Each database is migrated in its own SQL transaction; the two databases are not enlisted in a distributed transaction. The migration validates the expected legacy schema, captures table row counts, preserves legacy table/column contracts through `compat.Legacy*` views, adds application-owned objects under the `app` schema, and records migration versions transactionally. A failed migration rolls back that database's migration and can be retried. The installer grants the selected Windows account access to both operational catalogs.
+
+Before an upgrade, back up both operational catalogs separately, for example with SQL Server Management Studio or `sqlcmd`:
+
+```sql
+BACKUP DATABASE [FuntinoParkOperations]
+  TO DISK = N'D:\Backups\FuntinoParkOperations.bak' WITH CHECKSUM;
+BACKUP DATABASE [FuntinoDeviceOperations]
+  TO DISK = N'D:\Backups\FuntinoDeviceOperations.bak' WITH CHECKSUM;
+RESTORE VERIFYONLY FROM DISK = N'D:\Backups\FuntinoParkOperations.bak' WITH CHECKSUM;
+RESTORE VERIFYONLY FROM DISK = N'D:\Backups\FuntinoDeviceOperations.bak' WITH CHECKSUM;
+```
+
+For recovery, stop the application and its `Funtino Control Center Edge Sync` scheduled task, preserve the current operational catalogs, then restore each backup to the configured catalog name using SQL Server Management Studio. Restore the main and device backups as a pair from the same backup time. Do not restore the seed MDF/LDF over an operational catalog. After restore, start SQL Server and the application; the versioned migrations resume from the history stored in each restored database. Do not run these migration or restore steps against production as part of a build.
+
+The branch connection form stores the endpoint, credential, organization, branch, and a stable installation ID. The HMAC key is protected with Windows DPAPI for the selected Windows user and is never written to the SQL metadata table or logs. The installer registers a hidden Scheduled Task for that user to start `--edge-sync` at logon and restart it after failure. The worker reads only the configured operational catalogs and continues retrying persisted outbox events without blocking the WinForms UI.
 
 SQL Server 2014 reached end of support in July 2024. Windows 7 and Windows 8/8.1 are also out of Microsoft support. This installer provides application/runtime compatibility; it does not restore security servicing for those operating systems or SQL Server 2014.

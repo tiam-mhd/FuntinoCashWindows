@@ -2,14 +2,26 @@ using System;
 using System.Windows.Forms;
 using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Forms;
+using FuntinoControlCenter.Services;
 
 namespace FuntinoControlCenter
 {
     internal static class Program
     {
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
+            if (args != null && args.Length == 1 && String.Equals(args[0], "--edge-sync", StringComparison.OrdinalIgnoreCase))
+            {
+                AppSettings.Load();
+                Environment.ExitCode = EdgeSyncWorker.Run();
+                return;
+            }
+            if (args != null && args.Length == 1 && String.Equals(args[0], "--edge-sync-stop", StringComparison.OrdinalIgnoreCase))
+            {
+                EdgeSyncWorker.RequestStop();
+                return;
+            }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);

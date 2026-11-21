@@ -4,14 +4,35 @@ param(
     [string]$TargetOS,
 
     [Parameter(Mandatory = $true)]
-    [string]$AllowedWindowsAccount
+    [string]$AllowedWindowsAccount,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ApplicationConfigPath
 )
 
 $ErrorActionPreference = 'Stop'
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $instanceName = 'FuntinoSqlServer'
-$mainDatabase = 'FuntinoParkOperations'
-$deviceDatabase = 'FuntinoDeviceOperations'
+if (-not (Test-Path -LiteralPath $ApplicationConfigPath -PathType Leaf)) {
+    throw 'The application configuration file containing operational catalog names was not found.'
+}
+try {
+    [xml]$applicationConfiguration = [System.IO.File]::ReadAllText($ApplicationConfigPath)
+} catch {
+    throw 'The application configuration file could not be read.'
+}
+$mainCatalogNodes = $applicationConfiguration.SelectNodes("/configuration/appSettings/add[@key='MainDatabaseCatalog']")
+$deviceCatalogNodes = $applicationConfiguration.SelectNodes("/configuration/appSettings/add[@key='DeviceDatabaseCatalog']")
+if ($mainCatalogNodes.Count -ne 1 -or $deviceCatalogNodes.Count -ne 1) {
+    throw 'The application configuration must define exactly one main and one device catalog.'
+}
+$mainDatabase = $mainCatalogNodes[0].GetAttribute('value')
+$deviceDatabase = $deviceCatalogNodes[0].GetAttribute('value')
+if ($mainDatabase -notmatch '^[A-Za-z_][A-Za-z0-9_]{0,127}$' -or
+    $deviceDatabase -notmatch '^[A-Za-z_][A-Za-z0-9_]{0,127}$' -or
+    $mainDatabase -ieq $deviceDatabase) {
+    throw 'The configured operational catalog names are invalid or identical.'
+}
 $logDirectory = Join-Path $env:ProgramData 'Funtino\ControlCenter\InstallLogs'
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 $logFileName = 'installer-prerequisites-' + [DateTime]::Now.ToString('yyyyMMdd-HHmmss') + '.log'
@@ -396,7 +417,7 @@ try {
     Ensure-ApplicationAccount -WindowsAccount $AllowedWindowsAccount -DatabaseName $mainDatabase
     Ensure-ApplicationAccount -WindowsAccount $AllowedWindowsAccount -DatabaseName $deviceDatabase
 
-    Write-Host "SQL Server instance '$instanceName' is ready with seeded catalogs '$mainDatabase' and '$deviceDatabase'. The application will migrate their schemas on first launch."
+    Write-Host "SQL Server instance '$instanceName' is ready with operational catalogs '$mainDatabase' and '$deviceDatabase'. Existing catalogs are preserved; missing catalogs use private reference copies. The application will migrate their schemas on first launch."
     try { Stop-Transcript | Out-Null } catch { }
     exit 0
 } catch {
