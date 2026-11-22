@@ -1,6 +1,14 @@
 name: Windows build
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "FuntinoControlCenter/**"
+      - "FuntinoControlCenter.Tests/**"
+      - ".github/workflows/build-windows.yml"
+      - "README.md"
+      - "INSTALL_FA.md"
   push:
     branches: [main]
     paths:

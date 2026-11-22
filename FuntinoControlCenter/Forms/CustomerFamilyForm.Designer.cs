@@ -3,18 +3,19 @@ namespace FuntinoControlCenter.Forms
     partial class CustomerFamilyForm
     {
         private System.ComponentModel.IContainer components = null;
-        private System.Windows.Forms.TableLayoutPanel tlpRoot, tlpHeader, tlpBody, tlpCustomers, tlpSearch, tlpCustomerPager, tlpFamily;
+        private System.Windows.Forms.TableLayoutPanel tlpRoot, tlpHeader, tlpBody, tlpCustomers, tlpSearch, tlpPairing, tlpCustomerPager, tlpFamily;
         private System.Windows.Forms.Panel pnlHeader, pnlSnapshot, pnlSearchInput, pnlCustomerGrid, pnlFamilyGrid, pnlCardsGrid;
         private FuntinoControlCenter.UI.RoundedBorderPanel pnlCustomers, pnlFamily;
         private System.Windows.Forms.PictureBox picHeader, picSearch;
-        private System.Windows.Forms.Label lblTitle, lblSubtitle, lblSnapshot, lblCustomerTitle, lblFamilyTitle, lblFamilyCustomer, lblCardsTitle, lblCustomerPage, lblCustomerCount;
-        private System.Windows.Forms.TextBox txtSearch;
-        private FuntinoControlCenter.UI.RoundedButton btnBack, btnSearch, btnPrevious, btnNext;
+        private System.Windows.Forms.Label lblTitle, lblSubtitle, lblSnapshot, lblCustomerTitle, lblPairingStatus, lblFamilyTitle, lblFamilyCustomer, lblCardsTitle, lblCustomerPage, lblCustomerCount;
+        private System.Windows.Forms.TextBox txtSearch, txtPairingCode;
+        private FuntinoControlCenter.UI.RoundedButton btnBack, btnSearch, btnPairOperator, btnCancelPairing, btnPrevious, btnNext;
         private System.Windows.Forms.DataGridView gridCustomers, gridFamily, gridCards;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colCustomerName, colCustomerId, colHouseholdId, colSnapshotVersion;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colCustomerName, colMaskedPhone, colCustomerId, colHouseholdId, colMemberId, colSnapshotVersion;
         private System.Windows.Forms.DataGridViewTextBoxColumn colFamilyType, colFamilyName, colRelatedCustomerId;
         private System.Windows.Forms.DataGridViewTextBoxColumn colCardId, colCardMemberId, colCardSnapshot;
-        private FuntinoControlCenter.UI.AppLoadingIndicator loadingCustomers, loadingFamily;
+        private FuntinoControlCenter.UI.AppLoadingIndicator loadingCustomers, loadingFamily, loadingPairing;
+        private System.Windows.Forms.Timer tmrOperatorExpiry;
 
         protected override void Dispose(bool disposing)
         {
@@ -24,7 +25,9 @@ namespace FuntinoControlCenter.Forms
 
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.tlpRoot = new System.Windows.Forms.TableLayoutPanel();
+            this.tmrOperatorExpiry = new System.Windows.Forms.Timer(this.components);
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.tlpHeader = new System.Windows.Forms.TableLayoutPanel();
             this.picHeader = new System.Windows.Forms.PictureBox();
@@ -38,12 +41,24 @@ namespace FuntinoControlCenter.Forms
             this.tlpCustomers = new System.Windows.Forms.TableLayoutPanel();
             this.lblCustomerTitle = new System.Windows.Forms.Label();
             this.tlpSearch = new System.Windows.Forms.TableLayoutPanel();
+            this.tlpPairing = new System.Windows.Forms.TableLayoutPanel();
             this.pnlSearchInput = new System.Windows.Forms.Panel();
             this.txtSearch = new System.Windows.Forms.TextBox();
             this.picSearch = new System.Windows.Forms.PictureBox();
             this.btnSearch = new FuntinoControlCenter.UI.RoundedButton();
+            this.txtPairingCode = new System.Windows.Forms.TextBox();
+            this.lblPairingStatus = new System.Windows.Forms.Label();
+            this.btnPairOperator = new FuntinoControlCenter.UI.RoundedButton();
+            this.btnCancelPairing = new FuntinoControlCenter.UI.RoundedButton();
+            this.loadingPairing = new FuntinoControlCenter.UI.AppLoadingIndicator();
             this.pnlCustomerGrid = new System.Windows.Forms.Panel();
             this.gridCustomers = new System.Windows.Forms.DataGridView();
+            this.colCustomerName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colMaskedPhone = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colCustomerId = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colHouseholdId = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colMemberId = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colSnapshotVersion = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.loadingCustomers = new FuntinoControlCenter.UI.AppLoadingIndicator();
             this.tlpCustomerPager = new System.Windows.Forms.TableLayoutPanel();
             this.btnNext = new FuntinoControlCenter.UI.RoundedButton();
@@ -56,10 +71,16 @@ namespace FuntinoControlCenter.Forms
             this.lblFamilyCustomer = new System.Windows.Forms.Label();
             this.pnlFamilyGrid = new System.Windows.Forms.Panel();
             this.gridFamily = new System.Windows.Forms.DataGridView();
+            this.colFamilyType = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colFamilyName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colRelatedCustomerId = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.loadingFamily = new FuntinoControlCenter.UI.AppLoadingIndicator();
             this.lblCardsTitle = new System.Windows.Forms.Label();
             this.pnlCardsGrid = new System.Windows.Forms.Panel();
             this.gridCards = new System.Windows.Forms.DataGridView();
+            this.colCardId = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colCardMemberId = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colCardSnapshot = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tlpRoot.SuspendLayout();
             this.pnlHeader.SuspendLayout();
             this.tlpHeader.SuspendLayout();
@@ -69,6 +90,7 @@ namespace FuntinoControlCenter.Forms
             this.pnlCustomers.SuspendLayout();
             this.tlpCustomers.SuspendLayout();
             this.tlpSearch.SuspendLayout();
+            this.tlpPairing.SuspendLayout();
             this.pnlSearchInput.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picSearch)).BeginInit();
             this.pnlCustomerGrid.SuspendLayout();
@@ -256,15 +278,17 @@ namespace FuntinoControlCenter.Forms
             this.tlpCustomers.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpCustomers.Controls.Add(this.lblCustomerTitle, 0, 0);
             this.tlpCustomers.Controls.Add(this.tlpSearch, 0, 1);
-            this.tlpCustomers.Controls.Add(this.pnlCustomerGrid, 0, 2);
-            this.tlpCustomers.Controls.Add(this.tlpCustomerPager, 0, 3);
+            this.tlpCustomers.Controls.Add(this.tlpPairing, 0, 2);
+            this.tlpCustomers.Controls.Add(this.pnlCustomerGrid, 0, 3);
+            this.tlpCustomers.Controls.Add(this.tlpCustomerPager, 0, 4);
             this.tlpCustomers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tlpCustomers.Location = new System.Drawing.Point(0, 0);
             this.tlpCustomers.Name = "tlpCustomers";
             this.tlpCustomers.Padding = new System.Windows.Forms.Padding(12);
-            this.tlpCustomers.RowCount = 4;
+            this.tlpCustomers.RowCount = 5;
             this.tlpCustomers.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
             this.tlpCustomers.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 54F));
+            this.tlpCustomers.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tlpCustomers.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpCustomers.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
             this.tlpCustomers.Size = new System.Drawing.Size(569, 586);
@@ -361,6 +385,115 @@ namespace FuntinoControlCenter.Forms
             this.btnSearch.UseVisualStyleBackColor = false;
             this.btnSearch.Click += new System.EventHandler(this.Search_Click);
             //
+            // tlpPairing
+            //
+            this.tlpPairing.ColumnCount = 5;
+            this.tlpPairing.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 140F));
+            this.tlpPairing.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 112F));
+            this.tlpPairing.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tlpPairing.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 36F));
+            this.tlpPairing.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 82F));
+            this.tlpPairing.Controls.Add(this.btnPairOperator, 0, 0);
+            this.tlpPairing.Controls.Add(this.txtPairingCode, 1, 0);
+            this.tlpPairing.Controls.Add(this.lblPairingStatus, 2, 0);
+            this.tlpPairing.Controls.Add(this.loadingPairing, 3, 0);
+            this.tlpPairing.Controls.Add(this.btnCancelPairing, 4, 0);
+            this.tlpPairing.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tlpPairing.Location = new System.Drawing.Point(15, 107);
+            this.tlpPairing.Name = "tlpPairing";
+            this.tlpPairing.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.tlpPairing.RowCount = 1;
+            this.tlpPairing.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tlpPairing.Size = new System.Drawing.Size(539, 50);
+            this.tlpPairing.TabIndex = 2;
+            //
+            // btnPairOperator
+            //
+            this.btnPairOperator.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(89)))), ((int)(((byte)(81)))));
+            this.btnPairOperator.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(177)))), ((int)(((byte)(208)))), ((int)(((byte)(192)))));
+            this.btnPairOperator.BorderSize = 1;
+            this.btnPairOperator.CornerRadius = 10;
+            this.btnPairOperator.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.btnPairOperator.FlatAppearance.BorderSize = 0;
+            this.btnPairOperator.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPairOperator.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Bold);
+            this.btnPairOperator.ForeColor = System.Drawing.Color.White;
+            this.btnPairOperator.Image = global::FuntinoControlCenter.Properties.Resources.Reports;
+            this.btnPairOperator.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnPairOperator.Location = new System.Drawing.Point(392, 4);
+            this.btnPairOperator.Margin = new System.Windows.Forms.Padding(4);
+            this.btnPairOperator.Name = "btnPairOperator";
+            this.btnPairOperator.Size = new System.Drawing.Size(143, 42);
+            this.btnPairOperator.TabIndex = 2;
+            this.btnPairOperator.Text = "اتصال امن";
+            this.btnPairOperator.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.btnPairOperator.UseVisualStyleBackColor = false;
+            this.btnPairOperator.Click += new System.EventHandler(this.PairOperator_Click);
+            //
+            // txtPairingCode
+            //
+            this.txtPairingCode.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(251)))), ((int)(((byte)(249)))));
+            this.txtPairingCode.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtPairingCode.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.txtPairingCode.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold);
+            this.txtPairingCode.Location = new System.Drawing.Point(280, 7);
+            this.txtPairingCode.Margin = new System.Windows.Forms.Padding(3, 7, 3, 7);
+            this.txtPairingCode.Name = "txtPairingCode";
+            this.txtPairingCode.ReadOnly = true;
+            this.txtPairingCode.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.txtPairingCode.Size = new System.Drawing.Size(106, 23);
+            this.txtPairingCode.TabIndex = 3;
+            this.txtPairingCode.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            //
+            // lblPairingStatus
+            //
+            this.lblPairingStatus.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblPairingStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5F);
+            this.lblPairingStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(95)))), ((int)(((byte)(85)))));
+            this.lblPairingStatus.Location = new System.Drawing.Point(40, 0);
+            this.lblPairingStatus.Name = "lblPairingStatus";
+            this.lblPairingStatus.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.lblPairingStatus.Size = new System.Drawing.Size(234, 50);
+            this.lblPairingStatus.TabIndex = 4;
+            this.lblPairingStatus.Text = "برای خواندن مرکزی، اتصال را آغاز کنید.";
+            this.lblPairingStatus.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            //
+            // loadingPairing
+            //
+            this.loadingPairing.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(239)))), ((int)(((byte)(247)))), ((int)(((byte)(243)))));
+            this.loadingPairing.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.loadingPairing.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.loadingPairing.Location = new System.Drawing.Point(4, 4);
+            this.loadingPairing.Margin = new System.Windows.Forms.Padding(4);
+            this.loadingPairing.Name = "loadingPairing";
+            this.loadingPairing.Size = new System.Drawing.Size(28, 42);
+            this.loadingPairing.TabIndex = 5;
+            this.loadingPairing.Visible = false;
+            //
+            // btnCancelPairing
+            //
+            this.btnCancelPairing.BackColor = System.Drawing.Color.White;
+            this.btnCancelPairing.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(177)))), ((int)(((byte)(208)))), ((int)(((byte)(192)))));
+            this.btnCancelPairing.BorderSize = 1;
+            this.btnCancelPairing.CornerRadius = 10;
+            this.btnCancelPairing.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.btnCancelPairing.FlatAppearance.BorderSize = 0;
+            this.btnCancelPairing.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCancelPairing.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Bold);
+            this.btnCancelPairing.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(69)))), ((int)(((byte)(59)))));
+            this.btnCancelPairing.Image = global::FuntinoControlCenter.Properties.Resources.Exit;
+            this.btnCancelPairing.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCancelPairing.Location = new System.Drawing.Point(4, 4);
+            this.btnCancelPairing.Margin = new System.Windows.Forms.Padding(4);
+            this.btnCancelPairing.Name = "btnCancelPairing";
+            this.btnCancelPairing.Size = new System.Drawing.Size(74, 42);
+            this.btnCancelPairing.TabIndex = 6;
+            this.btnCancelPairing.Text = "لغو";
+            this.btnCancelPairing.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.btnCancelPairing.UseVisualStyleBackColor = false;
+            this.btnCancelPairing.Visible = false;
+            this.btnCancelPairing.Click += new System.EventHandler(this.CancelPairing_Click);
+            //
             // pnlCustomerGrid
             //
             this.pnlCustomerGrid.Controls.Add(this.gridCustomers);
@@ -382,6 +515,7 @@ namespace FuntinoControlCenter.Forms
             this.gridCustomers.ColumnHeadersHeight = 40;
             this.gridCustomers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gridCustomers.EnableHeadersVisualStyles = false;
+            this.gridCustomers.AutoGenerateColumns = false;
             this.gridCustomers.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
             this.gridCustomers.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(229)))), ((int)(((byte)(237)))), ((int)(((byte)(232)))));
             this.gridCustomers.Location = new System.Drawing.Point(0, 48);
@@ -394,7 +528,57 @@ namespace FuntinoControlCenter.Forms
             this.gridCustomers.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.gridCustomers.Size = new System.Drawing.Size(200, 52);
             this.gridCustomers.TabIndex = 0;
+            this.gridCustomers.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+                this.colCustomerName, this.colMaskedPhone, this.colCustomerId, this.colHouseholdId, this.colMemberId, this.colSnapshotVersion});
             this.gridCustomers.SelectionChanged += new System.EventHandler(this.CustomerSelectionChanged);
+            //
+            // colCustomerName
+            //
+            this.colCustomerName.DataPropertyName = "DisplayName";
+            this.colCustomerName.HeaderText = "نام مشتری";
+            this.colCustomerName.Name = "colCustomerName";
+            this.colCustomerName.ReadOnly = true;
+            this.colCustomerName.FillWeight = 60F;
+            //
+            // colMaskedPhone
+            //
+            this.colMaskedPhone.DataPropertyName = "MaskedPhone";
+            this.colMaskedPhone.HeaderText = "تلفن پوشیده";
+            this.colMaskedPhone.Name = "colMaskedPhone";
+            this.colMaskedPhone.ReadOnly = true;
+            this.colMaskedPhone.FillWeight = 40F;
+            //
+            // colCustomerId
+            //
+            this.colCustomerId.DataPropertyName = "CustomerId";
+            this.colCustomerId.HeaderText = "شناسهٔ مشتری";
+            this.colCustomerId.Name = "colCustomerId";
+            this.colCustomerId.ReadOnly = true;
+            this.colCustomerId.Visible = false;
+            //
+            // colHouseholdId
+            //
+            this.colHouseholdId.DataPropertyName = "HouseholdId";
+            this.colHouseholdId.HeaderText = "شناسهٔ خانواده";
+            this.colHouseholdId.Name = "colHouseholdId";
+            this.colHouseholdId.ReadOnly = true;
+            this.colHouseholdId.Visible = false;
+            //
+            // colMemberId
+            //
+            this.colMemberId.DataPropertyName = "MemberId";
+            this.colMemberId.HeaderText = "شناسهٔ عضو";
+            this.colMemberId.Name = "colMemberId";
+            this.colMemberId.ReadOnly = true;
+            this.colMemberId.Visible = false;
+            //
+            // colSnapshotVersion
+            //
+            this.colSnapshotVersion.DataPropertyName = "SnapshotVersion";
+            this.colSnapshotVersion.HeaderText = "نسخه";
+            this.colSnapshotVersion.Name = "colSnapshotVersion";
+            this.colSnapshotVersion.ReadOnly = true;
+            this.colSnapshotVersion.Visible = false;
             //
             // loadingCustomers
             //
@@ -584,6 +768,7 @@ namespace FuntinoControlCenter.Forms
             this.gridFamily.ColumnHeadersHeight = 40;
             this.gridFamily.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gridFamily.EnableHeadersVisualStyles = false;
+            this.gridFamily.AutoGenerateColumns = false;
             this.gridFamily.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
             this.gridFamily.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(229)))), ((int)(((byte)(237)))), ((int)(((byte)(232)))));
             this.gridFamily.Location = new System.Drawing.Point(0, 48);
@@ -596,6 +781,32 @@ namespace FuntinoControlCenter.Forms
             this.gridFamily.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.gridFamily.Size = new System.Drawing.Size(539, 193);
             this.gridFamily.TabIndex = 0;
+            this.gridFamily.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+                this.colFamilyType, this.colFamilyName, this.colRelatedCustomerId});
+            //
+            // colFamilyType
+            //
+            this.colFamilyType.DataPropertyName = "MemberType";
+            this.colFamilyType.HeaderText = "نقش";
+            this.colFamilyType.Name = "MemberType";
+            this.colFamilyType.ReadOnly = true;
+            this.colFamilyType.FillWeight = 25F;
+            //
+            // colFamilyName
+            //
+            this.colFamilyName.DataPropertyName = "DisplayName";
+            this.colFamilyName.HeaderText = "نام";
+            this.colFamilyName.Name = "DisplayName";
+            this.colFamilyName.ReadOnly = true;
+            this.colFamilyName.FillWeight = 40F;
+            //
+            // colRelatedCustomerId
+            //
+            this.colRelatedCustomerId.DataPropertyName = "RelatedCustomerId";
+            this.colRelatedCustomerId.HeaderText = "شناسهٔ مشتری مرتبط";
+            this.colRelatedCustomerId.Name = "RelatedCustomerId";
+            this.colRelatedCustomerId.ReadOnly = true;
+            this.colRelatedCustomerId.FillWeight = 35F;
             //
             // loadingFamily
             //
@@ -642,6 +853,7 @@ namespace FuntinoControlCenter.Forms
             this.gridCards.ColumnHeadersHeight = 40;
             this.gridCards.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gridCards.EnableHeadersVisualStyles = false;
+            this.gridCards.AutoGenerateColumns = false;
             this.gridCards.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
             this.gridCards.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(229)))), ((int)(((byte)(237)))), ((int)(((byte)(232)))));
             this.gridCards.Location = new System.Drawing.Point(0, 0);
@@ -654,6 +866,32 @@ namespace FuntinoControlCenter.Forms
             this.gridCards.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.gridCards.Size = new System.Drawing.Size(539, 197);
             this.gridCards.TabIndex = 0;
+            this.gridCards.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+                this.colCardId, this.colCardMemberId, this.colCardSnapshot});
+            //
+            // colCardId
+            //
+            this.colCardId.DataPropertyName = "CardId";
+            this.colCardId.HeaderText = "شناسهٔ کارت";
+            this.colCardId.Name = "CardId";
+            this.colCardId.ReadOnly = true;
+            this.colCardId.FillWeight = 45F;
+            //
+            // colCardMemberId
+            //
+            this.colCardMemberId.DataPropertyName = "MemberId";
+            this.colCardMemberId.HeaderText = "شناسهٔ عضو";
+            this.colCardMemberId.Name = "MemberId";
+            this.colCardMemberId.ReadOnly = true;
+            this.colCardMemberId.FillWeight = 35F;
+            //
+            // colCardSnapshot
+            //
+            this.colCardSnapshot.DataPropertyName = "SnapshotVersion";
+            this.colCardSnapshot.HeaderText = "نسخهٔ تصویر";
+            this.colCardSnapshot.Name = "SnapshotVersion";
+            this.colCardSnapshot.ReadOnly = true;
+            this.colCardSnapshot.FillWeight = 20F;
             //
             // CustomerFamilyForm
             //
@@ -669,6 +907,9 @@ namespace FuntinoControlCenter.Forms
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "مشتریان و خانواده‌ها";
             this.Load += new System.EventHandler(this.CustomerFamilyForm_Load);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.CustomerFamilyForm_FormClosed);
+            this.tmrOperatorExpiry.Interval = 1000;
+            this.tmrOperatorExpiry.Tick += new System.EventHandler(this.OperatorSessionTimer_Tick);
             this.tlpRoot.ResumeLayout(false);
             this.pnlHeader.ResumeLayout(false);
             this.tlpHeader.ResumeLayout(false);
@@ -678,6 +919,8 @@ namespace FuntinoControlCenter.Forms
             this.pnlCustomers.ResumeLayout(false);
             this.tlpCustomers.ResumeLayout(false);
             this.tlpSearch.ResumeLayout(false);
+            this.tlpPairing.ResumeLayout(false);
+            this.tlpPairing.PerformLayout();
             this.pnlSearchInput.ResumeLayout(false);
             this.pnlSearchInput.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picSearch)).EndInit();

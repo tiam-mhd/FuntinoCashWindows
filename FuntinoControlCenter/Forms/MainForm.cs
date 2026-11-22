@@ -119,7 +119,11 @@ namespace FuntinoControlCenter.Forms
             }
         }
 
-        private void MainForm_FormClosed(object sender, FormClosedEventArgs e) { authorizationTimer.Stop(); }
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            authorizationTimer.Stop();
+            EdgeOperatorSession.Clear();
+        }
 
         private void MainForm_Load(object sender, EventArgs e)
         {

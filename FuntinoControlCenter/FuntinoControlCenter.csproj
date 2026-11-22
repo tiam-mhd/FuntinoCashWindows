@@ -86,6 +86,7 @@
     <Compile Include="Services\EdgeCanonicalJson.cs" />
     <Compile Include="Services\EdgeAmountConverter.cs" />
     <Compile Include="Services\EdgeApiClient.cs" />
+    <Compile Include="Services\EdgeOperatorSession.cs" />
     <Compile Include="Services\EdgeSyncWorker.cs" />
     <Compile Include="Services\EdgeConfigurationService.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
