@@ -2,6 +2,7 @@ using System;
 using System.Windows.Forms;
 using MessageBox = FuntinoControlCenter.Forms.AppMessageService;
 using FuntinoControlCenter.Forms;
+using FuntinoControlCenter.Database;
 using FuntinoControlCenter.Services;
 
 namespace FuntinoControlCenter
@@ -13,8 +14,16 @@ namespace FuntinoControlCenter
         {
             if (args != null && args.Length == 1 && String.Equals(args[0], "--edge-sync", StringComparison.OrdinalIgnoreCase))
             {
-                AppSettings.Load();
-                Environment.ExitCode = EdgeSyncWorker.Run();
+                try
+                {
+                    AppSettings.Load();
+                    DatabaseManager.ValidateOperationalCatalogs();
+                    Environment.ExitCode = EdgeSyncWorker.Run();
+                }
+                catch (Exception)
+                {
+                    Environment.ExitCode = 2;
+                }
                 return;
             }
             if (args != null && args.Length == 1 && String.Equals(args[0], "--edge-sync-stop", StringComparison.OrdinalIgnoreCase))
@@ -33,7 +42,16 @@ namespace FuntinoControlCenter
             {
                 if (e.ExceptionObject is Exception) MessageBox.Show("برنامه با مشکلی جدی روبه‌رو شد و باید بسته شود. برنامه را دوباره باز کنید؛ اگر مشکل ادامه داشت، با پشتیبان سامانه تماس بگیرید.", "خطای برنامه", MessageBoxButtons.OK, MessageBoxIcon.Error);
             };
-            AppSettings.Load();
+            try
+            {
+                AppSettings.Load();
+                DatabaseManager.ValidateOperationalCatalogs();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("تنظیم پایگاه‌های عملیاتی معتبر نیست. برنامه برای جلوگیری از نوشتن در پایگاه اشتباه متوقف شد.", "تنظیم اتصال", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
             Application.Run(new LoginForm());
         }
     }

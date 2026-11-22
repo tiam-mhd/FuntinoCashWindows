@@ -12,13 +12,6 @@ if ($productVersion -notmatch '^\d+\.\d+\.\d+$') {
 }
 
 $prerequisiteRoot = Join-Path $buildRoot 'Prerequisites'
-$referenceDatabaseRoot = Join-Path $projectRoot 'LocalOnly\WorkspaceRoot\Reference\Databases'
-$referenceDatabaseFiles = @(
-    (Join-Path $referenceDatabaseRoot 'SharjReportDB0216.mdf'),
-    (Join-Path $referenceDatabaseRoot 'SharjReportDB0216_log.ldf'),
-    (Join-Path $referenceDatabaseRoot 'DBKart.mdf'),
-    (Join-Path $referenceDatabaseRoot 'DBKart_log.ldf')
-)
 $packages = @(
     [pscustomobject]@{
         TargetOS = 'Windows7x86'
@@ -95,14 +88,6 @@ $missingFiles = @($prerequisiteFiles | Where-Object { -not (Test-Path -LiteralPa
 
 $missingRequirements = New-Object System.Collections.ArrayList
 foreach ($file in $missingFiles) { [void]$missingRequirements.Add("Missing prerequisite media: $file") }
-foreach ($file in $referenceDatabaseFiles) {
-    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
-        [void]$missingRequirements.Add("Missing local reference database file: $file")
-    } elseif ((Get-Item -LiteralPath $file).Length -eq 0) {
-        [void]$missingRequirements.Add("Reference database file is empty: $file")
-    }
-}
-
 $referenceAssemblies = Join-Path ${env:ProgramFiles(x86)} 'Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\mscorlib.dll'
 if (-not (Test-Path -LiteralPath $referenceAssemblies)) {
     [void]$missingRequirements.Add('The .NET Framework 4.6.1 Developer Pack is missing from the build computer.')

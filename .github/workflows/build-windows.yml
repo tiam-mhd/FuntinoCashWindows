@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "FuntinoControlCenter/**"
+      - "FuntinoControlCenter.Tests/**"
       - ".github/workflows/build-windows.yml"
       - "README.md"
       - "INSTALL_FA.md"
@@ -30,7 +31,18 @@ jobs:
           $version = [string]$versionXml.Project.PropertyGroup.FuntinoProductVersion
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid product version: $version" }
           "PRODUCT_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      - name: Rebuild Release
+      - name: Rebuild Debug x86
+        shell: cmd
+        working-directory: FuntinoControlCenter
+        run: msbuild FuntinoControlCenter.sln /t:Rebuild /p:Configuration=Debug /p:Platform="Any CPU" /verbosity:minimal
+      - name: Run contract fixture tests
+        shell: pwsh
+        run: |
+          $testExe = Join-Path $env:GITHUB_WORKSPACE "FuntinoControlCenter.Tests\bin\Debug\FuntinoControlCenter.Tests.exe"
+          if (!(Test-Path -LiteralPath $testExe)) { throw "The Windows contract test executable was not built: $testExe" }
+          & $testExe
+          if ($LASTEXITCODE -ne 0) { throw "Windows contract tests failed with exit code $LASTEXITCODE." }
+      - name: Rebuild Release x86
         shell: cmd
         working-directory: FuntinoControlCenter
         run: msbuild FuntinoControlCenter.sln /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /verbosity:minimal

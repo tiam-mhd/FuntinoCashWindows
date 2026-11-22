@@ -4,6 +4,8 @@ VisualStudioVersion = 15.0.28307.168
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuntinoControlCenter", "FuntinoControlCenter.csproj", "{0D9412D5-84D1-45DF-BD13-BD7F80FC3012}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuntinoControlCenter.Tests", "..\FuntinoControlCenter.Tests\FuntinoControlCenter.Tests.csproj", "{3F92EA35-5983-4E30-B346-6E1436BB98E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,5 +16,9 @@ Global
 		{0D9412D5-84D1-45DF-BD13-BD7F80FC3012}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D9412D5-84D1-45DF-BD13-BD7F80FC3012}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D9412D5-84D1-45DF-BD13-BD7F80FC3012}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F92EA35-5983-4E30-B346-6E1436BB98E5}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+		{3F92EA35-5983-4E30-B346-6E1436BB98E5}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+		{3F92EA35-5983-4E30-B346-6E1436BB98E5}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+		{3F92EA35-5983-4E30-B346-6E1436BB98E5}.Release|Any CPU.Build.0 = Release|AnyCPU
 	EndGlobalSection
 EndGlobal

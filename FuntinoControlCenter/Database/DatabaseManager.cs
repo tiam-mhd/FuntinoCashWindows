@@ -9,8 +9,19 @@ namespace FuntinoControlCenter.Database
 {
     internal static class DatabaseManager
     {
-        public static readonly string MainCatalog = GetCatalog("MainDatabaseCatalog", "FuntinoParkOperations");
-        public static readonly string DeviceCatalog = GetCatalog("DeviceDatabaseCatalog", "FuntinoDeviceOperations");
+        private const string RequiredMainCatalog = "FuntinoParkOperations";
+        private const string RequiredDeviceCatalog = "FuntinoDeviceOperations";
+
+        public static readonly string MainCatalog = GetCatalog("MainDatabaseCatalog", RequiredMainCatalog);
+        public static readonly string DeviceCatalog = GetCatalog("DeviceDatabaseCatalog", RequiredDeviceCatalog);
+
+        public static void ValidateOperationalCatalogs()
+        {
+            if (!String.Equals(MainCatalog, RequiredMainCatalog, StringComparison.Ordinal) ||
+                !String.Equals(DeviceCatalog, RequiredDeviceCatalog, StringComparison.Ordinal) ||
+                String.Equals(MainCatalog, DeviceCatalog, StringComparison.OrdinalIgnoreCase))
+                throw new ConfigurationErrorsException("تنظیم پایگاه‌های عملیاتی معتبر نیست.");
+        }
 
         public static SqlConnection CreateMainConnection() { return new SqlConnection(BuildConnectionString(MainCatalog)); }
         public static SqlConnection CreateDeviceConnection() { return new SqlConnection(BuildConnectionString(DeviceCatalog)); }
@@ -18,6 +29,7 @@ namespace FuntinoControlCenter.Database
 
         private static string BuildConnectionString(string catalog)
         {
+            ValidateOperationalCatalogs();
             if (catalog != MainCatalog && catalog != DeviceCatalog) throw new InvalidOperationException("نام پایگاه داده خارج از فهرست مجاز است.");
             var builder = new SqlConnectionStringBuilder
             {
@@ -34,11 +46,13 @@ namespace FuntinoControlCenter.Database
             return builder.ConnectionString;
         }
 
-        private static string GetCatalog(string settingName, string fallback)
+        private static string GetCatalog(string settingName, string requiredCatalog)
         {
             string configured = ConfigurationManager.AppSettings[settingName];
-            if (String.IsNullOrWhiteSpace(configured)) configured = fallback;
+            if (String.IsNullOrWhiteSpace(configured)) throw new ConfigurationErrorsException("نام یکی از پایگاه‌های عملیاتی در پیکربندی برنامه ثبت نشده است.");
             configured = configured.Trim();
+            if (!String.Equals(configured, requiredCatalog, StringComparison.Ordinal))
+                throw new ConfigurationErrorsException("نام پایگاه عملیاتی در پیکربندی مجاز نیست؛ برنامه فقط به دو پایگاه عملیاتی مصوب متصل می‌شود.");
             if (configured.Length > 128 || !IsSafeCatalogName(configured))
                 throw new ConfigurationErrorsException("نام پایگاه داده در پیکربندی برنامه معتبر نیست.");
             return configured;

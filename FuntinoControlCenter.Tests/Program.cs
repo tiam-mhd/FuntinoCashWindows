@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Web.Script.Serialization;
 using FuntinoControlCenter.Database;
 using FuntinoControlCenter.Services;
 
@@ -11,19 +13,21 @@ namespace FuntinoControlCenter.Tests
 {
     internal static class Program
     {
+        private const string FixturePath = "Fixtures\\windows-edge-contract.v1.fixtures.json";
         private static int checks;
 
         private static int Main()
         {
             try
             {
+                CheckOfficialEventEnvelopeAndSignature();
+                CheckRequiredNullableEventFields();
+                CheckOfficialAcknowledgements();
+                CheckSnapshotSignatureFixture();
+                CheckCardUidHashVector();
+                CheckDatabaseCatalogGuard();
                 CheckTomanToRial();
-                CheckRawBodyHmac();
-                CheckSnapshotReferences();
-                CheckSnapshotBranchAndTime();
-                CheckEventSerialization();
-                CheckAcknowledgementValidation();
-                Console.WriteLine("PASS: " + checks.ToString(CultureInfo.InvariantCulture) + " offline edge contract checks");
+                Console.WriteLine("PASS: " + checks.ToString(CultureInfo.InvariantCulture) + " Windows edge contract checks");
                 return 0;
             }
             catch (Exception exception)
@@ -33,157 +37,145 @@ namespace FuntinoControlCenter.Tests
             }
         }
 
+        private static void CheckOfficialEventEnvelopeAndSignature()
+        {
+            Dictionary<string, object> fixture = ReadFixture();
+            var json = new JavaScriptSerializer();
+            EdgeEventDto item = Deserialize<EdgeEventDto>(json.Serialize(fixture["event"]));
+            byte[] body = Serialize(new EdgeEventBatchRequest
+            {
+                SourceInstanceId = item.SourceInstanceId,
+                Events = new List<EdgeEventDto> { item }
+            });
+            string key = "windows-edge-contract-fixture-only-key";
+            string actual = EdgeApiClient.ComputeSignature(Encoding.UTF8.GetBytes(key), body);
+            Equal((string)fixture["requestSignature"], actual, "official raw request signature");
+            string requestJson = Encoding.UTF8.GetString(body);
+            if (!requestJson.Contains("\"sourceInstanceId\":") || !requestJson.Contains("\"events\":["))
+                throw new InvalidOperationException("The request body is not the official event envelope.");
+            checks++;
+        }
+
+        private static void CheckRequiredNullableEventFields()
+        {
+            Dictionary<string, object> fixture = ReadFixture();
+            var json = new JavaScriptSerializer();
+            EdgeEventDto item = Deserialize<EdgeEventDto>(json.Serialize(fixture["event"]));
+            string serialized = Encoding.UTF8.GetString(Serialize(item));
+            foreach (string property in new[]
+            {
+                "memberId", "deviceId", "sourceDeviceId", "attractionId", "promotionId", "ruleId",
+                "pricingVersion", "balanceAfterRial", "snapshotVersion", "reversalOfLocalTransactionId"
+            })
+            {
+                if (!serialized.Contains("\"" + property + "\":"))
+                    throw new InvalidOperationException("Required event field is missing: " + property);
+                checks++;
+            }
+            if (!serialized.Contains("\"memberId\":null") || !serialized.Contains("\"attractionId\":null"))
+                throw new InvalidOperationException("Required nullable fields must serialize as null.");
+            checks++;
+
+            Throws<SerializationException>(
+                delegate { Deserialize<EdgeEventDto>(json.Serialize(fixture["invalidEventWithoutRequiredNullableKey"])); },
+                "official fixture missing required nullable field is rejected");
+        }
+
+        private static void CheckOfficialAcknowledgements()
+        {
+            Dictionary<string, object> fixture = ReadFixture();
+            var json = new JavaScriptSerializer();
+            EdgeAcknowledgementResponse valid = Deserialize<EdgeAcknowledgementResponse>(json.Serialize(fixture["validResponse"]));
+            var expected = new[] { Guid.Parse("11111111-1111-4111-8111-111111111111") };
+            EdgeAcknowledgementBatch batch = EdgeAcknowledgementProcessor.Validate(expected, valid);
+            Equal(1, batch.ValidResults.Count, "fixture accepted event is applied");
+            Equal("accepted", batch.ValidResults[0].Status, "fixture accepted status is retained");
+            Equal(0, batch.MissingEventIds.Count, "accepted event is final");
+
+            EdgeAcknowledgementResponse invalid = Deserialize<EdgeAcknowledgementResponse>(json.Serialize(fixture["invalidUnknownAcceptedResult"]));
+            batch = EdgeAcknowledgementProcessor.Validate(expected, invalid);
+            Equal(0, batch.ValidResults.Count, "accepted response with an error code is invalid");
+            Equal(1, batch.MissingEventIds.Count, "invalid or incomplete response remains retryable");
+
+            var incomplete = new Dictionary<string, object>(StringComparer.Ordinal);
+            var invalidRoot = (Dictionary<string, object>)fixture["invalidUnknownAcceptedResult"];
+            var results = (object[])invalidRoot["results"];
+            var first = new Dictionary<string, object>((Dictionary<string, object>)results[0], StringComparer.Ordinal);
+            first.Remove("retryable");
+            incomplete["results"] = new object[] { first };
+            Throws<SerializationException>(
+                delegate { Deserialize<EdgeAcknowledgementResponse>(json.Serialize(incomplete)); },
+                "acknowledgement without retryable field is rejected");
+        }
+
+        private static void CheckSnapshotSignatureFixture()
+        {
+            Dictionary<string, object> fixture = ReadFixture();
+            var json = new JavaScriptSerializer();
+            string signedMaterial = json.Serialize(fixture["snapshotUnsigned"]);
+            string actual = EdgeCanonicalJson.ComputeCanonicalSignature(
+                Encoding.UTF8.GetBytes("windows-edge-contract-fixture-only-key"),
+                signedMaterial,
+                "signature");
+            Equal((string)fixture["snapshotSignature"], actual, "official canonical snapshot signature");
+        }
+
+        private static void CheckCardUidHashVector()
+        {
+            Dictionary<string, object> fixture = ReadFixture();
+            var json = new JavaScriptSerializer();
+            var vector = (Dictionary<string, object>)fixture["cardUidHashVector"];
+            byte[] uid = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+            string hash = ToLowerHex(EdgeIntegrationRepository.GetCardKeyHash(uid));
+            Equal((string)vector["hash"], hash, "official canonical card UID hash");
+        }
+
+        private static void CheckDatabaseCatalogGuard()
+        {
+            DatabaseManager.ValidateOperationalCatalogs();
+            Equal("FuntinoParkOperations", DatabaseManager.MainCatalog, "main database uses the approved operational catalog");
+            Equal("FuntinoDeviceOperations", DatabaseManager.DeviceCatalog, "device database uses the approved operational catalog");
+        }
+
         private static void CheckTomanToRial()
         {
             Equal(123450L, EdgeAmountConverter.ToRial(12345L), "integer toman-to-rial conversion");
             Throws<OverflowException>(delegate { EdgeAmountConverter.ToRial(Int64.MaxValue); }, "overflow is rejected");
         }
 
-        private static void CheckRawBodyHmac()
+        private static Dictionary<string, object> ReadFixture()
         {
-            var key = new byte[32];
-            for (int index = 0; index < key.Length; index++) key[index] = 0x0b;
-            string actual = EdgeApiClient.ComputeSignature(key, Encoding.ASCII.GetBytes("Hi There"));
-            Equal("GYpgfrRL+8aZA6Dxzyu9xboKo/PZrjwcejsWlqC2jPc=", actual, "HMAC-SHA256 signs the raw request body");
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FixturePath);
+            if (!File.Exists(path)) throw new FileNotFoundException("The official Windows edge contract fixture was not copied to the test output.", path);
+            string content = File.ReadAllText(path, Encoding.UTF8);
+            return new JavaScriptSerializer { MaxJsonLength = 8 * 1024 * 1024, RecursionLimit = 128 }
+                .DeserializeObject(content) as Dictionary<string, object>;
         }
 
-        private static void CheckSnapshotReferences()
+        private static T Deserialize<T>(string json)
         {
-            EdgeBranchSnapshotDto snapshot = ValidSnapshot();
-            DateTime issuedAt, expiresAt;
-            EdgeIntegrationRepository.ValidateSnapshot(snapshot, "branch-1", out issuedAt, out expiresAt);
-            checks++;
-
-            snapshot.Members[0].HouseholdId = "missing-household";
-            Throws<EdgeApiException>(delegate
-            {
-                EdgeIntegrationRepository.ValidateSnapshot(snapshot, "branch-1", out issuedAt, out expiresAt);
-            }, "snapshot rejects dangling family membership");
+            var serializer = new DataContractJsonSerializer(typeof(T),
+                new DataContractJsonSerializerSettings { MaxItemsInObjectGraph = 250000 });
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json), false))
+                return (T)serializer.ReadObject(stream);
         }
 
-        private static void CheckSnapshotBranchAndTime()
+        private static byte[] Serialize<T>(T value)
         {
-            EdgeBranchSnapshotDto snapshot = ValidSnapshot();
-            DateTime issuedAt, expiresAt;
-            Throws<EdgeApiException>(delegate
-            {
-                EdgeIntegrationRepository.ValidateSnapshot(snapshot, "another-branch", out issuedAt, out expiresAt);
-            }, "snapshot is branch scoped");
-
-            snapshot = ValidSnapshot();
-            snapshot.ExpiresAt = DateTime.UtcNow.AddMinutes(-1).ToString("o", CultureInfo.InvariantCulture);
-            Throws<EdgeApiException>(delegate
-            {
-                EdgeIntegrationRepository.ValidateSnapshot(snapshot, "branch-1", out issuedAt, out expiresAt);
-            }, "expired snapshot is rejected");
-        }
-
-        private static void CheckEventSerialization()
-        {
-            var dto = new EdgeEventDto
-            {
-                EventId = Guid.NewGuid().ToString("D"),
-                AmountRial = EdgeAmountConverter.ToRial(75),
-                CurrencyCode = "IRR",
-                GrossAmountRial = 750,
-                DiscountAmountRial = 0,
-                NetAmountRial = 750,
-                OperationResult = "succeeded"
-            };
-            var serializer = new DataContractJsonSerializer(typeof(EdgeEventDto));
+            var serializer = new DataContractJsonSerializer(typeof(T),
+                new DataContractJsonSerializerSettings { MaxItemsInObjectGraph = 250000 });
             using (var stream = new MemoryStream())
             {
-                serializer.WriteObject(stream, dto);
-                string json = Encoding.UTF8.GetString(stream.ToArray());
-                if (!json.Contains("\"amountRial\":750") || !json.Contains("\"currencyCode\":\"IRR\"") || !json.Contains("\"netAmountRial\":750"))
-                    throw new InvalidOperationException("Event JSON did not preserve integer IRR amounts.");
-                checks++;
+                serializer.WriteObject(stream, value);
+                return stream.ToArray();
             }
         }
 
-        private static void CheckAcknowledgementValidation()
+        private static string ToLowerHex(byte[] bytes)
         {
-            Guid first = Guid.NewGuid();
-            Guid second = Guid.NewGuid();
-            EdgeAcknowledgementBatch batch = EdgeAcknowledgementProcessor.Validate(
-                new[] { first, second },
-                new EdgeAcknowledgementResponse
-                {
-                    Results = new List<EdgeAcknowledgementDto>
-                    {
-                        new EdgeAcknowledgementDto { EventId = first.ToString("D"), Status = "unknown" },
-                        new EdgeAcknowledgementDto { EventId = first.ToString("D"), Status = "ACCEPTED" },
-                        new EdgeAcknowledgementDto { EventId = first.ToString("D"), Status = "duplicate" },
-                        new EdgeAcknowledgementDto { EventId = second.ToString("D"), Status = "rejected" }
-                    }
-                });
-            Equal(2, batch.ValidResults.Count, "invalid status does not consume the event acknowledgement");
-            Equal(0, batch.MissingEventIds.Count, "accepted and rejected events both have final acknowledgements");
-            Equal("accepted", batch.ValidResults[0].Status, "acknowledgement status is normalized");
-            Equal("rejected", batch.ValidResults[1].Status, "rejection status is retained");
-
-            batch = EdgeAcknowledgementProcessor.Validate(
-                new[] { first, second },
-                new EdgeAcknowledgementResponse
-                {
-                    Results = new List<EdgeAcknowledgementDto>
-                    {
-                        new EdgeAcknowledgementDto { EventId = first.ToString("D"), Status = "pending" },
-                        new EdgeAcknowledgementDto { EventId = Guid.NewGuid().ToString("D"), Status = "accepted" }
-                    }
-                });
-            Equal(0, batch.ValidResults.Count, "unknown and out-of-batch acknowledgement values are ignored");
-            Equal(2, batch.MissingEventIds.Count, "events without a final acknowledgement remain retryable");
-
-            batch = EdgeAcknowledgementProcessor.Validate(
-                new[] { first },
-                new EdgeAcknowledgementResponse
-                {
-                    Results = new List<EdgeAcknowledgementDto>
-                    {
-                        new EdgeAcknowledgementDto { EventId = first.ToString("D"), Status = "duplicate" }
-                    }
-                });
-            Equal(1, batch.ValidResults.Count, "server duplicate is a final acknowledgement for the existing event");
-            Equal("duplicate", batch.ValidResults[0].Status, "server duplicate status is retained");
-            Equal(0, batch.MissingEventIds.Count, "server duplicate does not leave the event pending");
-        }
-
-        private static EdgeBranchSnapshotDto ValidSnapshot()
-        {
-            DateTime now = DateTime.UtcNow;
-            return new EdgeBranchSnapshotDto
-            {
-                Version = "snapshot-1",
-                IssuedAt = now.ToString("o", CultureInfo.InvariantCulture),
-                ExpiresAt = now.AddMinutes(5).ToString("o", CultureInfo.InvariantCulture),
-                BranchId = "branch-1",
-                Cursor = "cursor-1",
-                Customers = new List<EdgeCustomerDto>
-                {
-                    new EdgeCustomerDto { CustomerId = "customer-1", DisplayName = "Customer", HouseholdId = "household-1" }
-                },
-                Households = new List<EdgeHouseholdDto>
-                {
-                    new EdgeHouseholdDto { HouseholdId = "household-1", DisplayName = "Household", GuardianCustomerId = "customer-1" }
-                },
-                Members = new List<EdgeMemberDto>
-                {
-                    new EdgeMemberDto { MemberId = "member-1", HouseholdId = "household-1", CustomerId = "customer-1", DisplayName = "Member" }
-                },
-                Cards = new List<EdgeCardMappingDto>
-                {
-                    new EdgeCardMappingDto { LocalCardUid = "01-02-03-04", CardId = "card-1", HouseholdId = "household-1", MemberId = "member-1" }
-                },
-                Devices = new List<EdgeDeviceMappingDto>
-                {
-                    new EdgeDeviceMappingDto { SourceDeviceId = "local-device-1", DeviceId = "device-1", AttractionId = "attraction-1" }
-                },
-                PricingRules = new List<EdgePricingRuleDto>
-                {
-                    new EdgePricingRuleDto { PricingVersion = "price-1", PromotionCode = 5, PromotionId = "promotion-1" }
-                }
-            };
+            var builder = new StringBuilder(bytes.Length * 2);
+            foreach (byte value in bytes) builder.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+            return builder.ToString();
         }
 
         private static void Equal<T>(T expected, T actual, string message)

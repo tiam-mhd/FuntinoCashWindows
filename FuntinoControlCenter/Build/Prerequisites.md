@@ -37,7 +37,7 @@ The Windows 7 packages are split by architecture so each contains only its match
 
 ## Build
 
-The build computer needs Visual Studio or Build Tools with the .NET Framework 4.6.1 Developer Pack, plus Inno Setup 6. The local seed files below are also required. Run the command from the repository root in PowerShell:
+The build computer needs Visual Studio or Build Tools with the .NET Framework 4.6.1 Developer Pack, plus Inno Setup 6. No reference database files are required or included. Run the command from the repository root in PowerShell:
 
 ```powershell
 Set-Location FuntinoControlCenter\Build
@@ -52,14 +52,9 @@ All installations use the named SQL instance `FuntinoSqlServer`. Windows 7 uses 
 
 On Windows 7, setup installs the servicing stack and SHA-2 update matching the package architecture. On Windows 8.1, setup applies KB2919442 and then KB2919355. If an update requests a restart, restart the computer and launch the same installer again; completed steps are skipped or treated as installed.
 
-The installer requires these immutable seed inputs under `FuntinoControlCenter/LocalOnly/WorkspaceRoot/Reference/Databases/`:
+Operational catalog names are fixed in `App.config` as `FuntinoParkOperations` and `FuntinoDeviceOperations`. The prerequisite script rejects any other or ambiguous names. Both catalogs must already exist in the selected SQL instance before installation. Setup grants the selected Windows account access to them; it does not create catalogs, copy MDF/LDF files, attach reference databases, or migrate data. Initial transfer from a reference database is a separate operation and requires a reviewed dry-run, checksums, record counts, duplicate checks, a backup plan, and a reviewable report.
 
-- `SharjReportDB0216.mdf` and `SharjReportDB0216_log.ldf`
-- `DBKart.mdf` and `DBKart_log.ldf`
-
-The names `FuntinoParkOperations` and `FuntinoDeviceOperations` are the default operational catalogs; `App.config` can set different custom catalog names. The installer leaves an existing catalog and its files untouched. If a catalog is missing, it copies the immutable reference MDF/LDF into SQL Server's data directory and attaches that private copy under the configured name. It never renames an existing catalog or creates a `New` catalog. A partial pair of detached operational files stops setup instead of being overwritten.
-
-On first application startup, additive, numbered migrations run against the operational copies only. Each database is migrated in its own SQL transaction; the two databases are not enlisted in a distributed transaction. The migration validates the expected legacy schema, captures table row counts, preserves legacy table/column contracts through `compat.Legacy*` views, adds application-owned objects under the `app` schema, and records migration versions transactionally. A failed migration rolls back that database's migration and can be retried. The installer grants the selected Windows account access to both operational catalogs.
+On first application startup, numbered migrations run against `FuntinoParkOperations` and `FuntinoDeviceOperations` only. Each database is migrated in its own SQL transaction; the two databases are not enlisted in a distributed transaction. A failed migration rolls back that database's migration and can be retried. No production migration or transfer has been executed as part of this build work.
 
 Before an upgrade, back up both operational catalogs separately, for example with SQL Server Management Studio or `sqlcmd`:
 
@@ -72,8 +67,8 @@ RESTORE VERIFYONLY FROM DISK = N'D:\Backups\FuntinoParkOperations.bak' WITH CHEC
 RESTORE VERIFYONLY FROM DISK = N'D:\Backups\FuntinoDeviceOperations.bak' WITH CHECKSUM;
 ```
 
-For recovery, stop the application and its `Funtino Control Center Edge Sync` scheduled task, preserve the current operational catalogs, then restore each backup to the configured catalog name using SQL Server Management Studio. Restore the main and device backups as a pair from the same backup time. Do not restore the seed MDF/LDF over an operational catalog. After restore, start SQL Server and the application; the versioned migrations resume from the history stored in each restored database. Do not run these migration or restore steps against production as part of a build.
+For recovery, stop the application and its `Funtino Control Center Edge Sync` scheduled task, preserve the current operational catalogs, then restore each backup to its exact operational name using SQL Server Management Studio. Restore the main and device backups as a pair from the same backup time. Do not replace either catalog with a reference MDF/LDF. Do not run migration or restore steps against production as part of a build.
 
-The branch connection form stores the endpoint, credential, organization, branch, and a stable installation ID. The HMAC key is protected with Windows DPAPI for the selected Windows user and is never written to the SQL metadata table or logs. The installer registers a hidden Scheduled Task for that user to start `--edge-sync` at logon and restart it after failure. The worker reads only the configured operational catalogs and continues retrying persisted outbox events without blocking the WinForms UI.
+The branch connection form stores the endpoint, key ID, organization, branch, and a stable installation ID. The HMAC key is protected with Windows DPAPI for the selected Windows user and is never written to the SQL metadata table or logs. The installer registers a hidden Scheduled Task for that user to start `--edge-sync` at logon and restart it after failure. The worker reads only `FuntinoParkOperations` and `FuntinoDeviceOperations` and retries persisted outbox events without blocking the WinForms UI.
 
 SQL Server 2014 reached end of support in July 2024. Windows 7 and Windows 8/8.1 are also out of Microsoft support. This installer provides application/runtime compatibility; it does not restore security servicing for those operating systems or SQL Server 2014.

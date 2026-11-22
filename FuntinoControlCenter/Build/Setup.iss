@@ -37,10 +37,6 @@ Source: "..\bin\Release\*"; DestDir: "{app}"; Excludes: "*.pdb"; Flags: ignoreve
 Source: "Install-Prerequisites.ps1"; DestDir: "{tmp}"; DestName: "Install-Funtino-Prerequisites.ps1"; Flags: dontcopy
 Source: "Register-EdgeSyncTask.ps1"; DestDir: "{tmp}"; DestName: "Register-Funtino-EdgeSyncTask.ps1"; Flags: dontcopy
 Source: "..\bin\Release\FuntinoControlCenter.exe.config"; DestDir: "{tmp}"; DestName: "FuntinoAppCatalogs.config"; Flags: dontcopy
-Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\SharjReportDB0216.mdf"; DestDir: "{tmp}"; DestName: "FuntinoParkOperations-seed.mdf"; Flags: dontcopy
-Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\SharjReportDB0216_log.ldf"; DestDir: "{tmp}"; DestName: "FuntinoParkOperations-seed_log.ldf"; Flags: dontcopy
-Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\DBKart.mdf"; DestDir: "{tmp}"; DestName: "FuntinoDeviceOperations-seed.mdf"; Flags: dontcopy
-Source: "..\LocalOnly\WorkspaceRoot\Reference\Databases\DBKart_log.ldf"; DestDir: "{tmp}"; DestName: "FuntinoDeviceOperations-seed_log.ldf"; Flags: dontcopy
 
 #if TargetOS == "Windows7x86"
 Source: "Prerequisites\DotNet461\NDP461-KB3102436-x86-x64-AllOS-ENU.exe"; DestDir: "{tmp}"; DestName: "NDP461-KB3102436-x86-x64-AllOS-ENU.exe"; Flags: dontcopy
@@ -172,10 +168,6 @@ begin
   try
     ExtractTemporaryFile('Install-Funtino-Prerequisites.ps1');
     ExtractTemporaryFile('FuntinoAppCatalogs.config');
-    ExtractTemporaryFile('FuntinoParkOperations-seed.mdf');
-    ExtractTemporaryFile('FuntinoParkOperations-seed_log.ldf');
-    ExtractTemporaryFile('FuntinoDeviceOperations-seed.mdf');
-    ExtractTemporaryFile('FuntinoDeviceOperations-seed_log.ldf');
 #if TargetOS == "Windows7x86"
     ExtractTemporaryFile('NDP461-KB3102436-x86-x64-AllOS-ENU.exe');
     ExtractTemporaryFile('SQL2014Express-x86.exe');

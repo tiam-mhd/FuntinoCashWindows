@@ -19,7 +19,10 @@ namespace FuntinoControlCenter.Services
                 (uri.AbsolutePath != "/" && !String.IsNullOrEmpty(uri.AbsolutePath)))
                 throw new ArgumentException("نشانی سرور باید یک نشانی HTTPS معتبر و بدون اطلاعات ورود باشد.", "baseUrl");
             if (!IsValidIdentifier(credentialId, 128) || !IsValidIdentifier(organizationId, 128) || !IsValidIdentifier(branchId, 128))
-                throw new ArgumentException("شناسه‌ی اعتبارنامه، سازمان یا شعبه معتبر نیست.");
+                throw new ArgumentException("شناسهٔ کلید، سازمان یا شعبه معتبر نیست.");
+            Guid organizationGuid, branchGuid;
+            if (!Guid.TryParse(organizationId, out organizationGuid) || !Guid.TryParse(branchId, out branchGuid))
+                throw new ArgumentException("شناسهٔ سازمان و شعبه باید شناسهٔ معتبر سامانهٔ مرکزی باشند.");
 
             AppSettings settings = AppSettings.Current;
             byte[] replacementSecret = null;

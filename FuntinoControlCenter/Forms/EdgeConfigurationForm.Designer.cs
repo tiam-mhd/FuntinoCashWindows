@@ -256,7 +256,7 @@ namespace FuntinoControlCenter.Forms
             this.lblCredential.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.lblCredential.Size = new System.Drawing.Size(223, 54);
             this.lblCredential.TabIndex = 3;
-            this.lblCredential.Text = "شناسهٔ اعتبارنامه";
+            this.lblCredential.Text = "شناسهٔ کلید Edge";
             this.lblCredential.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             //
             // txtOrganization

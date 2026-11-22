@@ -87,7 +87,8 @@ namespace FuntinoControlCenter.Database
         public static byte[] GetCardKeyHash(byte[] cardUid)
         {
             if (cardUid == null || cardUid.Length != 4) throw new ArgumentException("شناسه‌ی کارت معتبر نیست.", "cardUid");
-            using (var sha = SHA256.Create()) return sha.ComputeHash(cardUid);
+            string canonicalUid = BitConverter.ToString(cardUid).Replace("-", String.Empty).ToUpperInvariant();
+            using (var sha = SHA256.Create()) return sha.ComputeHash(Encoding.UTF8.GetBytes(canonicalUid));
         }
 
         public static string MaskCardUid(byte[] cardUid)
@@ -133,7 +134,7 @@ WHERE CardOperationLogId=@id AND ApplicationUserId=@userId AND OperationName=N'c
                     command.Parameters.Add("@promotionPercent", SqlDbType.Int).Value = terms.PromotionDiscountPercent;
                     command.Parameters.Add("@dailyPercent", SqlDbType.Int).Value = terms.DailyDiscountPercent;
                     command.Parameters.Add("@discountTier", SqlDbType.Int).Value = terms.DiscountTierId;
-                    command.Parameters.Add("@pricingVersion", SqlDbType.NVarChar, 128).Value = GetPricingVersion(connection, branchId, terms);
+                    command.Parameters.Add("@pricingVersion", SqlDbType.NVarChar, 128).Value = DBNull.Value;
                     command.Parameters.Add("@organizationId", SqlDbType.NVarChar, 128).Value = DbValue(organizationId);
                     command.Parameters.Add("@branchId", SqlDbType.NVarChar, 128).Value = DbValue(branchId);
                     command.Parameters.Add("@sourceInstanceId", SqlDbType.UniqueIdentifier).Value = sourceInstanceId;
@@ -201,7 +202,7 @@ WHERE CardOperationLogId=@id AND OperationName=N'card-recharge'
                     sourceInstanceId = reader.IsDBNull(2) ? GetSourceInstanceId(AppSettings.Current) : reader.GetGuid(2);
                     organizationId = reader.IsDBNull(3) ? null : reader.GetString(3);
                     branchId = reader.IsDBNull(4) ? null : reader.GetString(4);
-                    pricingVersion = reader.IsDBNull(5) ? BuildLocalPricingVersion(terms) : reader.GetString(5);
+                    pricingVersion = reader.IsDBNull(5) ? null : reader.GetString(5);
                     cardKeyHash = reader.IsDBNull(6) ? null : (byte[])reader[6];
                     long expectedBalance = reader.IsDBNull(7) ? 0 : reader.GetInt64(7);
                     balanceAfterRial = expectedBalance > 0 && expectedBalance <= Int64.MaxValue / 10 ? (long?)(expectedBalance * 10) : null;
@@ -256,24 +257,27 @@ WHERE BranchId=@branch AND CardKeyHash=@hash;", connection, transaction))
 
             long localSequence = AllocateSequence(connection, transaction, sourceInstanceId, cardKeyHash);
             long amountRial = EdgeAmountConverter.ToRial(amountToman);
+            string snapshotVersion = GetCurrentSnapshotVersion(connection, transaction, branchId);
             string status = String.IsNullOrWhiteSpace(branchId) || String.IsNullOrWhiteSpace(organizationId)
                 ? "needs_configuration"
-                : (String.IsNullOrWhiteSpace(cardId) || (promotionCode > 0 && String.IsNullOrWhiteSpace(promotionId)) ? "needs_mapping" : "pending");
+                : (String.IsNullOrWhiteSpace(cardId) || String.IsNullOrWhiteSpace(householdId) ||
+                   promotionCode > 0 || promotionDiscountPercent > 0 || dailyDiscountPercent > 0 || discountTierId > 0
+                    ? "needs_mapping" : "pending");
             string readinessMessage = status == "needs_configuration" ? "شناسه‌ی سازمان و شعبه برای این نصب تنظیم نشده است."
-                : status == "needs_mapping" ? "نگاشت کارت یا جشنواره در تصویر شعبه موجود نیست."
+                : status == "needs_mapping" ? "نگاشت کارت یا خانواده کامل نیست، یا قیمت‌گذاری تا تأیید الگوی مشترک غیرفعال است."
                 : null;
             string sourceDatabase = DatabaseManager.MainCatalog;
             using (var command = new SqlCommand(@"
 INSERT app.EdgeOutbox
 (EventId,LocalTransactionId,SourceInstanceId,SourceDatabase,OrganizationId,BranchId,CardId,HouseholdId,MemberId,
  TransactionKind,AmountRial,CurrencyCode,GrossAmountRial,DiscountAmountRial,NetAmountRial,PromotionId,PromotionCode,
- PromotionDiscountPercent,DailyDiscountPercent,DiscountTierId,PricingVersion,OccurredAtUtc,LocalSequence,BalanceAfterRial,
+ PromotionDiscountPercent,DailyDiscountPercent,DiscountTierId,PricingVersion,AttractionId,RuleId,SnapshotVersion,ReversalOfLocalTransactionId,OccurredAtUtc,LocalSequence,BalanceAfterRial,
  OperationResult,ApplicationUserId,OperatorUserName,CardKeyHash,Status,LastError)
 VALUES
 (@eventId,@localTransactionId,@sourceInstanceId,@sourceDatabase,@organizationId,@branchId,@cardId,@householdId,@memberId,
  'top_up',@amountRial,'IRR',@grossAmountRial,0,@netAmountRial,@promotionId,@promotionCode,
- @promotionDiscountPercent,@dailyDiscountPercent,@discountTierId,@pricingVersion,@occurredAtUtc,@localSequence,@balanceAfterRial,
- 'succeeded',@userId,@userName,@cardKeyHash,@status,@lastError);", connection, transaction))
+ @promotionDiscountPercent,@dailyDiscountPercent,@discountTierId,@pricingVersion,NULL,NULL,@snapshotVersion,NULL,@occurredAtUtc,@localSequence,@balanceAfterRial,
+ 'success',@userId,@userName,@cardKeyHash,@status,@lastError);", connection, transaction))
             {
                 command.Parameters.Add("@eventId", SqlDbType.UniqueIdentifier).Value = eventId;
                 command.Parameters.Add("@localTransactionId", SqlDbType.UniqueIdentifier).Value = localTransactionId;
@@ -292,7 +296,8 @@ VALUES
                 command.Parameters.Add("@promotionDiscountPercent", SqlDbType.Int).Value = promotionDiscountPercent;
                 command.Parameters.Add("@dailyDiscountPercent", SqlDbType.Int).Value = dailyDiscountPercent;
                 command.Parameters.Add("@discountTierId", SqlDbType.Int).Value = discountTierId;
-                command.Parameters.Add("@pricingVersion", SqlDbType.NVarChar, 128).Value = pricingVersion;
+                command.Parameters.Add("@pricingVersion", SqlDbType.NVarChar, 128).Value = DbValue(pricingVersion);
+                command.Parameters.Add("@snapshotVersion", SqlDbType.NVarChar, 128).Value = DbValue(snapshotVersion);
                 command.Parameters.Add("@occurredAtUtc", SqlDbType.DateTime2).Value = occurredAtUtc;
                 command.Parameters.Add("@localSequence", SqlDbType.BigInt).Value = localSequence;
                 command.Parameters.Add("@balanceAfterRial", SqlDbType.BigInt).Value = balanceAfterRial.HasValue ? (object)balanceAfterRial.Value : DBNull.Value;
@@ -397,7 +402,7 @@ WHERE CardOperationLogId=@id AND ApplicationUserId=@userId;", connection, transa
 
                         foreach (EdgeCardMappingDto card in snapshot.Cards)
                         {
-                            byte[] hash = GetCardKeyHash(ParseCardUid(card.LocalCardUid));
+                            byte[] hash = ParseCardUidHash(card.CardUidHash);
                             using (var command = new SqlCommand(@"
 INSERT app.EdgeCardMapping(BranchId,CardKeyHash,CardId,HouseholdId,MemberId,SnapshotVersion)
 VALUES(@branch,@hash,@cardId,@household,@member,@version);", connection, transaction))
@@ -477,10 +482,11 @@ WHERE StateId=1;", connection, transaction))
                         using (var command = new SqlCommand(@"
 SELECT TOP(@take) EventId,SourceInstanceId,LocalTransactionId,SourceDatabase,OrganizationId,BranchId,CardId,
        HouseholdId,MemberId,DeviceId,SourceDeviceId,TransactionKind,AmountRial,CurrencyCode,GrossAmountRial,
-       DiscountAmountRial,NetAmountRial,PromotionId,PricingVersion,OccurredAtUtc,LocalSequence,BalanceAfterRial,OperationResult,RetryCount
+       DiscountAmountRial,NetAmountRial,PromotionId,PricingVersion,AttractionId,RuleId,SnapshotVersion,ReversalOfLocalTransactionId,
+       OccurredAtUtc,LocalSequence,BalanceAfterRial,OperationResult,RetryCount
 FROM app.EdgeOutbox
 WHERE Status IN ('pending','retry') AND BranchId=@branch
-  AND OrganizationId IS NOT NULL AND CardId IS NOT NULL
+  AND OrganizationId IS NOT NULL AND CardId IS NOT NULL AND HouseholdId IS NOT NULL
   AND (NextAttemptAtUtc IS NULL OR NextAttemptAtUtc<=SYSUTCDATETIME())
 ORDER BY CreatedAtUtc,EventId;", connection, transaction))
                         {
@@ -532,12 +538,12 @@ WHERE EventId=@eventId AND Status IN ('pending','retry');", error, retrySeconds,
             foreach (EdgeAcknowledgementDto result in batch.ValidResults)
             {
                 Guid eventId = Guid.Parse(result.EventId);
-                ApplyAcknowledgement(byId[eventId], result.Status, result.Reason);
+                ApplyAcknowledgement(byId[eventId], result.Status, result.ErrorCode, result.Retryable);
             }
             var missingIds = new HashSet<Guid>(batch.MissingEventIds);
             var missing = sentEvents.Where(item => missingIds.Contains(item.EventId)).ToList();
             if (missing.Count > 0) RecordBatchFailure(missing, "missing-or-invalid-acknowledgement", 30);
-            SetTransportState(true, null, null, batch.ValidResults.Count > 0);
+            SetTransportState(true, null, null, batch.ValidResults.Any(result => result.Status == "accepted" || result.Status == "duplicate"));
         }
 
         public static void SaveHeartbeat()
@@ -838,7 +844,7 @@ FROM app.EdgeCardMapping WHERE BranchId=@branch AND HouseholdId=@household ORDER
             return result;
         }
 
-        private static void ApplyAcknowledgement(EdgeQueuedEvent item, string status, string reason)
+        private static void ApplyAcknowledgement(EdgeQueuedEvent item, string status, string errorCode, bool retryable)
         {
             using (var connection = item.DeviceDatabase ? DatabaseManager.CreateDeviceConnection() : DatabaseManager.CreateMainConnection())
             {
@@ -847,15 +853,20 @@ FROM app.EdgeCardMapping WHERE BranchId=@branch AND HouseholdId=@household ORDER
                 {
                     try
                     {
-                        string storedStatus = status == "rejected" ? "rejected" : "synced";
+                        bool finalized = status == "accepted" || status == "duplicate" || (status == "rejected" && !retryable);
+                        string storedStatus = status == "accepted" || status == "duplicate" ? "synced"
+                            : retryable ? "retry" : "dead_letter";
                         using (var command = new SqlCommand(@"
 UPDATE app.EdgeOutbox
-SET Status=@status,Acknowledgement=@ack,AcknowledgedAtUtc=SYSUTCDATETIME(),LastError=@reason,NextAttemptAtUtc=NULL
+SET Status=@status,Acknowledgement=@ack,AcknowledgedAtUtc=CASE WHEN @finalized=1 THEN SYSUTCDATETIME() ELSE NULL END,
+    LastError=@errorCode,NextAttemptAtUtc=CASE WHEN @retryable=1 THEN DATEADD(second,30,SYSUTCDATETIME()) ELSE NULL END
 WHERE EventId=@eventId;", connection, transaction))
                         {
                             command.Parameters.Add("@status", SqlDbType.VarChar, 24).Value = storedStatus;
                             command.Parameters.Add("@ack", SqlDbType.VarChar, 16).Value = status;
-                            command.Parameters.Add("@reason", SqlDbType.NVarChar, 500).Value = DbValue(SafeServerReason(reason));
+                            command.Parameters.Add("@finalized", SqlDbType.Bit).Value = finalized;
+                            command.Parameters.Add("@retryable", SqlDbType.Bit).Value = retryable;
+                            command.Parameters.Add("@errorCode", SqlDbType.NVarChar, 128).Value = DbValue(errorCode);
                             command.Parameters.Add("@eventId", SqlDbType.UniqueIdentifier).Value = item.EventId;
                             command.ExecuteNonQuery();
                         }
@@ -865,7 +876,8 @@ WHERE EventId=@eventId;", connection, transaction))
 UPDATE app.CardOperationLog SET OperationState=@state,OperationStatus=@state
 WHERE LocalTransactionId=@localId;", connection, transaction))
                             {
-                                command.Parameters.Add("@state", SqlDbType.VarChar, 24).Value = storedStatus == "synced" ? "synced" : "rejected";
+                                command.Parameters.Add("@state", SqlDbType.VarChar, 24).Value = storedStatus == "synced" ? "synced"
+                                    : retryable ? "pending_sync" : "rejected";
                                 command.Parameters.Add("@localId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(item.Payload.LocalTransactionId);
                                 command.ExecuteNonQuery();
                             }
@@ -879,7 +891,7 @@ WHERE LocalTransactionId=@localId;", connection, transaction))
                     }
                 }
             }
-            if (status != "rejected") SetLastAcknowledged(item.EventId);
+            if (status == "accepted" || status == "duplicate") SetLastAcknowledged(item.EventId);
         }
 
         private static void SetLastAcknowledged(Guid eventId)
@@ -984,11 +996,13 @@ WHERE o.BranchId=@branch AND o.PromotionCode IS NOT NULL
 UPDATE app.EdgeOutbox
 SET Status=CASE
   WHEN OrganizationId IS NULL OR BranchId IS NULL THEN 'needs_configuration'
-  WHEN CardId IS NULL OR (PromotionCode IS NOT NULL AND PromotionId IS NULL) THEN 'needs_mapping'
+  WHEN CardId IS NULL OR HouseholdId IS NULL OR PromotionCode IS NOT NULL OR
+       ISNULL(PromotionDiscountPercent,0)>0 OR ISNULL(DailyDiscountPercent,0)>0 OR ISNULL(DiscountTierId,0)>0 THEN 'needs_mapping'
   ELSE 'pending' END,
     LastError=CASE
       WHEN OrganizationId IS NULL OR BranchId IS NULL THEN N'شناسه‌ی سازمان یا شعبه تنظیم نشده است.'
-      WHEN CardId IS NULL OR (PromotionCode IS NOT NULL AND PromotionId IS NULL) THEN N'نگاشت کارت یا جشنواره در تصویر شعبه موجود نیست.'
+      WHEN CardId IS NULL OR HouseholdId IS NULL THEN N'نگاشت کارت یا خانواده در تصویر شعبه کامل نیست.'
+      WHEN PromotionCode IS NOT NULL OR ISNULL(PromotionDiscountPercent,0)>0 OR ISNULL(DailyDiscountPercent,0)>0 OR ISNULL(DiscountTierId,0)>0 THEN N'قیمت‌گذاری تا تأیید الگوی مشترک غیرفعال است.'
       ELSE NULL END
 WHERE BranchId=@branch AND Status IN ('pending','retry','needs_configuration','needs_mapping');", connection, transaction))
             {
@@ -1012,20 +1026,49 @@ WHERE BranchId=@branch AND Status IN ('pending','retry','needs_configuration','n
                 MemberId = reader.IsDBNull(8) ? null : reader.GetString(8),
                 DeviceId = reader.IsDBNull(9) ? null : reader.GetString(9),
                 SourceDeviceId = reader.IsDBNull(10) ? null : reader.GetString(10),
-                TransactionKind = reader.GetString(11),
                 AmountRial = reader.GetInt64(12),
                 CurrencyCode = reader.GetString(13),
                 GrossAmountRial = reader.GetInt64(14),
                 DiscountAmountRial = reader.GetInt64(15),
                 NetAmountRial = reader.GetInt64(16),
                 PromotionId = reader.IsDBNull(17) ? null : reader.GetString(17),
-                PricingVersion = reader.GetString(18),
-                OccurredAt = DateTime.SpecifyKind(reader.GetDateTime(19), DateTimeKind.Utc).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
-                LocalSequence = reader.GetInt64(20),
-                BalanceAfterRial = reader.IsDBNull(21) ? (long?)null : reader.GetInt64(21),
-                OperationResult = reader.GetString(22)
+                PricingVersion = reader.IsDBNull(18) ? null : reader.GetString(18),
+                AttractionId = reader.IsDBNull(19) ? null : reader.GetString(19),
+                RuleId = reader.IsDBNull(20) ? null : reader.GetString(20),
+                SnapshotVersion = reader.IsDBNull(21) ? null : reader.GetString(21),
+                ReversalOfLocalTransactionId = reader.IsDBNull(22) ? null : reader.GetString(22),
+                OccurredAt = DateTime.SpecifyKind(reader.GetDateTime(23), DateTimeKind.Utc).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
+                LocalSequence = reader.GetInt64(24),
+                BalanceAfterRial = reader.IsDBNull(25) ? (long?)null : reader.GetInt64(25),
+                OperationResult = ParseOperationResult(reader.GetString(26))
             };
-            return new EdgeQueuedEvent { EventId = Guid.Parse(payload.EventId), DeviceDatabase = deviceDatabase, RetryCount = reader.GetInt32(23), Payload = payload };
+            payload.TransactionKind = ParseTransactionKind(reader.GetString(11));
+            return new EdgeQueuedEvent { EventId = Guid.Parse(payload.EventId), DeviceDatabase = deviceDatabase, RetryCount = reader.GetInt32(27), Payload = payload };
+        }
+
+        private static string ParseTransactionKind(string value)
+        {
+            switch ((value ?? String.Empty).Trim())
+            {
+                case "top_up":
+                case "spend":
+                case "refund":
+                case "adjustment":
+                case "issuance":
+                case "card_replacement": return value.Trim();
+                default: throw new InvalidOperationException("نوع رویداد ثبت‌شده با قرارداد Edge سازگار نیست.");
+            }
+        }
+
+        private static string ParseOperationResult(string value)
+        {
+            switch ((value ?? String.Empty).Trim())
+            {
+                case "success":
+                case "cancelled":
+                case "failed": return value.Trim();
+                default: throw new InvalidOperationException("نتیجه‌ی عملیات ثبت‌شده با قرارداد Edge سازگار نیست.");
+            }
         }
 
         private static void AllocateSequence(SqlConnection connection, SqlTransaction transaction, Guid sourceInstanceId, byte[] cardKeyHash, out long sequence)
@@ -1059,26 +1102,15 @@ SELECT @current;", connection, transaction))
             return sequence;
         }
 
-        private static string GetPricingVersion(SqlConnection connection, string branchId, RechargeOperationTerms terms)
+        private static string GetCurrentSnapshotVersion(SqlConnection connection, SqlTransaction transaction, string branchId)
         {
-            if (!String.IsNullOrWhiteSpace(branchId))
+            if (String.IsNullOrWhiteSpace(branchId)) return null;
+            using (var command = new SqlCommand("SELECT TOP(1) SnapshotVersion FROM app.EdgeSnapshotState WHERE StateId=1 AND BranchId=@branch AND ExpiresAtUtc>SYSUTCDATETIME()", connection, transaction))
             {
-                using (var command = new SqlCommand("SELECT TOP(1) SnapshotVersion FROM app.EdgeSnapshotState WHERE StateId=1 AND BranchId=@branch AND ExpiresAtUtc>SYSUTCDATETIME()", connection))
-                {
-                    command.Parameters.Add("@branch", SqlDbType.NVarChar, 128).Value = branchId;
-                    object value = command.ExecuteScalar();
-                    if (value != null && value != DBNull.Value) return Convert.ToString(value, CultureInfo.InvariantCulture);
-                }
+                command.Parameters.Add("@branch", SqlDbType.NVarChar, 128).Value = branchId;
+                object value = command.ExecuteScalar();
+                return value == null || value == DBNull.Value ? null : Convert.ToString(value, CultureInfo.InvariantCulture);
             }
-            return BuildLocalPricingVersion(terms);
-        }
-
-        private static string BuildLocalPricingVersion(RechargeOperationTerms terms)
-        {
-            return "local-" + terms.DiscountTierId.ToString(CultureInfo.InvariantCulture) + "-" +
-                terms.DailyDiscountPercent.ToString(CultureInfo.InvariantCulture) + "-" +
-                terms.PromotionCode.ToString(CultureInfo.InvariantCulture) + "-" +
-                terms.PromotionDiscountPercent.ToString(CultureInfo.InvariantCulture);
         }
 
         private static Guid GetSourceInstanceId(AppSettings settings)
@@ -1143,40 +1175,21 @@ SELECT @current;", connection, transaction))
                     throw new EdgeApiException("invalid-snapshot", false);
             }
 
+            if (snapshot.Cursor != null || snapshot.Customers.Count != 0 || snapshot.Households.Count != 0 ||
+                snapshot.Members.Count != 0 || snapshot.Devices.Count != 0 || snapshot.PricingRules.Count != 0)
+                throw new EdgeApiException("snapshot-content-not-supported", false);
+
             var cardKeys = new HashSet<string>(StringComparer.Ordinal);
             var centralCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (EdgeCardMappingDto row in snapshot.Cards)
             {
                 if (row == null || !ValidId(row.CardId, 128) || !centralCardIds.Add(row.CardId.Trim()))
                     throw new EdgeApiException("invalid-snapshot", false);
-                byte[] uid;
-                try { uid = ParseCardUid(row.LocalCardUid); }
+                byte[] hash;
+                try { hash = ParseCardUidHash(row.CardUidHash); }
                 catch { throw new EdgeApiException("invalid-snapshot", false); }
-                string hash;
-                using (var sha = SHA256.Create()) hash = Convert.ToBase64String(sha.ComputeHash(uid));
-                if (!cardKeys.Add(hash)) throw new EdgeApiException("invalid-snapshot", false);
-                if (!String.IsNullOrWhiteSpace(row.HouseholdId) && !householdIds.Contains(row.HouseholdId.Trim()))
-                    throw new EdgeApiException("invalid-snapshot", false);
-                if (!String.IsNullOrWhiteSpace(row.MemberId))
-                {
-                    string memberHousehold;
-                    if (!memberHouseholds.TryGetValue(row.MemberId.Trim(), out memberHousehold) ||
-                        String.IsNullOrWhiteSpace(row.HouseholdId) ||
-                        !String.Equals(memberHousehold, row.HouseholdId.Trim(), StringComparison.OrdinalIgnoreCase))
-                        throw new EdgeApiException("invalid-snapshot", false);
-                }
+                if (!cardKeys.Add(Convert.ToBase64String(hash))) throw new EdgeApiException("invalid-snapshot", false);
             }
-            var localDeviceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var centralDeviceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (EdgeDeviceMappingDto row in snapshot.Devices)
-                if (row == null || !ValidId(row.SourceDeviceId, 128) || !ValidId(row.DeviceId, 128) ||
-                    !localDeviceIds.Add(row.SourceDeviceId.Trim()) || !centralDeviceIds.Add(row.DeviceId.Trim()))
-                    throw new EdgeApiException("invalid-snapshot", false);
-            var promotionCodes = new HashSet<int>();
-            foreach (EdgePricingRuleDto row in snapshot.PricingRules)
-                if (row == null || !ValidId(row.PricingVersion, 128) ||
-                    (row.PromotionCode.HasValue && (!ValidId(row.PromotionId, 128) || !promotionCodes.Add(row.PromotionCode.Value))))
-                    throw new EdgeApiException("invalid-snapshot", false);
         }
 
         private static bool TryParseUtc(string value, out DateTime result)
@@ -1195,6 +1208,19 @@ SELECT @current;", connection, transaction))
             if (hex.Length != 8) throw new FormatException();
             var result = new byte[4];
             for (int i = 0; i < result.Length; i++) result[i] = Byte.Parse(hex.Substring(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            return result;
+        }
+
+        private static byte[] ParseCardUidHash(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value) || value.Length != 64) throw new FormatException();
+            var result = new byte[32];
+            for (int index = 0; index < result.Length; index++)
+            {
+                string pair = value.Substring(index * 2, 2);
+                if (pair.Any(ch => !(ch >= '0' && ch <= '9') && !(ch >= 'a' && ch <= 'f'))) throw new FormatException();
+                result[index] = Byte.Parse(pair, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            }
             return result;
         }
 

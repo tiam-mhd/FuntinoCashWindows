@@ -28,10 +28,8 @@ if ($mainCatalogNodes.Count -ne 1 -or $deviceCatalogNodes.Count -ne 1) {
 }
 $mainDatabase = $mainCatalogNodes[0].GetAttribute('value')
 $deviceDatabase = $deviceCatalogNodes[0].GetAttribute('value')
-if ($mainDatabase -notmatch '^[A-Za-z_][A-Za-z0-9_]{0,127}$' -or
-    $deviceDatabase -notmatch '^[A-Za-z_][A-Za-z0-9_]{0,127}$' -or
-    $mainDatabase -ieq $deviceDatabase) {
-    throw 'The configured operational catalog names are invalid or identical.'
+if ($mainDatabase -cne 'FuntinoParkOperations' -or $deviceDatabase -cne 'FuntinoDeviceOperations') {
+    throw 'The installer accepts only FuntinoParkOperations and FuntinoDeviceOperations from the application configuration.'
 }
 $logDirectory = Join-Path $env:ProgramData 'Funtino\ControlCenter\InstallLogs'
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
@@ -210,83 +208,6 @@ function Quote-SqlIdentifier {
     return '[' + $Value.Replace(']', ']]') + ']'
 }
 
-function Get-DatabaseDataDirectory {
-    $directory = [string](Invoke-SqlScalar -Catalog 'master' -Sql "SELECT CONVERT(nvarchar(4000),SERVERPROPERTY('InstanceDefaultDataPath'))")
-    if ([string]::IsNullOrWhiteSpace($directory)) {
-        $masterFile = [string](Invoke-SqlScalar -Catalog 'master' -Sql "SELECT physical_name FROM sys.master_files WHERE database_id=DB_ID(N'master') AND file_id=1")
-        if ([string]::IsNullOrWhiteSpace($masterFile)) { throw 'SQL Server did not report its default data directory.' }
-        $directory = Split-Path -Parent $masterFile
-    }
-    return $directory.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-}
-
-function Attach-SeedDatabase {
-    param(
-        [string]$DatabaseName,
-        [string]$SourceDataFile,
-        [string]$SourceLogFile
-    )
-
-    $escapedLiteral = $DatabaseName.Replace("'", "''")
-    $escapedIdentifier = Quote-SqlIdentifier $DatabaseName
-    if ([int](Invoke-SqlScalar -Catalog 'master' -Sql "SELECT CASE WHEN DB_ID(N'$escapedLiteral') IS NULL THEN 0 ELSE 1 END") -eq 1) {
-        Write-Host "Database '$DatabaseName' already exists; its files and contents were left untouched."
-        return
-    }
-
-    $sourceDataPath = Join-Path $scriptRoot $SourceDataFile
-    $sourceLogPath = Join-Path $scriptRoot $SourceLogFile
-    foreach ($source in @($sourceDataPath, $sourceLogPath)) {
-        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Required reference database file is missing: $source" }
-        if ((Get-Item -LiteralPath $source).Length -eq 0) { throw "Reference database file is empty: $source" }
-    }
-
-    $dataDirectory = Get-DatabaseDataDirectory
-    if (-not (Test-Path -LiteralPath $dataDirectory -PathType Container)) {
-        throw "SQL Server's data directory does not exist: $dataDirectory"
-    }
-    $targetDataPath = Join-Path $dataDirectory ($DatabaseName + '.mdf')
-    $targetLogPath = Join-Path $dataDirectory ($DatabaseName + '_log.ldf')
-    $dataExists = Test-Path -LiteralPath $targetDataPath -PathType Leaf
-    $logExists = Test-Path -LiteralPath $targetLogPath -PathType Leaf
-    if ($dataExists -xor $logExists) {
-        throw "Only one database file exists for '$DatabaseName'. The installer will not overwrite it; inspect '$dataDirectory' before retrying."
-    }
-    if (-not $dataExists) {
-        Copy-Item -LiteralPath $sourceDataPath -Destination $targetDataPath
-        Copy-Item -LiteralPath $sourceLogPath -Destination $targetLogPath
-        foreach ($path in @($targetDataPath, $targetLogPath)) {
-            $file = Get-Item -LiteralPath $path
-            if ($file.IsReadOnly) { $file.IsReadOnly = $false }
-        }
-    }
-
-    $dataLiteral = $targetDataPath.Replace("'", "''")
-    $logLiteral = $targetLogPath.Replace("'", "''")
-    $attach = @"
-CREATE DATABASE $escapedIdentifier
-ON (FILENAME=N'$dataLiteral'),(FILENAME=N'$logLiteral')
-FOR ATTACH;
-"@
-    Invoke-SqlNonQuery -Catalog 'master' -Sql $attach
-    Invoke-SqlNonQuery -Catalog 'master' -Sql "ALTER DATABASE $escapedIdentifier SET COMPATIBILITY_LEVEL=110"
-
-    $logicalDataName = [string](Invoke-SqlScalar -Catalog 'master' -Sql "SELECT TOP 1 name FROM sys.master_files WHERE database_id=DB_ID(N'$escapedLiteral') AND type_desc=N'ROWS' ORDER BY file_id")
-    $logicalLogName = [string](Invoke-SqlScalar -Catalog 'master' -Sql "SELECT TOP 1 name FROM sys.master_files WHERE database_id=DB_ID(N'$escapedLiteral') AND type_desc=N'LOG' ORDER BY file_id")
-    if ([string]::IsNullOrWhiteSpace($logicalDataName) -or [string]::IsNullOrWhiteSpace($logicalLogName)) {
-        throw "SQL Server attached '$DatabaseName' but did not report both logical file names."
-    }
-    $newLogicalLogName = $DatabaseName + '_log'
-    $renameFiles = ''
-    if ($logicalDataName -ne $DatabaseName) {
-        $renameFiles += "ALTER DATABASE $escapedIdentifier MODIFY FILE (NAME=N'" + $logicalDataName.Replace("'", "''") + "',NEWNAME=N'" + $DatabaseName.Replace("'", "''") + "');`r`n"
-    }
-    if ($logicalLogName -ne $newLogicalLogName) {
-        $renameFiles += "ALTER DATABASE $escapedIdentifier MODIFY FILE (NAME=N'" + $logicalLogName.Replace("'", "''") + "',NEWNAME=N'" + $newLogicalLogName.Replace("'", "''") + "');`r`n"
-    }
-    if (-not [string]::IsNullOrEmpty($renameFiles)) { Invoke-SqlNonQuery -Catalog 'master' -Sql $renameFiles }
-}
-
 function Ensure-ApplicationAccount {
     param([string]$WindowsAccount, [string]$DatabaseName)
     $escapedLiteral = $WindowsAccount.Replace("'", "''")
@@ -412,12 +333,16 @@ try {
     & "$env:windir\System32\sc.exe" config $serviceName start= auto | Out-Null
 
     [void](Wait-SqlReady)
-    Attach-SeedDatabase -DatabaseName $mainDatabase -SourceDataFile 'FuntinoParkOperations-seed.mdf' -SourceLogFile 'FuntinoParkOperations-seed_log.ldf'
-    Attach-SeedDatabase -DatabaseName $deviceDatabase -SourceDataFile 'FuntinoDeviceOperations-seed.mdf' -SourceLogFile 'FuntinoDeviceOperations-seed_log.ldf'
+    foreach ($catalog in @($mainDatabase, $deviceDatabase)) {
+        $escapedCatalog = $catalog.Replace("'", "''")
+        $exists = [int](Invoke-SqlScalar -Catalog 'master' -Sql "SELECT CASE WHEN DB_ID(N'$escapedCatalog') IS NULL THEN 0 ELSE 1 END")
+        if ($exists -ne 1) {
+            throw "Required operational catalog '$catalog' is missing. Provision the approved operational database before installation; setup will not attach or migrate a reference database."
+        }
+    }
     Ensure-ApplicationAccount -WindowsAccount $AllowedWindowsAccount -DatabaseName $mainDatabase
     Ensure-ApplicationAccount -WindowsAccount $AllowedWindowsAccount -DatabaseName $deviceDatabase
-
-    Write-Host "SQL Server instance '$instanceName' is ready with operational catalogs '$mainDatabase' and '$deviceDatabase'. Existing catalogs are preserved; missing catalogs use private reference copies. The application will migrate their schemas on first launch."
+    Write-Host "SQL Server instance '$instanceName' is ready. Operational catalogs were validated without attaching or migrating reference databases."
     try { Stop-Transcript | Out-Null } catch { }
     exit 0
 } catch {

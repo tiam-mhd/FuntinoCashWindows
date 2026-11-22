@@ -8,29 +8,40 @@ namespace FuntinoControlCenter.Services
     [DataContract]
     internal sealed class EdgeEventDto
     {
-        [DataMember(Name = "eventId", Order = 1)] public string EventId { get; set; }
-        [DataMember(Name = "sourceInstanceId", Order = 2)] public string SourceInstanceId { get; set; }
-        [DataMember(Name = "localTransactionId", Order = 3)] public string LocalTransactionId { get; set; }
-        [DataMember(Name = "sourceDatabase", Order = 4)] public string SourceDatabase { get; set; }
-        [DataMember(Name = "organizationId", Order = 5)] public string OrganizationId { get; set; }
-        [DataMember(Name = "branchId", Order = 6)] public string BranchId { get; set; }
-        [DataMember(Name = "cardId", Order = 7)] public string CardId { get; set; }
-        [DataMember(Name = "householdId", Order = 8, EmitDefaultValue = false)] public string HouseholdId { get; set; }
-        [DataMember(Name = "memberId", Order = 9, EmitDefaultValue = false)] public string MemberId { get; set; }
-        [DataMember(Name = "deviceId", Order = 10, EmitDefaultValue = false)] public string DeviceId { get; set; }
-        [DataMember(Name = "sourceDeviceId", Order = 11, EmitDefaultValue = false)] public string SourceDeviceId { get; set; }
-        [DataMember(Name = "transactionKind", Order = 12)] public string TransactionKind { get; set; }
-        [DataMember(Name = "amountRial", Order = 13)] public long AmountRial { get; set; }
-        [DataMember(Name = "currencyCode", Order = 14)] public string CurrencyCode { get; set; }
-        [DataMember(Name = "grossAmountRial", Order = 15)] public long GrossAmountRial { get; set; }
-        [DataMember(Name = "discountAmountRial", Order = 16)] public long DiscountAmountRial { get; set; }
-        [DataMember(Name = "netAmountRial", Order = 17)] public long NetAmountRial { get; set; }
-        [DataMember(Name = "promotionId", Order = 18, EmitDefaultValue = false)] public string PromotionId { get; set; }
-        [DataMember(Name = "pricingVersion", Order = 19)] public string PricingVersion { get; set; }
-        [DataMember(Name = "occurredAt", Order = 20)] public string OccurredAt { get; set; }
-        [DataMember(Name = "localSequence", Order = 21)] public long LocalSequence { get; set; }
-        [DataMember(Name = "balanceAfterRial", Order = 22, EmitDefaultValue = false)] public long? BalanceAfterRial { get; set; }
-        [DataMember(Name = "operationResult", Order = 23)] public string OperationResult { get; set; }
+        [DataMember(Name = "eventId", Order = 1, IsRequired = true)] public string EventId { get; set; }
+        [DataMember(Name = "sourceInstanceId", Order = 2, IsRequired = true)] public string SourceInstanceId { get; set; }
+        [DataMember(Name = "localTransactionId", Order = 3, IsRequired = true)] public string LocalTransactionId { get; set; }
+        [DataMember(Name = "sourceDatabase", Order = 4, IsRequired = true)] public string SourceDatabase { get; set; }
+        [DataMember(Name = "organizationId", Order = 5, IsRequired = true)] public string OrganizationId { get; set; }
+        [DataMember(Name = "branchId", Order = 6, IsRequired = true)] public string BranchId { get; set; }
+        [DataMember(Name = "cardId", Order = 7, IsRequired = true)] public string CardId { get; set; }
+        [DataMember(Name = "householdId", Order = 8, IsRequired = true)] public string HouseholdId { get; set; }
+        [DataMember(Name = "memberId", Order = 9, IsRequired = true)] public string MemberId { get; set; }
+        [DataMember(Name = "deviceId", Order = 10, IsRequired = true)] public string DeviceId { get; set; }
+        [DataMember(Name = "sourceDeviceId", Order = 11, IsRequired = true)] public string SourceDeviceId { get; set; }
+        [DataMember(Name = "attractionId", Order = 12, IsRequired = true)] public string AttractionId { get; set; }
+        [DataMember(Name = "transactionKind", Order = 13, IsRequired = true)] public string TransactionKind { get; set; }
+        [DataMember(Name = "amountRial", Order = 14, IsRequired = true)] public long AmountRial { get; set; }
+        [DataMember(Name = "currencyCode", Order = 15, IsRequired = true)] public string CurrencyCode { get; set; }
+        [DataMember(Name = "grossAmountRial", Order = 16, IsRequired = true)] public long GrossAmountRial { get; set; }
+        [DataMember(Name = "discountAmountRial", Order = 17, IsRequired = true)] public long DiscountAmountRial { get; set; }
+        [DataMember(Name = "netAmountRial", Order = 18, IsRequired = true)] public long NetAmountRial { get; set; }
+        [DataMember(Name = "promotionId", Order = 19, IsRequired = true)] public string PromotionId { get; set; }
+        [DataMember(Name = "ruleId", Order = 20, IsRequired = true)] public string RuleId { get; set; }
+        [DataMember(Name = "pricingVersion", Order = 21, IsRequired = true)] public string PricingVersion { get; set; }
+        [DataMember(Name = "occurredAt", Order = 22, IsRequired = true)] public string OccurredAt { get; set; }
+        [DataMember(Name = "localSequence", Order = 23, IsRequired = true)] public long LocalSequence { get; set; }
+        [DataMember(Name = "balanceAfterRial", Order = 24, IsRequired = true)] public long? BalanceAfterRial { get; set; }
+        [DataMember(Name = "operationResult", Order = 25, IsRequired = true)] public string OperationResult { get; set; }
+        [DataMember(Name = "snapshotVersion", Order = 26, IsRequired = true)] public string SnapshotVersion { get; set; }
+        [DataMember(Name = "reversalOfLocalTransactionId", Order = 27, IsRequired = true)] public string ReversalOfLocalTransactionId { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeEventBatchRequest
+    {
+        [DataMember(Name = "sourceInstanceId", Order = 1, IsRequired = true)] public string SourceInstanceId { get; set; }
+        [DataMember(Name = "events", Order = 2, IsRequired = true)] public List<EdgeEventDto> Events { get; set; }
     }
 
     [DataContract]
@@ -38,7 +49,8 @@ namespace FuntinoControlCenter.Services
     {
         [DataMember(Name = "eventId", IsRequired = true)] public string EventId { get; set; }
         [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
-        [DataMember(Name = "reason", EmitDefaultValue = false)] public string Reason { get; set; }
+        [DataMember(Name = "errorCode", IsRequired = true)] public string ErrorCode { get; set; }
+        [DataMember(Name = "retryable", IsRequired = true)] public bool Retryable { get; set; }
     }
 
     [DataContract]
@@ -70,13 +82,16 @@ namespace FuntinoControlCenter.Services
 
                 string state = (result.Status ?? String.Empty).Trim().ToLowerInvariant();
                 if (state != "accepted" && state != "duplicate" && state != "rejected") continue;
+                if ((state == "accepted" || state == "duplicate") && (result.ErrorCode != null || result.Retryable)) continue;
+                if (state == "rejected" && String.IsNullOrWhiteSpace(result.ErrorCode)) continue;
                 if (!acknowledged.Add(eventId)) continue;
 
                 validResults.Add(new EdgeAcknowledgementDto
                 {
                     EventId = eventId.ToString("D"),
                     Status = state,
-                    Reason = result.Reason
+                    ErrorCode = result.ErrorCode,
+                    Retryable = result.Retryable
                 });
             }
 
@@ -148,9 +163,129 @@ namespace FuntinoControlCenter.Services
     [DataContract]
     internal sealed class EdgeCardMappingDto
     {
-        [DataMember(Name = "localCardUid", IsRequired = true)] public string LocalCardUid { get; set; }
+        [DataMember(Name = "cardUidHash", IsRequired = true)] public string CardUidHash { get; set; }
         [DataMember(Name = "cardId", IsRequired = true)] public string CardId { get; set; }
         [DataMember(Name = "householdId", EmitDefaultValue = false)] public string HouseholdId { get; set; }
         [DataMember(Name = "memberId", EmitDefaultValue = false)] public string MemberId { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeCustomerSearchPage
+    {
+        [DataMember(Name = "items", IsRequired = true)] public List<EdgeCustomerSearchItem> Items { get; set; }
+        [DataMember(Name = "nextCursor", IsRequired = true)] public string NextCursor { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeCustomerSearchItem
+    {
+        [DataMember(Name = "customerId", IsRequired = true)] public string CustomerId { get; set; }
+        [DataMember(Name = "displayName", IsRequired = true)] public string DisplayName { get; set; }
+        [DataMember(Name = "maskedPhone", IsRequired = true)] public string MaskedPhone { get; set; }
+        [DataMember(Name = "householdId", IsRequired = true)] public string HouseholdId { get; set; }
+        [DataMember(Name = "memberId", IsRequired = true)] public string MemberId { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeCustomerProfile
+    {
+        [DataMember(Name = "customerId", IsRequired = true)] public string CustomerId { get; set; }
+        [DataMember(Name = "firstName", IsRequired = true)] public string FirstName { get; set; }
+        [DataMember(Name = "lastName", IsRequired = true)] public string LastName { get; set; }
+        [DataMember(Name = "birthDate", IsRequired = true)] public string BirthDate { get; set; }
+        [DataMember(Name = "gender", IsRequired = true)] public string Gender { get; set; }
+        [DataMember(Name = "city", IsRequired = true)] public string City { get; set; }
+        [DataMember(Name = "avatarPreset", IsRequired = true)] public string AvatarPreset { get; set; }
+        [DataMember(Name = "hasUploadedAvatar", IsRequired = true)] public bool HasUploadedAvatar { get; set; }
+        [DataMember(Name = "profileCompleted", IsRequired = true)] public bool ProfileCompleted { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+        [DataMember(Name = "maskedPhone", IsRequired = true)] public string MaskedPhone { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeHouseholdRead
+    {
+        [DataMember(Name = "id", IsRequired = true)] public string Id { get; set; }
+        [DataMember(Name = "name", IsRequired = true)] public string Name { get; set; }
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+        [DataMember(Name = "members", IsRequired = true)] public List<EdgeHouseholdReadMember> Members { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeHouseholdReadMember
+    {
+        [DataMember(Name = "id", IsRequired = true)] public string Id { get; set; }
+        [DataMember(Name = "displayName", IsRequired = true)] public string DisplayName { get; set; }
+        [DataMember(Name = "relationship", IsRequired = true)] public string Relationship { get; set; }
+        [DataMember(Name = "birthDate", IsRequired = true)] public string BirthDate { get; set; }
+        [DataMember(Name = "isDependent", IsRequired = true)] public bool IsDependent { get; set; }
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeProfileMutationResult
+    {
+        [DataMember(Name = "customerId", IsRequired = true)] public string CustomerId { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+        [DataMember(Name = "maskedPhone", IsRequired = true)] public string MaskedPhone { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeHouseholdMutationResult
+    {
+        [DataMember(Name = "householdId", IsRequired = true)] public string HouseholdId { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeHouseholdMemberMutationResult
+    {
+        [DataMember(Name = "memberId", IsRequired = true)] public string MemberId { get; set; }
+        [DataMember(Name = "householdId", IsRequired = true)] public string HouseholdId { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeTemporaryCustomerResult
+    {
+        [DataMember(Name = "provisionalId", IsRequired = true)] public string ProvisionalId { get; set; }
+        [DataMember(Name = "sourceInstanceId", IsRequired = true)] public string SourceInstanceId { get; set; }
+        [DataMember(Name = "branchId", IsRequired = true)] public string BranchId { get; set; }
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "createdAt", IsRequired = true)] public string CreatedAt { get; set; }
+        [DataMember(Name = "customerConfirmed", IsRequired = true)] public bool CustomerConfirmed { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeCardAssignmentResult
+    {
+        [DataMember(Name = "assignmentId", IsRequired = true)] public string AssignmentId { get; set; }
+        [DataMember(Name = "cardId", IsRequired = true)] public string CardId { get; set; }
+        [DataMember(Name = "householdId", IsRequired = true)] public string HouseholdId { get; set; }
+        [DataMember(Name = "memberId", IsRequired = true)] public string MemberId { get; set; }
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "verificationStatus", IsRequired = true)] public string VerificationStatus { get; set; }
+        [DataMember(Name = "maskedIdentifier", IsRequired = true)] public string MaskedIdentifier { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeCardBlockResult
+    {
+        [DataMember(Name = "cardId", IsRequired = true)] public string CardId { get; set; }
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "recordVersion", IsRequired = true)] public int RecordVersion { get; set; }
+        [DataMember(Name = "maskedIdentifier", IsRequired = true)] public string MaskedIdentifier { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeCardReplacementResult
+    {
+        [DataMember(Name = "requestId", IsRequired = true)] public string RequestId { get; set; }
+        [DataMember(Name = "cardId", IsRequired = true)] public string CardId { get; set; }
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "duplicate", IsRequired = true)] public bool Duplicate { get; set; }
     }
 }

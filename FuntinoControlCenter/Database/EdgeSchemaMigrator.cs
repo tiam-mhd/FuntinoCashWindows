@@ -33,7 +33,7 @@ BEGIN
   PromotionDiscountPercent int NULL,
   DailyDiscountPercent int NULL,
   DiscountTierId int NULL,
-  PricingVersion nvarchar(128) NOT NULL,
+  PricingVersion nvarchar(128) NULL,
   OccurredAtUtc datetime2(3) NOT NULL,
   LocalSequence bigint NOT NULL,
   BalanceAfterRial bigint NULL,
@@ -58,6 +58,13 @@ IF COL_LENGTH(N'app.EdgeOutbox',N'PromotionCode') IS NULL ALTER TABLE app.EdgeOu
 IF COL_LENGTH(N'app.EdgeOutbox',N'PromotionDiscountPercent') IS NULL ALTER TABLE app.EdgeOutbox ADD PromotionDiscountPercent int NULL;
 IF COL_LENGTH(N'app.EdgeOutbox',N'DailyDiscountPercent') IS NULL ALTER TABLE app.EdgeOutbox ADD DailyDiscountPercent int NULL;
 IF COL_LENGTH(N'app.EdgeOutbox',N'DiscountTierId') IS NULL ALTER TABLE app.EdgeOutbox ADD DiscountTierId int NULL;
+IF COL_LENGTH(N'app.EdgeOutbox',N'AttractionId') IS NULL ALTER TABLE app.EdgeOutbox ADD AttractionId nvarchar(128) NULL;
+IF COL_LENGTH(N'app.EdgeOutbox',N'RuleId') IS NULL ALTER TABLE app.EdgeOutbox ADD RuleId nvarchar(128) NULL;
+IF COL_LENGTH(N'app.EdgeOutbox',N'SnapshotVersion') IS NULL ALTER TABLE app.EdgeOutbox ADD SnapshotVersion nvarchar(128) NULL;
+IF COL_LENGTH(N'app.EdgeOutbox',N'ReversalOfLocalTransactionId') IS NULL ALTER TABLE app.EdgeOutbox ADD ReversalOfLocalTransactionId nvarchar(128) NULL;
+ALTER TABLE app.EdgeOutbox ALTER COLUMN PricingVersion nvarchar(128) NULL;
+UPDATE app.EdgeOutbox SET OperationResult='success' WHERE OperationResult='succeeded';
+UPDATE app.EdgeOutbox SET OperationResult='cancelled' WHERE OperationResult='canceled';
 IF OBJECT_ID(N'app.EdgeSyncState',N'U') IS NULL
 BEGIN
  CREATE TABLE app.EdgeSyncState

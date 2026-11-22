@@ -45,6 +45,7 @@
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Security" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -82,6 +83,7 @@
     <Compile Include="Services\DeviceDiagnostics.cs" />
     <Compile Include="Services\CardReaderService.cs" />
     <Compile Include="Services\EdgeContracts.cs" />
+    <Compile Include="Services\EdgeCanonicalJson.cs" />
     <Compile Include="Services\EdgeAmountConverter.cs" />
     <Compile Include="Services\EdgeApiClient.cs" />
     <Compile Include="Services\EdgeSyncWorker.cs" />
