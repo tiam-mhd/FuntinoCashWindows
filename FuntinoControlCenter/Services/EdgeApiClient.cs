@@ -17,12 +17,14 @@ namespace FuntinoControlCenter.Services
     {
         public string SafeCode { get; private set; }
         public bool Retryable { get; private set; }
+        public int HttpStatusCode { get; private set; }
 
-        public EdgeApiException(string safeCode, bool retryable)
+        public EdgeApiException(string safeCode, bool retryable, int httpStatusCode = 0)
             : base("ارتباط با سرور همگام‌سازی کامل نشد.")
         {
             SafeCode = safeCode;
             Retryable = retryable;
+            HttpStatusCode = httpStatusCode;
         }
     }
 
@@ -228,9 +230,63 @@ namespace FuntinoControlCenter.Services
             };
         }
 
-        public EdgeCustomerSearchPage SearchCustomers(string query, string cursor, int pageSize)
+        public EdgeOperatorPairingStartResponse StartOperatorPairing()
+        {
+            AuthorizationGuard.Require("edge.operator.pair");
+            byte[] response = Send("POST", BuildUri("/internal/v2/edge/operator-pairings"), SerializeOperatorPairingStartBody());
+            EdgeOperatorPairingStartResponse result;
+            try { result = Deserialize<EdgeOperatorPairingStartResponse>(response); }
+            finally { Array.Clear(response, 0, response.Length); }
+            DateTimeOffset expiration;
+            if (result == null || !IsGuid(result.PairingId) || !IsPairingCode(result.UserCode) ||
+                result.PollSecret == null || result.PollSecret.Length < 40 || result.PollSecret.Length > 64 ||
+                result.PollIntervalSeconds != 3 ||
+                !DateTimeOffset.TryParse(result.ExpiresAt, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out expiration) ||
+                expiration <= DateTimeOffset.UtcNow || expiration > DateTimeOffset.UtcNow.AddMinutes(5).AddSeconds(30))
+                throw new EdgeApiException("invalid-pairing-response", false);
+            return result;
+        }
+
+        public EdgeOperatorPairingPollResponse PollOperatorPairing(string pairingId, string pollSecret)
+        {
+            AuthorizationGuard.Require("edge.operator.pair");
+            if (!IsGuid(pairingId) || String.IsNullOrWhiteSpace(pollSecret) || pollSecret.Length < 32 || pollSecret.Length > 128)
+                throw new ArgumentException("اطلاعات اتصال امن معتبر نیست.");
+            byte[] body = SerializeOperatorPairingBody(pairingId, pollSecret);
+            byte[] response = null;
+            EdgeOperatorPairingPollResponse result;
+            try
+            {
+                response = Send("POST", BuildUri("/internal/v2/edge/operator-pairings/poll"), body);
+                result = Deserialize<EdgeOperatorPairingPollResponse>(response);
+            }
+            finally
+            {
+                Array.Clear(body, 0, body.Length);
+                if (response != null) Array.Clear(response, 0, response.Length);
+            }
+            if (result == null || !(new[] { "pending", "approved", "expired", "cancelled", "restart_required", "authorized" }).Contains(result.Status) ||
+                String.Equals(result.Status, "authorized", StringComparison.Ordinal)
+                    != (result.OperatorToken != null))
+                throw new EdgeApiException("invalid-pairing-response", true);
+            return result;
+        }
+
+        public void CancelOperatorPairing(string pairingId, string pollSecret)
+        {
+            AuthorizationGuard.Require("edge.operator.pair");
+            if (!IsGuid(pairingId) || String.IsNullOrWhiteSpace(pollSecret) || pollSecret.Length < 32 || pollSecret.Length > 128)
+                return;
+            byte[] body = SerializeOperatorPairingBody(pairingId, pollSecret);
+            try { Send("POST", BuildUri("/internal/v2/edge/operator-pairings/cancel"), body); }
+            finally { Array.Clear(body, 0, body.Length); }
+        }
+
+        public EdgeCustomerSearchPage SearchCustomers(string query, string cursor, int pageSize, string operatorToken)
         {
             AuthorizationGuard.Require("customers.view");
+            if (String.IsNullOrWhiteSpace(operatorToken)) throw new EdgeApiException("operator-token-required", false, 401);
             query = (query ?? String.Empty).Trim();
             if (query.Length < 1 || query.Length > 120) throw new ArgumentException("عبارت جست‌وجو معتبر نیست.", "query");
             if (pageSize < 1 || pageSize > 100) throw new ArgumentOutOfRangeException("pageSize");
@@ -240,33 +296,37 @@ namespace FuntinoControlCenter.Services
             string path = "/internal/v2/edge/customers?branchId=" + Uri.EscapeDataString(settings.EdgeBranchId.Trim()) +
                 "&query=" + Uri.EscapeDataString(query) + "&pageSize=" + pageSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (!String.IsNullOrWhiteSpace(cursor)) path += "&cursor=" + Uri.EscapeDataString(cursor.Trim());
-            EdgeCustomerSearchPage result = Deserialize<EdgeCustomerSearchPage>(Send("GET", BuildUri(path), new byte[0]));
-            if (result.Items == null || result.Items.Count > pageSize || result.Items.Any(item =>
+            EdgeCustomerSearchPage result = Deserialize<EdgeCustomerSearchPage>(Send("GET", BuildUri(path), new byte[0], operatorToken.Trim()));
+            Guid nextCursor;
+            if (result == null || result.Items == null || result.Items.Count > pageSize ||
+                (!String.IsNullOrWhiteSpace(result.NextCursor) && !Guid.TryParse(result.NextCursor, out nextCursor)) || result.Items.Any(item =>
                 item == null || !IsGuid(item.CustomerId) || !IsPositiveVersion(item.RecordVersion) ||
                 !IsMaskedPhone(item.MaskedPhone) || !IsOptionalGuid(item.HouseholdId) || !IsOptionalGuid(item.MemberId)))
                 throw new EdgeApiException("invalid-response", true);
             return result;
         }
 
-        public EdgeCustomerProfile ReadCustomerProfile(string customerId)
+        public EdgeCustomerProfile ReadCustomerProfile(string customerId, string operatorToken)
         {
             AuthorizationGuard.Require("customers.view");
+            if (String.IsNullOrWhiteSpace(operatorToken)) throw new EdgeApiException("operator-token-required", false, 401);
             if (!IsGuid(customerId)) throw new ArgumentException("شناسهٔ مشتری معتبر نیست.", "customerId");
             string path = "/internal/v2/edge/customers/" + Uri.EscapeDataString(customerId.Trim()) +
                 "?branchId=" + Uri.EscapeDataString(settings.EdgeBranchId.Trim());
-            EdgeCustomerProfile profile = Deserialize<EdgeCustomerProfile>(Send("GET", BuildUri(path), new byte[0]));
+            EdgeCustomerProfile profile = Deserialize<EdgeCustomerProfile>(Send("GET", BuildUri(path), new byte[0], operatorToken.Trim()));
             if (profile == null || !IsGuid(profile.CustomerId) || !IsPositiveVersion(profile.RecordVersion) || !IsMaskedPhone(profile.MaskedPhone))
                 throw new EdgeApiException("invalid-response", true);
             return profile;
         }
 
-        public EdgeHouseholdRead ReadHousehold(string householdId)
+        public EdgeHouseholdRead ReadHousehold(string householdId, string operatorToken)
         {
             AuthorizationGuard.Require("families.view");
+            if (String.IsNullOrWhiteSpace(operatorToken)) throw new EdgeApiException("operator-token-required", false, 401);
             if (!IsGuid(householdId)) throw new ArgumentException("شناسهٔ خانواده معتبر نیست.", "householdId");
             string path = "/internal/v2/edge/households/" + Uri.EscapeDataString(householdId.Trim()) +
                 "?branchId=" + Uri.EscapeDataString(settings.EdgeBranchId.Trim());
-            EdgeHouseholdRead household = Deserialize<EdgeHouseholdRead>(Send("GET", BuildUri(path), new byte[0]));
+            EdgeHouseholdRead household = Deserialize<EdgeHouseholdRead>(Send("GET", BuildUri(path), new byte[0], operatorToken.Trim()));
             if (household == null || !IsGuid(household.Id) || !IsPositiveVersion(household.RecordVersion) || household.Members == null ||
                 household.Members.Any(item => item == null || !IsGuid(item.Id) || !IsPositiveVersion(item.RecordVersion)))
                 throw new EdgeApiException("invalid-response", true);
@@ -433,6 +493,34 @@ namespace FuntinoControlCenter.Services
             return new JavaScriptSerializer { MaxJsonLength = MaximumResponseBytes, RecursionLimit = 64 }.Serialize(payload);
         }
 
+        internal static byte[] SerializeOperatorPairingStartBody()
+        {
+            return Encoding.UTF8.GetBytes("{}");
+        }
+
+        internal static byte[] SerializeOperatorPairingBody(string pairingId, string pollSecret)
+        {
+            if (!IsGuid(pairingId) || String.IsNullOrWhiteSpace(pollSecret) || pollSecret.Length < 32 || pollSecret.Length > 128)
+                throw new ArgumentException("اطلاعات اتصال امن معتبر نیست.");
+            return Encoding.UTF8.GetBytes(SerializeOperatorPayload(new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                { "pairingId", pairingId }, { "pollSecret", pollSecret }
+            }));
+        }
+
+        internal static void ApplyEdgeRequestHeaders(HttpWebRequest request, string installationId, string keyId,
+            byte[] signingSecret, byte[] rawBody, string operatorToken, string idempotencyKey)
+        {
+            if (request == null || String.IsNullOrWhiteSpace(installationId) || String.IsNullOrWhiteSpace(keyId) ||
+                signingSecret == null || signingSecret.Length < 32 || rawBody == null)
+                throw new ArgumentException("اطلاعات احراز هویت Edge معتبر نیست.");
+            request.Headers["x-edge-installation-id"] = installationId.Trim();
+            request.Headers["x-edge-key-id"] = keyId.Trim();
+            request.Headers["x-edge-signature"] = ComputeSignature(signingSecret, rawBody);
+            if (!String.IsNullOrWhiteSpace(operatorToken)) request.Headers[HttpRequestHeader.Authorization] = "Bearer " + operatorToken.Trim();
+            if (!String.IsNullOrWhiteSpace(idempotencyKey)) request.Headers["Idempotency-Key"] = RequireIdempotencyKey(idempotencyKey);
+        }
+
         private static string RequireIdempotencyKey(string value)
         {
             Guid key;
@@ -441,6 +529,15 @@ namespace FuntinoControlCenter.Services
         }
 
         private static bool IsPositiveVersion(int value) { return value > 0; }
+
+        private static bool IsPairingCode(string value)
+        {
+            if (value == null || value.Length != 11 || value[5] != '-') return false;
+            const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            for (int index = 0; index < value.Length; index++)
+                if (index != 5 && alphabet.IndexOf(value[index]) < 0) return false;
+            return true;
+        }
 
         private static bool IsMaskedPhone(string value)
         {
@@ -612,11 +709,8 @@ namespace FuntinoControlCenter.Services
                 request.ReadWriteTimeout = 20000;
                 request.KeepAlive = false;
                 request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                request.Headers["x-edge-installation-id"] = settings.EdgeSourceInstanceId.Trim();
-                request.Headers["x-edge-key-id"] = settings.EdgeCredentialId.Trim();
-                request.Headers["x-edge-signature"] = ComputeSignature(secret, body);
-                if (!String.IsNullOrWhiteSpace(operatorToken)) request.Headers[HttpRequestHeader.Authorization] = "Bearer " + operatorToken;
-                if (!String.IsNullOrWhiteSpace(idempotencyKey)) request.Headers["Idempotency-Key"] = idempotencyKey;
+                ApplyEdgeRequestHeaders(request, settings.EdgeSourceInstanceId, settings.EdgeCredentialId,
+                    secret, body, operatorToken, idempotencyKey);
                 if (!String.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
                     !String.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase))
                 {
@@ -653,7 +747,7 @@ namespace FuntinoControlCenter.Services
                     string safeCode = status == 409 ? "VERSION_CONFLICT" :
                         (!String.IsNullOrWhiteSpace(errorCode) && errorCode.Length <= 80 ? errorCode :
                         "http-" + status.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                    throw new EdgeApiException(safeCode, retryable);
+                    throw new EdgeApiException(safeCode, retryable, status);
                 }
                 throw new EdgeApiException("network-unavailable", true);
             }

@@ -45,6 +45,9 @@
     <Content Include="Fixtures\windows-edge-contract.v1.fixtures.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Fixtures\edge-operator-pairing.v1.fixtures.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FuntinoControlCenter\FuntinoControlCenter.csproj">

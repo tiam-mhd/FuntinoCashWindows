@@ -53,3 +53,24 @@ Set-Location FuntinoControlCenter\Build
 ## نکته‌ی پشتیبانی
 
 SQL Server 2014 برای سازگاری با Windows 7 استفاده می‌شود و پشتیبانی آن در ژوئیه‌ی ۲۰۲۴ پایان یافته است. Windows 7، Windows 8 و Windows 8.1 نیز دیگر به‌روزرسانی امنیتی دریافت نمی‌کنند.
+
+## اتصال امن اپراتور به Edge
+
+برای خواندن اطلاعات مرکزی مشتری و خانواده، در فرم «مشتری و خانواده» اتصال امن را آغاز کنید. کد کوتاه نمایش‌داده‌شده را در نشست مدیریتی Operations و برای همان شعبه تأیید کنید و فقط دسترسی‌های موردنیاز را برگزینید. Windows وضعیت را با HMAC نصب بررسی می‌کند؛ مرورگر توکن را نشان نمی‌دهد.
+
+توکن اپراتور فقط در حافظه‌ی همان فرایند نگه‌داری می‌شود، به شعبه و دسترسی‌های تأییدشده محدود است و حداکثر پنج دقیقه اعتبار دارد. با خروج، تغییر نشست یا پایان اعتبار پاک می‌شود. برای دسترسی تازه، اتصال را دوباره از Operations تأیید کنید؛ رمز یا cookie مرورگر را در Windows وارد نکنید.
+
+وقتی اتصال موجود نباشد، جست‌وجوی محدود از حافظه‌ی خواندنی شعبه انجام می‌شود و نسخه/تازگی آن در فرم مشخص است. این داده برای ویرایش مرکزی یا قیمت‌گذاری آفلاین معتبر نیست. pairing و مجوز سرور به staging واقعی نیاز دارند و در این بسته به محیط production متصل نشده‌اند.
+
+## ماتریس وضعیت اتصال
+
+| قابلیت | مالک داده | API یا جدول واقعی | صفحه/جریان Windows | آزمون یا مدرک | وضعیت |
+|---|---|---|---|---|---|
+| مجوز کوتاه‌عمر اپراتور | Identity & Access؛ جریان نشست در Gateway و pairing در Device Integration | `/api/v1/operations/edge/pairing-permissions`، `/api/v1/operations/edge/pairing-approvals`، `/internal/v2/edge/operator-pairings` | مشتری و خانواده | fixture مشترک و ۴۶ بررسی قراردادی Windows؛ آزمون‌های Gateway و Device Integration | کد repository پیاده شده؛ staging و کلیدهای واقعی تأیید نشده |
+| جست‌وجو و خواندن مشتری/خانواده | Customer & Household | `/internal/v2/edge/customers` و `/internal/v2/edge/households/{id}`؛ حافظهٔ شعبه در `app.EdgeCustomerCache`، `app.EdgeHouseholdCache` و `app.EdgeMemberCache` | مشتری و خانواده | صفحه‌بندی و scope در کد؛ آزمون HTTP انتهابه‌انتها با سرور جعلی هنوز افزوده نشده | خواندن مرکزی و cache فقط‌خواندنی موجود؛ پوشش آزمون ناقص |
+| snapshot و تازگی cache | Device Integration | `/internal/v2/edge/snapshots`؛ `app.EdgeSnapshotState` | مشتری و خانواده / وضعیت همگام‌سازی | بررسی‌های signature، hash و cache در آزمون‌های موجود Windows و Device Integration | دریافت محلی قابل‌آزمون؛ staging واقعی انجام نشده |
+| ویرایش پروفایل/خانواده و عملیات کارت | Customer & Household و Wallet | PATCH/POSTهای نسخه‌دار و endpointهای کارت در `EdgeApiClient` | فرم مشتری و خانواده | متدهای سرویس موجودند؛ فرم عملیاتی متصل و آزمون UI/409 موجود نیست | ناقص؛ رابط mutation تکمیل نشده |
+| رویداد مالی و بازیابی | Windows صاحب عملیات محلی؛ Device Integration دریافت و ACK | `app.CardOperationLog` و `app.EdgeOutbox` | عملیات کارت / بازیابی شارژ / worker | آزمون‌های fixture و migration تکرارشونده روی LocalDB موقت | top-up موجود؛ producerهای واقعی spend/refund/correction در این کار تأیید نشده‌اند |
+| migration محلی Edge | Windows، فقط در دو catalog مصوب | `FuntinoParkOperations` و `FuntinoDeviceOperations` | شروع برنامه | اجرای دوبارهٔ `EdgeSchemaMigrator` در LocalDB موقت با همین دو نام | آزمون آزمایشی پاس؛ پایگاه واقعی خوانده یا تغییر داده نشده |
+| installer | Windows Release | `Build/Setup.iss` و اسکریپت‌های `Build` | بستهٔ نصب | `ISCC.exe` در محیط پیدا نشد | compile و نصب/حذف در VM انجام نشده |
+| قیمت آفلاین | Pricing & Promotions | snapshot امضاشده و golden vector مشترک | عملیات کارت | golden vector واقعی مشترک در این اجرا موجود نبود | تا تأیید vector غیرفعال بماند |

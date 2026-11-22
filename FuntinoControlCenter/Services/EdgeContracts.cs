@@ -6,6 +6,36 @@ using System.Runtime.Serialization;
 namespace FuntinoControlCenter.Services
 {
     [DataContract]
+    internal sealed class EdgeOperatorPairingStartResponse
+    {
+        [DataMember(Name = "pairingId", IsRequired = true)] public string PairingId { get; set; }
+        [DataMember(Name = "userCode", IsRequired = true)] public string UserCode { get; set; }
+        [DataMember(Name = "pollSecret", IsRequired = true)] public string PollSecret { get; set; }
+        [DataMember(Name = "expiresAt", IsRequired = true)] public string ExpiresAt { get; set; }
+        [DataMember(Name = "pollIntervalSeconds", IsRequired = true)] public int PollIntervalSeconds { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeOperatorPairingPollResponse
+    {
+        [DataMember(Name = "status", IsRequired = true)] public string Status { get; set; }
+        [DataMember(Name = "operatorToken", EmitDefaultValue = false)] public EdgeOperatorTokenDto OperatorToken { get; set; }
+    }
+
+    [DataContract]
+    internal sealed class EdgeOperatorTokenDto
+    {
+        [DataMember(Name = "token", IsRequired = true)] public string Token { get; set; }
+        [DataMember(Name = "tokenId", IsRequired = true)] public string TokenId { get; set; }
+        [DataMember(Name = "organizationId", IsRequired = true)] public string OrganizationId { get; set; }
+        [DataMember(Name = "branchId", IsRequired = true)] public string BranchId { get; set; }
+        [DataMember(Name = "permissionKeys", IsRequired = true)] public List<string> PermissionKeys { get; set; }
+        [DataMember(Name = "expiresAt", IsRequired = true)] public string ExpiresAt { get; set; }
+        [DataMember(Name = "policyVersion", IsRequired = true)] public int PolicyVersion { get; set; }
+        [DataMember(Name = "catalogVersion", IsRequired = true)] public int CatalogVersion { get; set; }
+    }
+
+    [DataContract]
     internal sealed class EdgeEventDto
     {
         [DataMember(Name = "eventId", Order = 1, IsRequired = true)] public string EventId { get; set; }
